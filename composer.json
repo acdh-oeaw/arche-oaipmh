@@ -1,0 +1,13 @@
+{
+    "name": "vendor/oai-pmh",
+    "description": "Description of project oai-pmh.",
+    "authors": [
+        {
+            "name": "zozlak",
+            "email": "zozlak@zozlak.org"
+        }
+    ],
+    "require": {
+        "acdh-oeaw/repo-php-util": "*"
+    }
+}

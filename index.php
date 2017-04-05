@@ -37,45 +37,14 @@ use acdhOeaw\oai\Oai;
 $loader = new ClassLoader('src');
 $config = new Config('config.ini', true);
 
-$formats = array(
-    new MetadataFormat(array(
-        'metadataPrefix' => 'oai_dc',
-        'schema' => 'http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
-        'metadataNamespace' => 'http://www.openarchives.org/OAI/2.0/oai_dc/',
-        'rdfProperty' => '',
-        'class' => '\\acdhOeaw\oai\DcMetadata'
-    )),
-    new MetadataFormat(array(
-        'metadataPrefix' => 'cmdi_collection',
-        'schema' => 'http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1345561703620/xsd',
-        'metadataNamespace' => 'http://www.clarin.eu/cmd/',
-        'rdfProperty' => 'https://vocabs.acdh.ac.at/#hasCMDIcollection',
-        'class' => '\\acdhOeaw\oai\ResMetadata'
-    )),
-    new MetadataFormat(array(
-        'metadataPrefix' => 'cmdi_lexRes',
-        'schema' => 'http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694579/xsd',
-        'metadataNamespace' => 'http://www.clarin.eu/cmd/',
-        'rdfProperty' => 'https://vocabs.acdh.ac.at/#hasCMDIlexRes',
-        'class' => '\\acdhOeaw\oai\ResMetadata'
-    )),
-    new MetadataFormat(array(
-        'metadataPrefix' => 'cmdi_teiHdr',
-        'schema' => 'http://www.clarin.eu/cmd/ http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1380106710826/xsd',
-        'metadataNamespace' => 'http://www.clarin.eu/cmd/',
-        'rdfProperty' => 'https://vocabs.acdh.ac.at/#hasCMDIteiHdr',
-        'class' => '\\acdhOeaw\oai\ResMetadata'
-    )),
-    new MetadataFormat(array(
-        'metadataPrefix' => 'cmdi_textCorpus',
-        'schema' => 'http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694580/xsd',
-        'metadataNamespace' => 'http://www.clarin.eu/cmd/',
-        'rdfProperty' => 'https://vocabs.acdh.ac.at/#hasCMDItextCorpus',
-        'class' => '\\acdhOeaw\oai\ResMetadata'
-    ))
-);
-$info = new RepositoryInfo('CCV', 'https://oai.localhost');
-$info->adminEmail[] = 'acdh-tech@oeaw.ac.at';
+$formats = array();
+foreach ($config as $i) {
+    if (is_array($i) && isset($i['metadataPrefix'])) {
+        $formats[] = new MetadataFormat($i);
+    }
+}
+$info = new RepositoryInfo('CCV', $config->get('oaiApiUrl'));
+$info->adminEmail[] = $config->get('oaiAdminEmail');
 
 $fedora = new Fedora($config);
 $oai = new Oai($info, $formats, $fedora);

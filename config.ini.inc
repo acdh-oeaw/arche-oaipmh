@@ -9,28 +9,28 @@ class="\\acdhOeaw\oai\DcMetadata"
 metadataPrefix="cmdi_collection"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1345561703620/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
-rdfProperty="https://vocabs.acdh.ac.at/#hasCMDIcollection"
+rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasCMDIcollection"
 class="\\acdhOeaw\oai\ResMetadata"
 
 [cmdi_lexRes]
 metadataPrefix="cmdi_lexRes"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694579/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
-rdfProperty="https://vocabs.acdh.ac.at/#hasCMDIlexRes"
+rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasCMDIlexRes"
 class="\\acdhOeaw\oai\ResMetadata"
 
 [cmdi_teiHdr]
 metadataPrefix="cmdi_teiHdr"
 schema="http://www.clarin.eu/cmd/ http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1380106710826/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
-rdfProperty="https://vocabs.acdh.ac.at/#hasCMDIteiHdr"
+rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasCMDIteiHdr"
 class="\\acdhOeaw\oai\ResMetadata"
 
 [cmdi_textCorpus]
 metadataPrefix="cmdi_textCorpus"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694580/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
-rdfProperty="https://vocabs.acdh.ac.at/#hasCMDItextCorpus"
+rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasCMDItextCorpus"
 class="\\acdhOeaw\oai\ResMetadata"
 
 [cmdi_frequencyList]

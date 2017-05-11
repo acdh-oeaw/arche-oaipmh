@@ -8,6 +8,6 @@
         }
     ],
     "require": {
-        "acdh-oeaw/repo-php-util": "*"
+        "acdh-oeaw/repo-php-util": ">=0.10.0"
     }
 }

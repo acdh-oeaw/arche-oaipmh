@@ -33,9 +33,11 @@ use acdhOeaw\fedora\Fedora;
 use acdhOeaw\oai\MetadataFormat;
 use acdhOeaw\oai\RepositoryInfo;
 use acdhOeaw\oai\Oai;
+use acdhOeaw\util\RepoConfig as RC;
 
 $loader = new ClassLoader('src');
 $config = new Config('config.ini', true);
+RC::init('config.ini');
 
 $formats = array();
 foreach ($config as $i) {
@@ -43,9 +45,9 @@ foreach ($config as $i) {
         $formats[] = new MetadataFormat($i);
     }
 }
-$info = new RepositoryInfo('CCV', $config->get('oaiApiUrl'));
-$info->adminEmail[] = $config->get('oaiAdminEmail');
+$info = new RepositoryInfo('CCV', RC::get('oaiApiUrl'));
+$info->adminEmail[] = RC::get('oaiAdminEmail');
 
-$fedora = new Fedora($config);
+$fedora = new Fedora();
 $oai = new Oai($info, $formats, $fedora);
 $oai->handleRequest();

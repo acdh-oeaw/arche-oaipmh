@@ -27,7 +27,8 @@
 namespace acdhOeaw\oai;
 
 use acdhOeaw\fedora\Fedora;
-use acdhOeaw\util\EasyRdfUtil;
+use acdhOeaw\fedora\metadataQuery\QueryParameter;
+use acdhOeaw\util\RepoConfig as RC;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
@@ -255,8 +256,8 @@ class Oai {
 
     private function getRecords(string $metadataPrefix, string $from = '', string $until = '', string $id = '') {
         $dateRexExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
-        $idProp = EasyRdfUtil::escapeUri($this->fedora->getIdProp());
-        $idNmsp = EasyRdfUtil::escapeLiteral($this->fedora->getIdNamespace());
+        $idProp = QueryParameter::escapeUri(RC::idProp());
+        $idNmsp = QueryParameter::escapeLiteral(RC::idNmsp());
         $query = "
             SELECT ?id ?res ?metaRes ?date
             WHERE {
@@ -277,13 +278,13 @@ class Oai {
             if (!preg_match($dateRexExp, $from)) {
                 throw new InvalidArgumentException('badArgument');
             }
-            $filter .= sprintf(' && ?date >= %s^^xsd:dateTime', EasyRdfUtil::escapeLiteral($from));
+            $filter .= sprintf(' && ?date >= %s^^xsd:dateTime', QueryParameter::escapeLiteral($from));
         }
         if ($until) {
             if (!preg_match($dateRexExp, $until)) {
                 throw new InvalidArgumentException('badArgument');
             }
-            $filter .= sprintf(' && ?date <= %s^^xsd:dateTime', EasyRdfUtil::escapeLiteral($until));
+            $filter .= sprintf(' && ?date <= %s^^xsd:dateTime', QueryParameter::escapeLiteral($until));
         }
 
         // metadata format clause
@@ -293,14 +294,14 @@ class Oai {
         $format = $this->metadataFormats[$metadataPrefix];
         $metaRes = '';
         if ($format->rdfProperty != '') {
-            $formatProp = EasyRdfUtil::escapeUri($format->rdfProperty);
+            $formatProp = QueryParameter::escapeUri($format->rdfProperty);
             $metaRes = sprintf('?res %s / ^%s ?metaRes . ', $formatProp, $idProp);
         }
 
         // resource id clause
         $idFilter = '';
         if ($id) {
-            $idFilter = sprintf('?res %s %s', $idProp, EasyRdfUtil::escapeUri($id));
+            $idFilter = sprintf('?res %s %s', $idProp, QueryParameter::escapeUri($id));
         }
 
         // put all together

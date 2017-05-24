@@ -45,7 +45,7 @@ foreach ($config as $i) {
         $formats[] = new MetadataFormat($i);
     }
 }
-$info = new RepositoryInfo('CCV', RC::get('oaiApiUrl'));
+$info = new RepositoryInfo(RC::GET('oaiRepositoryName'), RC::get('oaiApiUrl'));
 $info->adminEmail[] = RC::get('oaiAdminEmail');
 
 $fedora = new Fedora();

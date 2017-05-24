@@ -1,3 +1,31 @@
+; Information reported for `verb=Identify`
+; (all the other properties reported for `verb=Identify` are 
+;  hardcoded at the moment but it is not difficult to move them here)
+oaiApiUrl="https://my.oai.endpoint/root"
+oaiAdminEmail="oai-admin@my.domain"
+oaiRepositoryName="myRepositoryName"
+
+; Metadata formats description:
+; 
+; Each section describes a single metadata format:
+; - Section name is not important (it has to be unique but nothing more then that).
+; - `metadataPrefix`, `schema` and `metadataNamespace` configuration properties 
+;   are simply OAI properties reported for `verb=ListMetadataFormats`
+; - `class`  configuration property denotes a PHP class responsible for generating
+;   OAI serialization of a given metadata format.
+;   At the moment two classes are available:
+;   - `\acdhOeaw\oai\DcMetata` - takes resource RDF metadata and extracts all RDF
+;     properties in `dc` and `dcterms` namespaces.
+;   - `acdhOeaw\oai\ResMetadata` - fetches metadata from a binary content of other
+;     repository resource. The resource providing actual metadata must be denoted 
+;     by a proper RDF triple - see the `rdfProperty` configuration property
+;     description below.
+;     This class can be used to e.g. provide CMDI records stored as separate
+;     repository resources.
+; - `rdfProperty` - if the class is `acdhOeaw\oai\ResMetadata` this configuration
+;   property stores an RDF property used to denote repository resource storing
+;    actual metadata.
+
 [oai_dc]
 metadataPrefix="oai_dc"
 schema="http://www.openarchives.org/OAI/2.0/oai_dc.xsd"

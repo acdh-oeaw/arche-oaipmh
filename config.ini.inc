@@ -1,3 +1,7 @@
+; Fedora and SPARQL API URLs
+fedoraApiUrl="https://fedora.domain/fcrepo/rest"
+sparqlUrl="https://sparql.domain/sparql/path"
+
 ; Information reported for `verb=Identify`
 ; (all the other properties reported for `verb=Identify` are 
 ;  hardcoded at the moment but it is not difficult to move them here)

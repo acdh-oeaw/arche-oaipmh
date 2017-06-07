@@ -1,6 +1,7 @@
 An OAI-PMH service for the ACDH repository.
 
 * Uses metadata from the Fedora repository triplestore
+  (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)
 * Fetches OAI-PMH header data (identifier and modyfication date) from given RDF properties in the triplestore
   (e.g. dct:identifier and http://fedora.info/definitions/v4/repository#lastModified)
     * It is hardcoded at the moment but can be easily moved to the configuration file.
@@ -20,3 +21,11 @@ An OAI-PMH service for the ACDH repository.
     * read the comments - information on describing metadata formats is provided there (as well as examples)
 * deploy as a normal PHP website
 
+# Unsupported features
+
+* *resumptionTokens*  
+  Implementing *resumptionTokens* in a right way is difficult and in my personal opinion it is better to avoid resumption queries.  
+  While at the moment the whole response is buffered in the server memory which can couse problems for large responses (bigger then memory PHP can allocate on your server) the first point on the TODO list is to rewrite the code to avoid buffering and output response gradualy. It will keep connection alive and allow handling as big responces as needed.
+* *deleted records*  
+  As in our software stack information about deleted resources is removed from the triplestore we did not bother about this feature.  
+  Anyway if such data are available in the triplestore it will be easy to add this feature.

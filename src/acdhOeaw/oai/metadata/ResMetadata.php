@@ -24,14 +24,11 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\metadata;
 
 use DOMDocument;
 use DOMElement;
 use RuntimeException;
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Stream;
 
 /**
  * Creates <metadata> element by simply taking content of a given resource.
@@ -43,28 +40,11 @@ use GuzzleHttp\Psr7\Stream;
  */
 class ResMetadata extends Metadata {
 
-    static private $client;
-
-    /**
-     * Reads data from a given URL without checking SSL certificates validity.
-     * 
-     * @param type $url 
-     * @return \GuzzleHttp\Psr7\Stream
-     */
-    static private function getResource($url): Stream {
-        if (self::$client === null) {
-            self::$client = new Client(array('verify' => false));
-        }
-        $req = new Request('GET', $url);
-        $resp = self::$client->send($req);
-        return $resp->getBody();
-    }
-
     protected function createDOM(DOMDocument $doc): DOMElement {
         $meta = new DOMDocument();
         // it would be more memory efficient to parse using DOMDocument::load()
-        // but then it is impossible to turn off certificate check 
-        $success = $meta->loadXML((string) self::getResource($this->res->getUri(true)));
+        // but then it is impossible to turn off certificate check and perform authentication
+        $success = $meta->loadXML((string) $this->res->getContent()->getBody());
         if (!$success) {
             throw new RuntimeException('failed to parse given resource content as XML');
         }

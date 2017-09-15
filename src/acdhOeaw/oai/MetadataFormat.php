@@ -27,25 +27,54 @@
 namespace acdhOeaw\oai;
 
 /**
- * Description of MetadataFormat
+ * Container for OAI-PMH metada format data
  *
  * @author zozlak
  */
 class MetadataFormat {
-    
+
+    /**
+     *
+     * @var string
+     */
     public $metadataPrefix;
+
+    /**
+     *
+     * @var string
+     */
     public $schema;
+
+    /**
+     *
+     * @var string
+     */
     public $metadataNamespace;
+
+    /**
+     *
+     * @var string
+     */
     public $rdfProperty;
+
+    /**
+     *
+     * @var string
+     */
     public $class;
-    
-    public function __construct($fields) {
+
+    /**
+     * 
+     * @param array $fields
+     */
+    public function __construct(array $fields = null) {
         if (is_array($fields)) {
-            $this->metadataPrefix = isset($fields['metadataPrefix']) ? $fields['metadataPrefix'] : null;
-            $this->schema = isset($fields['schema']) ? $fields['schema'] : null;
+            $this->metadataPrefix    = isset($fields['metadataPrefix']) ? $fields['metadataPrefix'] : null;
+            $this->schema            = isset($fields['schema']) ? $fields['schema'] : null;
             $this->metadataNamespace = isset($fields['metadataNamespace']) ? $fields['metadataNamespace'] : null;
-            $this->rdfProperty = isset($fields['rdfProperty']) ? $fields['rdfProperty'] : null;
-            $this->class = isset($fields['class']) ? $fields['class'] : null;
+            $this->rdfProperty       = isset($fields['rdfProperty']) ? $fields['rdfProperty'] : null;
+            $this->class             = isset($fields['class']) ? $fields['class'] : null;
         }
     }
+
 }

@@ -6,10 +6,11 @@ An OAI-PMH service for the ACDH repository.
   (e.g. dct:identifier and http://fedora.info/definitions/v4/repository#lastModified)
     * It is hardcoded at the moment but can be easily moved to the configuration file.
 * Is able to fetch OAI-PMH metadata in two ways:
-    * by creating a Dublin Core them from corresponding Dublin Core and Dublin Core Terms found in Fedora resource's RDF metadata
+    * by creating a Dublin Core metadata from corresponding Dublin Core and Dublin Core Terms triples found in Fedora resource's RDF metadata
     * by taking content of other Fedora resource denoted by a chosen resource's RDF property (e.g. https://vocabs.acdh.ac.at/#hasCMDIcollection)
-* Can be quite easily extended
-* Depends only on the Fedora REST API and the triplestore, therefore is not affected by internal changes in Fedora.
+* Can be easily extended to read metadata from other sources.  
+  Just write your own class implementing the `acdhOeaw\oai\metadata\MetadataInterface` interface.
+* Depends only on the Fedora REST API and the SPARQL endpoint, therefore is not affected by internal changes in Fedora.
 
 # Installation
 
@@ -25,7 +26,10 @@ An OAI-PMH service for the ACDH repository.
 
 * *resumptionTokens*  
   Implementing *resumptionTokens* in a right way is difficult and in my personal opinion it is better to avoid resumption queries at all (the main problem is Fedora does not provide transaction consistency and isolation - see [ACID](https://en.wikipedia.org/wiki/ACID) - and if I can not guarantee immutable repository state between following resumption queries I do not see a way to support such queries in a right way).  
-  While at the moment the whole response is buffered in the server memory which can cause problems with large responses (bigger then memory PHP can allocate on your server) the first point on the TODO list is to rewrite the code to avoid buffering and output response gradualy. It will keep connection alive and allow handling as big responces as needed.
+  Also the service is written in a way it can handle responses of virtually any size (it doesn't buffer the response so memory usage shouldn't be a problem).
 * *deleted records*  
   As in our software stack information about deleted resources is removed from the triplestore we did not bother about this feature.  
   Anyway if such data are available in the triplestore it will be easy to add this feature.
+* *sets*  
+  That's because we are not using sets in our repository.  
+  Anyway it won't be difficult to add support for them. Contact us if you need this feature.

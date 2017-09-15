@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\metadata;
 
 use DOMElement;
 use DOMDocument;
@@ -36,7 +36,7 @@ use acdhOeaw\fedora\FedoraResource;
  *
  * @author zozlak
  */
-abstract class Metadata {
+abstract class Metadata implements MetadataInterface {
 
     /**
      *

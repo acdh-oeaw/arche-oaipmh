@@ -26,16 +26,18 @@
 
 namespace acdhOeaw\oai;
 
+use EasyRdf\Sparql\Result;
 use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\metadataQuery\QueryParameter;
+use acdhOeaw\fedora\metadataQuery\SimpleQuery;
 use acdhOeaw\util\RepoConfig as RC;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
 use Exception;
-use RuntimeException;
 use InvalidArgumentException;
+use RuntimeException;
 use StdClass;
+use Throwable;
 
 /**
  * Description of Oai
@@ -43,6 +45,17 @@ use StdClass;
  * @author zozlak
  */
 class Oai {
+
+    static private $respBegin = <<<TMPL
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+    <responseDate>%s</responseDate>
+    <request %s>%s</request>
+
+TMPL;
+    static private $respEnd   = <<<TMPL
+</OAI-PMH>     
+TMPL;
 
     /**
      *
@@ -68,8 +81,16 @@ class Oai {
      */
     private $info;
 
-    public function __construct(RepositoryInfo $info, array $metadataFormats, Fedora $fedora) {
-        $this->info = $info;
+    /**
+     * Initialized the OAI-PMH server object.
+     * 
+     * @param \acdhOeaw\oai\RepositoryInfo $info
+     * @param array $metadataFormats
+     * @param Fedora $fedora
+     */
+    public function __construct(RepositoryInfo $info, array $metadataFormats,
+                                Fedora $fedora) {
+        $this->info   = $info;
         $this->fedora = $fedora;
 
         foreach ($metadataFormats as $i) {
@@ -78,56 +99,72 @@ class Oai {
 
         // response initialization
         $this->response = new DOMDocument('1.0', 'UTF-8');
-        $root = $this->response->createElementNS('http://www.openarchives.org/OAI/2.0/', 'OAI-PMH');
+        $root           = $this->response->createElementNS('http://www.openarchives.org/OAI/2.0/', 'OAI-PMH');
         $this->response->appendChild($root);
         $root->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd');
-
-        $root->appendChild($this->createElement('responseDate', gmdate('Y-m-d\TH:i:s\Z')));
-
-        $node = $this->createElement('request', $this->info->baseUrl);
-        foreach ($_GET as $key => $value) {
-            $key = preg_replace('/[^a-zA-Z]/', '', $key);
-            $node->setAttribute($key, $value);
-        }
-        $root->appendChild($node);
     }
 
+    /**
+     * Handles OAI-PMH request.
+     */
     public function handleRequest() {
-        $token = filter_input(\INPUT_GET, 'resumptionToken');
-        if ($token !== null) {
-            // we do not implement partial responses
-            $this->reportError('badResumptionToken');
-        } else {
-            $verb = filter_input(\INPUT_GET, 'verb') . '';
-            switch ($verb) {
-                case 'ListSets':
-                    $this->listSets();
-                    break;
-                case 'ListRecords':
-                    $this->listRecords('ListRecords');
-                    break;
-                case 'ListMetadataFormats':
-                    $this->listMetadataFormats();
-                    break;
-                case 'ListIdentifiers':
-                    $this->listRecords('ListIdentifiers');
-                    break;
-                case 'Identify':
-                    $this->identify();
-                    break;
-                case 'GetRecord':
-                    $id = filter_input(\INPUT_GET, 'identifier') . '';
-                    $this->listRecords('GetRecord', $id);
-                    break;
-                default:
-                    $this->reportError('badVerb');
-            }
-        }
         header('Content-Type: text/xml');
-        echo $this->response->saveXML();
+
+        $params = array();
+        foreach ($_GET as $key => $value) {
+            $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
+        }
+        printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseUrl));
+
+        try {
+
+            $token = filter_input(\INPUT_GET, 'resumptionToken');
+            if ($token !== null) {
+                // we do not implement partial responses
+                throw new OaiException('badResumptionToken');
+            } else {
+                $verb = filter_input(\INPUT_GET, 'verb') . '';
+                switch ($verb) {
+                    case 'ListSets':
+                        $this->oaiListSets();
+                        break;
+                    case 'ListRecords':
+                        $this->oaiListRecords('ListRecords');
+                        break;
+                    case 'ListMetadataFormats':
+                        $this->oaiListMetadataFormats();
+                        break;
+                    case 'ListIdentifiers':
+                        $this->oaiListRecords('ListIdentifiers');
+                        break;
+                    case 'Identify':
+                        $this->oaiIdentify();
+                        break;
+                    case 'GetRecord':
+                        $id = filter_input(\INPUT_GET, 'identifier') . '';
+                        $this->oaiListRecords('GetRecord', $id);
+                        break;
+                    default:
+                        throw new OaiException('badVerb');
+                }
+            }
+        } catch (Throwable $e) {
+            if ($e instanceof OaiException) {
+                $el = $this->createElement('error', $e->getMessage(), array('code' => $e->getMessage()));
+            } else {
+                $el = $this->createElement('error', $e->getMessage(), array('code' => 'Internal error'));
+            }
+            $this->response->documentElement->appendChild($el);
+            echo "    " . $el->C14N() . "\n";
+        } finally {
+            echo self::$respEnd;
+        }
     }
 
-    public function identify() {
+    /**
+     * Implements the Identify OAI-PMH verb
+     */
+    public function oaiIdentify() {
         $parent = $this->response->createElement('Identify');
         foreach ($this->info as $key => $value) {
             if (!is_array($value)) {
@@ -138,14 +175,19 @@ class Oai {
             }
         }
         $this->response->documentElement->appendChild($parent);
+        echo $parent->C14N() . "\n";
     }
 
-    public function listMetadataFormats() {
+    /**
+     * Implements the ListMetadataFormats OAI-PMH verb
+     * @throws OaiException
+     */
+    public function oaiListMetadataFormats() {
         $id = filter_input(\INPUT_GET, 'identifier');
 
         if ($id != '') {
             try {
-                $res = $this->fedora->getResourceById($id);
+                $res  = $this->fedora->getResourceById($id);
                 $meta = $res->getMetadata();
 
                 $supFormats = array();
@@ -157,16 +199,14 @@ class Oai {
                     }
                 }
             } catch (RuntimeException $e) {
-                $this->reportError('idDoesNotExist');
-                return;
+                throw new OaiException('idDoesNotExist');
             }
         } else {
             $supFormats = $this->metadataFormats;
         }
 
         if (count($supFormats) == 0) {
-            $this->reportError('noMetadataFormats');
-            return;
+            throw new OaiException('noMetadataFormats');
         }
 
         $parent = $this->response->createElement('ListMetadataFormats');
@@ -178,99 +218,147 @@ class Oai {
             $parent->appendChild($node);
         }
         $this->response->documentElement->appendChild($parent);
+        echo $parent->C14N() . "\n";
     }
 
-    public function listRecords(string $verb, string $id = '') {
-        $from = filter_input(\INPUT_GET, 'from') . '';
-        $until = filter_input(\INPUT_GET, 'until') . '';
-        $set = filter_input(\INPUT_GET, 'set');
+    /**
+     * Implements the ListIdentifiers, ListRecords and GetRecord OAI-PMH verbs
+     * @param string $verb
+     * @param string $id
+     * @throws OaiException
+     */
+    public function oaiListRecords(string $verb, string $id = '') {
+        $from           = filter_input(\INPUT_GET, 'from') . '';
+        $until          = filter_input(\INPUT_GET, 'until') . '';
+        $set            = filter_input(\INPUT_GET, 'set');
         $metadataPrefix = filter_input(\INPUT_GET, 'metadataPrefix') . '';
 
         if ($set !== null) {
-            $this->reportError('noSetHierarchy');
-            return;
+            throw new OaiException('noSetHierarchy');
         }
         if ($verb == 'GetRecord' && $id == '' || $metadataPrefix == '') {
-            $this->reportError('badArgument');
-            return;
+            throw new OaiException('badArgument');
         }
 
         try {
-            $records = $this->getRecords($metadataPrefix, $from, $until, $id);
+            $records = $this->findRecords($metadataPrefix, $from, $until, $id);
         } catch (InvalidArgumentException $e) {
-            $this->reportError($e->getMessage());
-            return;
+            throw new OaiException($e->getMessage());
         }
 
         if (count($records) == 0) {
-            $this->reportError($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
-            return;
+            throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }
 
-        $container = $this->response->createElement($verb);
+
+        echo "    <" . $verb . ">\n";
         foreach ($records as $i) {
             try {
-                $header = $this->addHeader($i);
-                if ($verb != 'ListIdentifiers') {
-                    $meta = $this->addMetadata($i, $this->metadataFormats[$metadataPrefix]);
+                $header = $this->createHeader($i);
+                if ($verb === 'ListIdentifiers') {
+                    $record = $header;
+                } else {
+                    $record = $this->createElement('record');
+                    $record->appendChild($header);
+                    $meta   = $this->createMetadata($i, $this->metadataFormats[$metadataPrefix]);
+                    $record->appendChild($meta);
                 }
-
-                $parent = $container;
-                if ($verb != 'ListIdentifiers') {
-                    $parent = $this->createElement('record');
-                    $container->appendChild($parent);
-                }
-
-                $parent->appendChild($header);
-                if ($verb != 'ListIdentifiers') {
-                    $parent->appendChild($meta);
-                }
-            } catch (Exception $e) {
-                
+                $this->response->documentElement->appendChild($record);
+                echo $record->C14N() . "\n";
+                $this->response->documentElement->appendChild($record);
+            } catch (Throwable $e) {
+                echo $e;
             }
         }
-        $this->response->documentElement->appendChild($container);
+        echo "    </" . $verb . ">\n";
     }
 
-    public function listSets() {
-        $this->reportError('noSetHierarchy');
+    /**
+     * Implements the ListSets OAI-PMH verb
+     */
+    public function oaiListSets() {
+        throw new OaiException('noSetHierarchy');
     }
 
-    private function reportError($code) {
-        $this->response->documentElement->appendChild($this->createElement('error', $code, array('code' => $code)));
-    }
-
-    private function addMetadata(StdClass $res, MetadataFormat $format): DOMElement {
+    /**
+     * Fetches repository resource's metadata and packs it in the <metadata>
+     * node.
+     * 
+     * @param StdClass $res
+     * @param \acdhOeaw\oai\MetadataFormat $format
+     * @return DOMElement
+     */
+    private function createMetadata(StdClass $res, MetadataFormat $format): DOMElement {
         $node = $this->createElement('metadata');
         $meta = new $format->class($this->fedora->getResourceByUri(isset($res->metaRes) ? $res->metaRes : $res->res));
         $meta->appendTo($node);
         return $node;
     }
 
-    private function addHeader(StdClass $res): DOMElement {
+    /**
+     * Creates a resource's <header> element as defined by OAI-PMH standard.
+     * 
+     * @param StdClass $res
+     * @return DOMElement
+     */
+    private function createHeader(StdClass $res): DOMElement {
         $node = $this->createElement('header');
         $node->appendChild($this->createElement('identifier', $res->id));
         $node->appendChild($this->createElement('datestamp', $res->date));
         return $node;
     }
 
-    private function getRecords(string $metadataPrefix, string $from = '', string $until = '', string $id = '') {
+    /**
+     * Searches in the triplestore for repository resources matching given
+     * criteria.
+     * 
+     * @param string $metadataPrefix
+     * @param string $from
+     * @param string $until
+     * @param string $id
+     * @return \EasyRdf\Sparql\Result
+     * @throws InvalidArgumentException
+     */
+    private function findRecords(string $metadataPrefix, string $from = '',
+                                 string $until = '', string $id = ''): Result {
         $dateRexExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
-        $idProp = QueryParameter::escapeUri(RC::idProp());
-        $idNmsp = QueryParameter::escapeLiteral(RC::idNmsp());
-        $query = "
+        $param      = array();
+
+        // metadata format clause
+        if (!isset($this->metadataFormats[$metadataPrefix])) {
+            throw new InvalidArgumentException('cannotDisseminateFormat');
+        }
+        $format  = $this->metadataFormats[$metadataPrefix];
+        $metaRes = '';
+        if ($format->rdfProperty != '') {
+            $metaRes = '?res ?@ / ^?@ ?metaRes . ';
+            $param[] = $format->rdfProperty;
+            $param[] = RC::idProp();
+        }
+
+        // resource id clause
+        $idFilter = '';
+        if ($id) {
+            $idFilter = '?res ?@ ?@ .';
+            $param[]  = RC::idProp();
+            $param[]  = $id;
+        }
+
+        $query   = "
             SELECT ?id ?res ?metaRes ?date
             WHERE {
                 ?res <http://fedora.info/definitions/v4/repository#lastModified> ?date .
-                ?res %s ?id .
-                %s
-                %s
+                " . $metaRes . "
+                " . $idFilter . "
+                ?res ?@ ?id .
                 FILTER (
-                    regex(str(?id), %s)
-                    %s
+                    regex(str(?id), ?#)
+                    {{OTHER_FILTERS}}
                 )
             }
         ";
+        $param[] = RC::idProp();
+        $param[] = RC::idNmsp();
 
         // date filters
         $filter = '';
@@ -278,39 +366,33 @@ class Oai {
             if (!preg_match($dateRexExp, $from)) {
                 throw new InvalidArgumentException('badArgument');
             }
-            $filter .= sprintf(' && ?date >= %s^^xsd:dateTime', QueryParameter::escapeLiteral($from));
+            $filter  .= ' && ?date >= @#^^xsd:dateTime';
+            $param[] = $from;
         }
         if ($until) {
             if (!preg_match($dateRexExp, $until)) {
                 throw new InvalidArgumentException('badArgument');
             }
-            $filter .= sprintf(' && ?date <= %s^^xsd:dateTime', QueryParameter::escapeLiteral($until));
+            $filter  .= ' && ?date <= @#^^xsd:dateTime';
+            $param[] = $until;
         }
 
-        // metadata format clause
-        if (!isset($this->metadataFormats[$metadataPrefix])) {
-            throw new InvalidArgumentException('cannotDisseminateFormat');
-        }
-        $format = $this->metadataFormats[$metadataPrefix];
-        $metaRes = '';
-        if ($format->rdfProperty != '') {
-            $formatProp = QueryParameter::escapeUri($format->rdfProperty);
-            $metaRes = sprintf('?res %s / ^%s ?metaRes . ', $formatProp, $idProp);
-        }
+        // inject filters
+        $query = str_replace('{{OTHER_FILTERS}}', $filter, $query);
 
-        // resource id clause
-        $idFilter = '';
-        if ($id) {
-            $idFilter = sprintf('?res %s %s', $idProp, QueryParameter::escapeUri($id));
-        }
-
-        // put all together
-        $query = sprintf($query, $idProp, $idFilter, $metaRes, $idNmsp, $filter);
-
-        return $this->fedora->runSparql($query);
+        return $this->fedora->runQuery(new SimpleQuery($query, $param));
     }
 
-    private function createElement(string $element, string $value = '', array $attributes = array()): DOMNode {
+    /**
+     * Returns a PHP reresentation of an XML node.
+     * 
+     * @param string $element
+     * @param string $value
+     * @param array $attributes
+     * @return DOMNode
+     */
+    private function createElement(string $element, string $value = '',
+                                   array $attributes = array()): DOMNode {
         $node = $this->response->createElement($element);
         if ($value != '') {
             $node->appendChild($this->response->createTextNode($value));

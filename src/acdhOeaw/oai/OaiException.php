@@ -26,22 +26,14 @@
 
 namespace acdhOeaw\oai;
 
+use Exception;
+
 /**
- * Container for OAI-PMH repository information
+ * Simple specialized exception class to easy distinguish between OAI-PMH and
+ * internal exceptions.
  *
  * @author zozlak
  */
-class RepositoryInfo {
-    public $repositoryName;
-    public $baseUrl;
-    public $protocolVersion = '2.0';
-    public $earliestDatestamp = '1900-01-01T00:00:00Z';
-    public $deletedRecord = 'no';
-    public $granularity = 'YYYY-MM-DDThh:mm:ssZ';
-    public $adminEmail = array();
+class OaiException extends Exception {
     
-    public function __construct(string $repositoryName, string $baseUrl) {
-        $this->repositoryName = $repositoryName;
-        $this->baseUrl = $baseUrl;
-    }
 }

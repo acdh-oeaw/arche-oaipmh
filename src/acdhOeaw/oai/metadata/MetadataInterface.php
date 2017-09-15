@@ -24,24 +24,30 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\metadata;
+
+use DOMElement;
+use acdhOeaw\fedora\FedoraResource;
 
 /**
- * Container for OAI-PMH repository information
- *
+ * Interface for handling different metadata source formats.
+ * 
  * @author zozlak
  */
-class RepositoryInfo {
-    public $repositoryName;
-    public $baseUrl;
-    public $protocolVersion = '2.0';
-    public $earliestDatestamp = '1900-01-01T00:00:00Z';
-    public $deletedRecord = 'no';
-    public $granularity = 'YYYY-MM-DDThh:mm:ssZ';
-    public $adminEmail = array();
-    
-    public function __construct(string $repositoryName, string $baseUrl) {
-        $this->repositoryName = $repositoryName;
-        $this->baseUrl = $baseUrl;
-    }
+interface MetadataInterface {
+
+    /**
+     * Creates a metadata object for a given repository resource.
+     * 
+     * @param FedoraResource $resource repository resource for which the
+     *   metadata should be returned
+     */
+    public function __construct(FedoraResource $resource);
+
+    /**
+     * Appends resource metadata to the OAI-PMG response.
+     * 
+     * @param DOMElement $el OAI-PMH response element to attach metadata to
+     */
+    public function appendTo(DOMElement $el);
 }

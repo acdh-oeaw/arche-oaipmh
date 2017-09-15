@@ -29,11 +29,11 @@ namespace acdhOeaw\oai;
 use EasyRdf\Sparql\Result;
 use acdhOeaw\fedora\Fedora;
 use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use acdhOeaw\oai\metadata\MetadataInterface;
 use acdhOeaw\util\RepoConfig as RC;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
-use Exception;
 use InvalidArgumentException;
 use RuntimeException;
 use StdClass;
@@ -250,24 +250,31 @@ TMPL;
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }
 
+        $format = $this->metadataFormats[$metadataPrefix];
 
         echo "    <" . $verb . ">\n";
         foreach ($records as $i) {
             try {
+                $uri = isset($i->metaRes) ? $i->metaRes : $i->res;
+                $meta = new $format->class($this->fedora->getResourceByUri($uri), $format);
+                
                 $header = $this->createHeader($i);
                 if ($verb === 'ListIdentifiers') {
                     $record = $header;
                 } else {
                     $record = $this->createElement('record');
+
                     $record->appendChild($header);
-                    $meta   = $this->createMetadata($i, $this->metadataFormats[$metadataPrefix]);
-                    $record->appendChild($meta);
+                    
+                    $metaNode = $this->createElement('metadata');
+                    $meta->appendTo($metaNode);
+                    $record->appendChild($metaNode);
                 }
                 $this->response->documentElement->appendChild($record);
                 echo $record->C14N() . "\n";
                 $this->response->documentElement->appendChild($record);
             } catch (Throwable $e) {
-                echo $e;
+                //echo $e;
             }
         }
         echo "    </" . $verb . ">\n";
@@ -278,21 +285,6 @@ TMPL;
      */
     public function oaiListSets() {
         throw new OaiException('noSetHierarchy');
-    }
-
-    /**
-     * Fetches repository resource's metadata and packs it in the <metadata>
-     * node.
-     * 
-     * @param StdClass $res
-     * @param \acdhOeaw\oai\MetadataFormat $format
-     * @return DOMElement
-     */
-    private function createMetadata(StdClass $res, MetadataFormat $format): DOMElement {
-        $node = $this->createElement('metadata');
-        $meta = new $format->class($this->fedora->getResourceByUri(isset($res->metaRes) ? $res->metaRes : $res->res));
-        $meta->appendTo($node);
-        return $node;
     }
 
     /**
@@ -344,6 +336,7 @@ TMPL;
             $param[]  = $id;
         }
 
+        
         $query   = "
             SELECT ?id ?res ?metaRes ?date
             WHERE {

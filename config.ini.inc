@@ -9,6 +9,10 @@ oaiApiUrl="https://my.oai.endpoint/root"
 oaiAdminEmail="oai-admin@my.domain"
 oaiRepositoryName="myRepositoryName"
 
+; RDF property used in repository CMDI resources' metadata to denote the CMDI
+; record schema
+cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/#hasSchema"
+
 ; Metadata formats description:
 ; 
 ; Each section describes a single metadata format:
@@ -42,33 +46,33 @@ metadataPrefix="cmdi_collection"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1345561703620/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
-class="\\acdhOeaw\oai\metadata\ResMetadata"
+class="\\acdhOeaw\oai\metadata\CmdiMetadata"
 
 [cmdi_lexRes]
 metadataPrefix="cmdi_lexRes"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694579/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
-class="\\acdhOeaw\oai\metadata\ResMetadata"
+class="\\acdhOeaw\oai\metadata\CmdiMetadata"
 
 [cmdi_teiHdr]
 metadataPrefix="cmdi_teiHdr"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1380106710826/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
-class="\\acdhOeaw\oai\metadata\ResMetadata"
+class="\\acdhOeaw\oai\metadata\CmdiMetadata"
 
 [cmdi_textCorpus]
 metadataPrefix="cmdi_textCorpus"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694580/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
-class="\\acdhOeaw\oai\metadata\ResMetadata"
+class="\\acdhOeaw\oai\metadata\CmdiMetadata"
 
 [cmdi_frequencyList]
 metadataPrefix="cmdi_frequencyList"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1357720977490/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
-class="\\acdhOeaw\oai\metadata\ResMetadata"
+class="\\acdhOeaw\oai\metadata\CmdiMetadata"
 

@@ -26,30 +26,18 @@
 
 namespace acdhOeaw\oai\metadata;
 
-use DOMElement;
-use DOMDocument;
 use acdhOeaw\fedora\FedoraResource;
 use acdhOeaw\oai\MetadataFormat;
+use acdhOeaw\oai\OaiException;
+use acdhOeaw\util\RepoConfig as RC;
 
 /**
- * Base class for creating OAI-PMH <metadata> elements from FedoraResource
- * objects.
+ * Specialization of ResMetadata class checking if the CMDI schema matches
+ * metadata format requested by the user.
  *
  * @author zozlak
  */
-abstract class Metadata implements MetadataInterface {
-
-    /**
-     *
-     * @var \acdhOeaw\fedora\FedoraResource
-     */
-    protected $res;
-
-    /**
-     *
-     * @var \acdhOeaw\oai\MetadataFormat 
-     */
-    protected $format;
+class CmdiMetadata extends ResMetadata {
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -59,22 +47,19 @@ abstract class Metadata implements MetadataInterface {
      * @param MetadataFormat $format metadata format description
      */
     public function __construct(FedoraResource $resource, MetadataFormat $format) {
-        $this->res    = $resource;
-        $this->format = $format;
-    }
+        parent::__construct($resource, $format);
 
-    /**
-     * Creates DOM object containing the metadata.
-     */
-    abstract protected function createDOM(DOMDocument $doc): DOMElement;
-
-    /**
-     * Appends resource metadata to the OAI-PMG response.
-     * 
-     * @param DOMElement $el OAI-PMH response element to attach metadata to
-     */
-    public function appendTo(DOMElement $el) {
-        $el->appendChild($this->createDOM($el->ownerDocument));
+        $schemas = $resource->getMetadata()->allResources(RC::get('cmdiSchemaProp'));
+        $match   = false;
+        foreach ($schemas as $schema) {
+            if ($schema->getUri() === $format->schema) {
+                $match = true;
+                break;
+            }
+        }
+        if (!$match) {
+            throw new OaiException('wrong resource schema');
+        }
     }
 
 }

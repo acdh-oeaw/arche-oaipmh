@@ -3,11 +3,12 @@ An OAI-PMH service for the ACDH repository.
 * Uses metadata from the Fedora repository triplestore
   (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)
 * Fetches OAI-PMH header data (identifier and modyfication date) from given RDF properties in the triplestore
-  (e.g. dct:identifier and http://fedora.info/definitions/v4/repository#lastModified)
-    * It is hardcoded at the moment but can be easily moved to the configuration file.
-* Is able to fetch OAI-PMH metadata in two ways:
+  (id property can be set in the configuration file using the `fedoraIdProp` configuration setting)
+* Is able to fetch OAI-PMH metadata in three ways:
     * by creating a Dublin Core metadata from corresponding Dublin Core and Dublin Core Terms triples found in Fedora resource's RDF metadata
     * by taking content of other Fedora resource denoted by a chosen resource's RDF property (e.g. https://vocabs.acdh.ac.at/#hasCMDIcollection)
+        * also checking if the target resource's schema as denoted in its metadata matches metadata schema requested by the user  
+          (the RDF property storing schema is denoted by the `cmdiSchemaProp` configuration property)
 * Can be easily extended to read metadata from other sources.  
   Just write your own class implementing the `acdhOeaw\oai\metadata\MetadataInterface` interface.
 * Depends only on the Fedora REST API and the SPARQL endpoint, therefore is not affected by internal changes in Fedora.

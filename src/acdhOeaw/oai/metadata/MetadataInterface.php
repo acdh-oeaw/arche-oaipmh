@@ -28,6 +28,7 @@ namespace acdhOeaw\oai\metadata;
 
 use DOMElement;
 use acdhOeaw\fedora\FedoraResource;
+use acdhOeaw\oai\MetadataFormat;
 
 /**
  * Interface for handling different metadata source formats.
@@ -41,8 +42,9 @@ interface MetadataInterface {
      * 
      * @param FedoraResource $resource repository resource for which the
      *   metadata should be returned
+     * @param MetadataFormat $format metadata format description
      */
-    public function __construct(FedoraResource $resource);
+    public function __construct(FedoraResource $resource, MetadataFormat $format);
 
     /**
      * Appends resource metadata to the OAI-PMG response.

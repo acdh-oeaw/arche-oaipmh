@@ -40,6 +40,13 @@ use RuntimeException;
  */
 class ResMetadata extends Metadata {
 
+    /**
+     * Creates DOM object containing the metadata.
+     * 
+     * @param DOMDocument $doc XML document to attach the metadata to.
+     * @return DOMElement 
+     * @throws RuntimeException
+     */
     protected function createDOM(DOMDocument $doc): DOMElement {
         $meta = new DOMDocument();
         // it would be more memory efficient to parse using DOMDocument::load()

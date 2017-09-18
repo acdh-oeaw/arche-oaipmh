@@ -66,15 +66,23 @@ shouldn't be need to alter this class.
 +-----+                     +-----------+
 ```
 
-The `Oai` class performs resource search using the `acdhOeaw\oai\search\SearchInterface`
-interface. This interface provides methods for both search and accessing search
-result resources' metadata in two formats:
+The `Oai` class performs resource search using the **`acdhOeaw\oai\search\SearchInterface`**
+interface. This interface **provides methods for both search and accessing search
+results** in two formats:
 
 * `acdhOeaw\oai\search\HeaderData` - a minimalistic set of data (id, date, sets)
   required to generate OAI-PMH &lt;header&gt; section
 * `acdhOeaw\oai\metadata\MetadataInterface` - a format allowing access to full
   metadata in XML format (as PHP DOM objects)
 
-The `acdhOeaw\oai\search\SearchInterface` allows to easily replace the default search
-implementation with your own one.
+The `acdhOeaw\oai\search\SearchInterface` responsibility is to perform a search
+and return them in one of above-mentioned formats.
 
+* The `HeaderData` data can (and for performance resons should) be 
+  typically obtained purely from the SPARQL search query.
+  Therefore `HeaderData` serialization is typically provided by the class
+  implementing the `SearchInterface`.
+* **Obtaining the full metadata** may involve different actions based on the
+  OAI-PMH metadata format and its representation in the repository.
+  Therefore it **is delegated to specialized classes implementing the
+  `acdhOeaw\oai\metadata\MetadataInterface`** interface.

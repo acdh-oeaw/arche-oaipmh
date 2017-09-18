@@ -1,17 +1,18 @@
-An OAI-PMH service for the ACDH repository.
+An OAI-PMH service for Fedora 4 repositories.
 
 * Uses metadata from the Fedora repository triplestore
   (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)
-* Fetches OAI-PMH header data (identifier and modyfication date) from given RDF properties in the triplestore
-  (id property can be set in the configuration file using the `fedoraIdProp` configuration setting)
-* Is able to fetch OAI-PMH metadata in three ways:
-    * by creating a Dublin Core metadata from corresponding Dublin Core and Dublin Core Terms triples found in Fedora resource's RDF metadata
-    * by taking content of other Fedora resource denoted by a chosen resource's RDF property (e.g. https://vocabs.acdh.ac.at/#hasCMDIcollection)
-        * also checking if the target resource's schema as denoted in its metadata matches metadata schema requested by the user  
-          (the RDF property storing schema is denoted by the `cmdiSchemaProp` configuration property)
-* Can be easily extended to read metadata from other sources.  
-  Just write your own class implementing the `acdhOeaw\oai\metadata\MetadataInterface` interface.
 * Depends only on the Fedora REST API and the SPARQL endpoint, therefore is not affected by internal changes in Fedora.
+* Can handle big repositories (doesn't buffer output data so memory consumption is very low).
+* Is very flexible:
+    * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
+    * It's shipped with a classes implementing few metadata sources:
+        * Dublin Core and Dublin Core terms in repository resource's RDF metadata.
+        * Metadata provided as other binary resources in the repository.
+        * Metadata provided as CMDI XMLs stored in other repository resources (but their class is provided in the RDF metadata).
+    * It's easy to extend
+        * implement your own metadata sources
+        * or implement your own search class.
 
 # Installation
 
@@ -34,3 +35,46 @@ An OAI-PMH service for the ACDH repository.
 * *sets*  
   That's because we are not using sets in our repository.  
   Anyway it won't be difficult to add support for them. Contact us if you need this feature.
+
+# Extending
+
+There are two areas for extending the service:
+
+* implementing new metadata sources
+* implementing new search engines
+
+## Architecture
+
+The `acdhOeaw\oai\Oai` class works a a controller. It:
+
+* checks OAI-PMH requests correctness, 
+* handles OAI-PMH commands not releated to listing resources (`identify`, 
+  `ListMetadataFormats` and `ListSets`)
+* delegates OAI-PMH commands related to listing resources to a chosen
+  class implementing the `acdhOeaw\oai\search\SearchInterface`
+* generates OAI-PMH compliant output from results of above mentioned actions
+* catches errors and generates OAI-PMH compliant error responses
+
+Until you want to implement the resumption tokens and/or `ListSets` command there
+shouldn't be need to alter this class.
+
+```
++-----+    +-----------+
+|     |    | Search    |    +-----------+
+| Oai |--->| Interface |--->| Metadata  |
+|     |    +-----------+    | Interface |
++-----+                     +-----------+
+```
+
+The `Oai` class performs resource search using the `acdhOeaw\oai\search\SearchInterface`
+interface. This interface provides methods for both search and accessing search
+result resources' metadata in two formats:
+
+* `acdhOeaw\oai\search\HeaderData` - a minimalistic set of data (id, date, sets)
+  required to generate OAI-PMH &lt;header&gt; section
+* `acdhOeaw\oai\metadata\MetadataInterface` - a format allowing access to full
+  metadata in XML format (as PHP DOM objects)
+
+The `acdhOeaw\oai\search\SearchInterface` allows to easily replace the default search
+implementation with your own one.
+

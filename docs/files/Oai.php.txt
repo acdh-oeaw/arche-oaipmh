@@ -1,0 +1,368 @@
+<?php
+
+/**
+ * The MIT License
+ *
+ * Copyright 2017 Austrian Centre for Digital Humanities.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+namespace acdhOeaw\oai;
+
+use acdhOeaw\fedora\Fedora;
+use acdhOeaw\oai\data\HeaderData;
+use acdhOeaw\oai\data\RepositoryInfo;
+use acdhOeaw\util\RepoConfig as RC;
+use DOMDocument;
+use DOMNode;
+use DOMElement;
+use RuntimeException;
+use StdClass;
+use Throwable;
+
+/**
+ * Implements controller for the OAI-PMH service:
+ * - checks OAI-PMH requests correctness, 
+ * - handles OAI-PMH `identify` and `ListMetadataFormats` commands
+ * - delegates OAI-PMH `GetRecord`, `ListIdentifiers` and `ListRecords` commands 
+ *   to a chosen class implementing the `acdhOeaw\oai\search\SearchInterface`
+ * - delegates OAI-PMH `ListSets` command to a chosen class extending the
+ *   `acdhOeaw\oai\set\SetInterface` class.
+ * - generates OAI-PMH compliant output from results of above mentioned actions
+ * - catches errors and generates OAI-PMH compliant error responses
+ *
+ * @author zozlak
+ */
+class Oai {
+
+    /**
+     * OAI-PMH response beginning template
+     * @var string
+     */
+    static private $respBegin  = <<<TMPL
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+    <responseDate>%s</responseDate>
+    <request %s>%s</request>
+
+TMPL;
+
+    /**
+     * OAI-PMH response ending template
+     * @var string
+     */
+    static private $respEnd    = <<<TMPL
+</OAI-PMH>     
+TMPL;
+
+    /**
+     * OAI-PMH date format regexp
+     * @var string
+     */
+    static private $dateRegExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
+
+    /**
+     * Repository connection object
+     * @var \acdhOeaw\fedora\Fedora 
+     */
+    private $fedora;
+
+    /**
+     * XML object used to serialize OAI-PMH response parts
+     * @var \DOMDocument
+     */
+    private $response;
+
+    /**
+     * List of metadata descriptors
+     * @var array
+     */
+    private $metadataFormats = array();
+
+    /**
+     * Repository info object used to serve OAI-PMH `Identify` requests
+     * @var \acdhOeaw\oai\RepositoryInfo
+     */
+    private $info;
+
+    /**
+     * Initialized the OAI-PMH server object.
+     * 
+     * @param \acdhOeaw\oai\data\RepositoryInfo $info
+     * @param array $metadataFormats
+     */
+    public function __construct(RepositoryInfo $info, array $metadataFormats) {
+        $this->info   = $info;
+        $this->fedora = new Fedora();
+
+        foreach ($metadataFormats as $i) {
+            $this->metadataFormats[$i->metadataPrefix] = $i;
+        }
+
+        // response initialization
+        $this->response = new DOMDocument('1.0', 'UTF-8');
+        $root           = $this->response->createElementNS('http://www.openarchives.org/OAI/2.0/', 'OAI-PMH');
+        $this->response->appendChild($root);
+        $root->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd');
+    }
+
+    /**
+     * Handles OAI-PMH request.
+     */
+    public function handleRequest() {
+        header('Content-Type: text/xml');
+
+        $params = array();
+        foreach ($_GET as $key => $value) {
+            $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
+        }
+        printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseUrl));
+
+        try {
+
+            $token = filter_input(\INPUT_GET, 'resumptionToken');
+            if ($token !== null) {
+                // we do not implement partial responses
+                throw new OaiException('badResumptionToken');
+            } else {
+                $verb = filter_input(\INPUT_GET, 'verb') . '';
+                switch ($verb) {
+                    case 'ListSets':
+                        $this->oaiListSets();
+                        break;
+                    case 'ListRecords':
+                        $this->oaiListRecords('ListRecords');
+                        break;
+                    case 'ListMetadataFormats':
+                        $this->oaiListMetadataFormats();
+                        break;
+                    case 'ListIdentifiers':
+                        $this->oaiListRecords('ListIdentifiers');
+                        break;
+                    case 'Identify':
+                        $this->oaiIdentify();
+                        break;
+                    case 'GetRecord':
+                        $id = filter_input(\INPUT_GET, 'identifier') . '';
+                        $this->oaiListRecords('GetRecord', $id);
+                        break;
+                    default:
+                        throw new OaiException('badVerb');
+                }
+            }
+        } catch (Throwable $e) {
+            if ($e instanceof OaiException) {
+                $el = $this->createElement('error', $e->getMessage(), array('code' => $e->getMessage()));
+            } else {
+                $el = $this->createElement('error', $e->getMessage(), array('code' => 'Internal error'));
+            }
+            $this->response->documentElement->appendChild($el);
+            echo "    " . $el->C14N() . "\n";
+        } finally {
+            echo self::$respEnd;
+        }
+    }
+
+    /**
+     * Implements the Identify OAI-PMH verb
+     */
+    public function oaiIdentify() {
+        $parent = $this->response->createElement('Identify');
+        foreach ($this->info as $key => $value) {
+            if (!is_array($value)) {
+                $value = array($value);
+            }
+            foreach ($value as $i) {
+                $parent->appendChild($this->createElement($key, $i));
+            }
+        }
+        $this->response->documentElement->appendChild($parent);
+        echo $parent->C14N() . "\n";
+    }
+
+    /**
+     * Implements the ListMetadataFormats OAI-PMH verb
+     * @throws OaiException
+     */
+    public function oaiListMetadataFormats() {
+        $id = filter_input(\INPUT_GET, 'identifier');
+
+        if ($id != '') {
+            try {
+                $res  = $this->fedora->getResourceById($id);
+                $meta = $res->getMetadata();
+
+                $supFormats = array();
+                foreach ($this->metadataFormats as $format) {
+                    if ($format->rdfProperty == '') {
+                        $supFormats[] = $format;
+                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
+                        $supFormats[] = $format;
+                    }
+                }
+            } catch (RuntimeException $e) {
+                throw new OaiException('idDoesNotExist');
+            }
+        } else {
+            $supFormats = $this->metadataFormats;
+        }
+
+        if (count($supFormats) == 0) {
+            throw new OaiException('noMetadataFormats');
+        }
+
+        $parent = $this->response->createElement('ListMetadataFormats');
+        foreach ($supFormats as $i) {
+            $node = $this->response->createElement('metadataFormat');
+            $node->appendChild($this->createElement('metadataPrefix', $i->metadataPrefix));
+            $node->appendChild($this->createElement('schema', $i->schema));
+            $node->appendChild($this->createElement('metadataNamespace', $i->metadataNamespace));
+            $parent->appendChild($node);
+        }
+        $this->response->documentElement->appendChild($parent);
+        echo $parent->C14N() . "\n";
+    }
+
+    /**
+     * Implements the ListIdentifiers, ListRecords and GetRecord OAI-PMH verbs
+     * @param string $verb
+     * @param string $id
+     * @throws OaiException
+     */
+    public function oaiListRecords(string $verb, string $id = '') {
+        $from           = (string) filter_input(\INPUT_GET, 'from') . '';
+        $until          = (string) filter_input(\INPUT_GET, 'until') . '';
+        $set            = (string) filter_input(\INPUT_GET, 'set');
+        $metadataPrefix = (string) filter_input(\INPUT_GET, 'metadataPrefix') . '';
+
+        if ($verb == 'GetRecord' && $id == '') {
+            throw new OaiException('badArgument');
+        }
+        if (!isset($this->metadataFormats[$metadataPrefix])) {
+            throw new OaiException('badArgument');
+        }
+        if ($from && !preg_match(self::$dateRegExp, $from)) {
+            throw new OaiException('badArgument');
+        }
+        if ($until && !preg_match(self::$dateRegExp, $until)) {
+            throw new OaiException('badArgument');
+        }
+
+        $format = $this->metadataFormats[$metadataPrefix];
+
+        $search = RC::get('oaiSearchClass');
+        $search = new $search($format, $this->fedora);
+        /* @var $search \acdhOeaw\oai\search\SearchInterface */
+        $search->find($id, $from, $until, $set);
+        if ($search->getCount() == 0) {
+            throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
+        }
+
+        echo "    <" . $verb . ">\n";
+        for ($i = 0; $i < $search->getCount(); $i++) {
+            try {
+                $header = $this->createHeader($search->getHeader($i));
+                if ($verb === 'ListIdentifiers') {
+                    $record = $header;
+                } else {
+                    $record = $this->createElement('record');
+
+                    $record->appendChild($header);
+
+                    $metaNode = $this->createElement('metadata');
+                    $xml      = $search->getMetadata($i)->getXml();
+                    $metaNode->appendChild($metaNode->ownerDocument->importNode($xml, true));
+                    $record->appendChild($metaNode);
+                }
+                $this->response->documentElement->appendChild($record);
+                echo $record->C14N() . "\n";
+                $this->response->documentElement->appendChild($record);
+            } catch (OaiException $e) {
+                //echo $e;
+            }
+        }
+        echo "    </" . $verb . ">\n";
+    }
+
+    /**
+     * Implements the ListSets OAI-PMH verb.
+     * 
+     * Fetches set description using a chosen (config:oaiSetClass) class and
+     * formats its output as an OAI-PMH XML.
+     */
+    public function oaiListSets() {
+        $class = RC::get('oaiSetClass');
+        $sets  = $class::listSets($this->fedora);
+        echo "    <listSets>\n";
+        foreach ($sets as $i) {
+            /* @var $i \acdhOeaw\oai\SetInfo */
+            $node = $this->createElement('set');
+            $node->appendChild($this->createElement('setSpec', $i->spec));
+            $node->appendChild($this->createElement('setName', $i->name));
+            if ($i->description) {
+                $tmp = $this->createElement('setDescription');
+                $tmp->appendChild($tmp->ownerDocument->importNode($i->description, true));
+                $node->appendChild($tmp);
+            }
+            $this->response->appendChild($node);
+            echo $node->C14N() . "\n";
+            $this->response->removeChild($node);
+        }
+        echo "    </listSets>\n";
+    }
+
+    /**
+     * Creates a resource's <header> element as defined by OAI-PMH standard.
+     * 
+     * @param StdClass $res
+     * @return DOMElement
+     */
+    private function createHeader(HeaderData $res): DOMElement {
+        $node = $this->createElement('header');
+        $node->appendChild($this->createElement('identifier', $res->id));
+        $node->appendChild($this->createElement('datestamp', $res->date));
+        foreach ($res->sets as $i) {
+            $node->appendChild($this->createElement('setSpec', $i));
+        }
+        return $node;
+    }
+
+    /**
+     * Returns a PHP reresentation of an XML node.
+     * 
+     * @param string $element
+     * @param string $value
+     * @param array $attributes
+     * @return DOMNode
+     */
+    private function createElement(string $element, string $value = '',
+                                   array $attributes = array()): DOMNode {
+        $node = $this->response->createElement($element);
+        if ($value != '') {
+            $node->appendChild($this->response->createTextNode($value));
+        }
+        foreach ($attributes as $k => $v) {
+            $node->setAttribute($k, $v);
+        }
+        return $node;
+    }
+
+}
+

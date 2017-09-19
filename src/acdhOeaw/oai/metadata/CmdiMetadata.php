@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,40 +26,46 @@
 
 namespace acdhOeaw\oai\metadata;
 
-use acdhOeaw\fedora\FedoraResource;
-use acdhOeaw\oai\MetadataFormat;
-use acdhOeaw\oai\OaiException;
-use acdhOeaw\util\RepoConfig as RC;
+use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use acdhOeaw\oai\data\MetadataFormat;
 
 /**
  * Specialization of ResMetadata class checking if the CMDI schema matches
  * metadata format requested by the user.
+ * 
+ * Required metadata format definitition properties:
+ * - `cmdiResProp` 
+ * - `cmdiSchemaProp`
+ * - `idProp` 
+ * so that SPARQL path `?res cmdiResProp / ^idProp ?metaRes` will fetch right
+ * metadata resources assuming that `?metaRes cmdiSchemaProp 'cmdiResSchema'` 
+ * matches the requested metadata format schema.
  *
  * @author zozlak
  */
 class CmdiMetadata extends ResMetadata {
 
     /**
-     * Creates a metadata object for a given repository resource.
+     * Returns a SPARQL search query part:
+     * - fetching additional data required by the `__construct()` method (implemented in parent class)
+     * - assuring that the linked CMDI resource has the right schema
      * 
-     * @param FedoraResource $resource repository resource for which the
-     *   metadata should be returned
-     * @param MetadataFormat $format metadata format description
+     * @param MetadataFormat $format metadata format descriptor
+     * @param string $resVar name of the SPARQL variable holding the repository
+     *   resource URI
+     * @return string
+     * @see __construct()
      */
-    public function __construct(FedoraResource $resource, MetadataFormat $format) {
-        parent::__construct($resource, $format);
-
-        $schemas = $resource->getMetadata()->allResources(RC::get('cmdiSchemaProp'));
-        $match   = false;
-        foreach ($schemas as $schema) {
-            if ($schema->getUri() === $format->schema) {
-                $match = true;
-                break;
-            }
-        }
-        if (!$match) {
-            throw new OaiException('wrong resource schema');
-        }
+    static public function extendSearchQuery(MetadataFormat $format,
+                                             string $resVar): string {
+        $param = array(
+            $format->cmdiResProp,
+            $format->idProp,
+            $format->cmdiSchemaProp,
+            $format->schema
+        );
+        $query = new SimpleQuery($resVar . " ?@ / ^?@ ?metaRes . \n ?metaRes ?@ ?@ .", $param);
+        return $query->getQuery();
     }
 
 }

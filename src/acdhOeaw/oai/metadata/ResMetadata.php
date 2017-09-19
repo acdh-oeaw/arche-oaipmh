@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,35 +28,87 @@ namespace acdhOeaw\oai\metadata;
 
 use DOMDocument;
 use DOMElement;
-use RuntimeException;
+use stdClass;
+use acdhOeaw\fedora\FedoraResource;
+use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\oai\OaiException;
 
 /**
- * Creates <metadata> element by simply taking content of a given resource.
+ * Creates <metadata> element by simply taking binary content of another
+ * repository resource.
  * 
- * Of course it will work only if a given resource is an XML file satisfying 
- * requested OAI-PMH metadata schema (but checking it is out of scope of this class)
+ * Of course it will work only if the target resource is an XML file satisfying 
+ * requested OAI-PMH metadata schema (but checking it is out of scope of this 
+ * class)
  *
+ * Required metadata format definitition properties:
+ * - `metaResProp` 
+ * - `idProp`
+ * so that SPARQL path `?res metaResProp / ^idProp ?metaRes` will fetch a correct
+ * metadata resource.
+ * 
  * @author zozlak
  */
-class ResMetadata extends Metadata {
+class ResMetadata implements MetadataInterface {
 
     /**
-     * Creates DOM object containing the metadata.
-     * 
-     * @param DOMDocument $doc XML document to attach the metadata to.
-     * @return DOMElement 
-     * @throws RuntimeException
+     * Repository resouce storing actual metadata as its binary content.
+     * @var \acdhOeaw\fedora\FedoraResource
      */
-    protected function createDOM(DOMDocument $doc): DOMElement {
-        $meta = new DOMDocument();
-        // it would be more memory efficient to parse using DOMDocument::load()
-        // but then it is impossible to turn off certificate check and perform authentication
-        $success = $meta->loadXML((string) $this->res->getContent()->getBody());
+    private $metaRes;
+
+    /**
+     * Creates a metadata object for a given repository resource.
+     * 
+     * @param FedoraResource $resource repository resource object
+     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param MetadataFormat $format metadata format descriptor
+     *   describing this resource
+     */
+    public function __construct(FedoraResource $resource,
+                                stdClass $sparqlResultRow,
+                                MetadataFormat $format) {
+        $fedora        = $resource->getFedora();
+        $this->metaRes = $fedora->getResourceByUri($sparqlResultRow->metaRes);
+    }
+
+    /**
+     * Creates resource's XML metadata
+     * 
+     * @return DOMElement 
+     * @throws \acdhOeaw\oai\OaiException
+     */
+    public function getXml(): DOMElement {
+        $meta    = new DOMDocument();
+        $success = $meta->loadXML((string) $this->metaRes->getContent()->getBody());
         if (!$success) {
-            throw new RuntimeException('failed to parse given resource content as XML');
+            throw new OaiException('failed to parse given resource content as XML');
         }
-        $node = $doc->importNode($meta->documentElement, true);
-        return $node;
+        return $meta->documentElement;
+    }
+
+    /**
+     * Returns a SPARQL search query part fetching additional data required by
+     * the `__construct()` method.
+     * 
+     * In this case it is an URI of the repository resource storing the actual
+     * metadata as its binary content.
+     * 
+     * @param MetadataFormat $format metadata format descriptor
+     * @param string $resVar name of the SPARQL variable holding the repository
+     *   resource URI
+     * @return string
+     * @see __construct()
+     */
+    static public function extendSearchQuery(MetadataFormat $format,
+                                             string $resVar): string {
+        $param = array(
+            $format->metaResProp,
+            $format->idProp
+        );
+        $query = new SimpleQuery($resVar . ' ?@ / ^?@ ?metaRes .', $param);
+        return $query->getQuery();
     }
 
 }

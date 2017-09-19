@@ -4,15 +4,16 @@ An OAI-PMH service for Fedora 4 repositories.
   (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)
 * Depends only on the Fedora REST API and the SPARQL endpoint, therefore is not affected by internal changes in Fedora.
 * Can handle big repositories (doesn't buffer output data so memory consumption is very low).
-* Is very flexible:
+* Is flexible:
     * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
-    * It's shipped with a classes implementing few metadata sources:
+    * It's shipped with a classes implementing OAI-PMH metadata generation from:
         * Dublin Core and Dublin Core terms in repository resource's RDF metadata.
-        * Metadata provided as other binary resources in the repository.
-        * Metadata provided as CMDI XMLs stored in other repository resources (but their class is provided in the RDF metadata).
+        * Metadata provided as other binary resource in the repository.
+            * With additional filtering based on the binary resource RDF metadata.
     * It's easy to extend
         * implement your own metadata sources
-        * or implement your own search class.
+        * implement your own search class
+        * implement your own sets
 
 # Installation
 
@@ -20,8 +21,8 @@ An OAI-PMH service for Fedora 4 repositories.
 * run `composer update`
     * of course make sure you have `composer` first
 * rename `config.ini.inc` to `config.ini`
-* update `config.ini` content
-    * read the comments - information on describing metadata formats is provided there (as well as examples)
+* update `config.ini` settings
+    * read the comments - information on describing metadata formats is provided there
 * deploy as a normal PHP website
 
 # Unsupported features
@@ -32,57 +33,80 @@ An OAI-PMH service for Fedora 4 repositories.
 * *deleted records*  
   As in our software stack information about deleted resources is removed from the triplestore we did not bother about this feature.  
   Anyway if such data are available in the triplestore it will be easy to add this feature.
-* *sets*  
-  That's because we are not using sets in our repository.  
-  Anyway it won't be difficult to add support for them. Contact us if you need this feature.
 
-# Extending
+# Required repository structure
 
-There are two areas for extending the service:
+Much attention was paid to make the service flexible.
+To achieve that different implementations were provided for each of main components (set handling component, metadata source component).
+These implementations provide various features and put various requirements on your repository structure.
+Please read the documentation provided in the `config.ini.inc` and, if needed, the documentation of particular classes to get more information.
 
-* implementing new metadata sources
-* implementing new search engines
-
-## Architecture
-
-The `acdhOeaw\oai\Oai` class works a a controller. It:
-
-* checks OAI-PMH requests correctness, 
-* handles OAI-PMH commands not releated to listing resources (`identify`, 
-  `ListMetadataFormats` and `ListSets`)
-* delegates OAI-PMH commands related to listing resources to a chosen
-  class implementing the `acdhOeaw\oai\search\SearchInterface`
-* generates OAI-PMH compliant output from results of above mentioned actions
-* catches errors and generates OAI-PMH compliant error responses
-
-Until you want to implement the resumption tokens and/or `ListSets` command there
-shouldn't be need to alter this class.
+# Architecture
 
 ```
 +-----+    +-----------+
 |     |    | Search    |    +-----------+
 | Oai |--->| Interface |--->| Metadata  |
 |     |    +-----------+    | Interface |
-+-----+                     +-----------+
++-----+       |             +-----------+
+     |        |
+     v        v
+    +--------------+  
+    | SetInterface |
+    +--------------+
 ```
 
-The `Oai` class performs resource search using the **`acdhOeaw\oai\search\SearchInterface`**
-interface. This interface **provides methods for both search and accessing search
-results** in two formats:
+## Oai
 
-* `acdhOeaw\oai\search\HeaderData` - a minimalistic set of data (id, date, sets)
-  required to generate OAI-PMH &lt;header&gt; section
-* `acdhOeaw\oai\metadata\MetadataInterface` - a format allowing access to full
-  metadata in XML format (as PHP DOM objects)
+The main class is `acdhOeaw\oai\Oai` which works as a controller. It:
 
-The `acdhOeaw\oai\search\SearchInterface` responsibility is to perform a search
-and return them in one of above-mentioned formats.
+* checks OAI-PMH requests correctness, 
+* handles OAI-PMH `identify` and `ListMetadataFormats` commands
+* delegates OAI-PMH `GetRecord`, `ListIdentifiers` and `ListRecords` commands 
+  to a chosen class implementing the `acdhOeaw\oai\search\SearchInterface`
+* delegates OAI-PMH `ListSets` command to a chosen class extending the
+  `acdhOeaw\oai\set\SetInterface` class.
+* generates OAI-PMH compliant output from results of above mentioned actions
+* catches errors and generates OAI-PMH compliant error responses
 
-* The `HeaderData` data can (and for performance resons should) be 
-  typically obtained purely from the SPARQL search query.
-  Therefore `HeaderData` serialization is typically provided by the class
-  implementing the `SearchInterface`.
-* **Obtaining the full metadata** may involve different actions based on the
-  OAI-PMH metadata format and its representation in the repository.
-  Therefore it **is delegated to specialized classes implementing the
-  `acdhOeaw\oai\metadata\MetadataInterface`** interface.
+**Until you want to implement the resumption tokens there should be no need to 
+alter this class.**
+
+## SetInterface
+
+The `SetInterface` provides an API:
+
+* for the `Oai` class to handle the `ListSets` OAI-PMH requests
+* for the `SearchInterface` implementations to include set information in searches
+
+Currenlty there are three implementations of the `SetInterface`:
+
+* `acdhOeaw\oai\set\NoSet` simply throwing the `noSetHierarchy` OAI-PMH error
+* `acdhOeaw\oai\set\Simple` where set membership is fetched from a given RDF
+  metadata property. This property value is taken as both &lt;setSpec&gt; and
+  &lt;setName&gt; values and no &lt;setDescription&gt; is provided.
+* `acdhOeaw\oai\set\Comples` where a given RDF metadata property points to
+  another repository resource describing the set.
+
+If exsisting implementations don't fulfil your needs, you need to write your own
+class extending the `acdhOeaw\oai\set\SetInterface` one and set the `oaiSetClass`
+in the `config.ini` file to your class name.
+
+## SearchInterface
+
+The `SearchInterface` provides an API for the `Oai` class to:
+
+* Perform search for resources.
+* Get basic resource metadata required to serve the `ListIdentifiers` OAI-PMH request.  
+  Data for each resource are returned as `acdhOeaw\oai\data\Headerdata` objects.
+* Get full resource metadata required to serve `ListResources` and `GetRecord` OAI-PMH requests.  
+  Data for each resource are returned as `acdhOeaw\oai\metadata\MetadataInterface` objects.
+
+The `SearchInterface` implementations depend on two other interfaces:
+
+* `SetInterface` for getting SPARQL search query extensions for including
+  information and/or filters on sets.
+* `MetadataInterface` for getting the full resource metadata required to serve 
+  `ListResources` and `GetRecord` OAI-PMH requests.  
+
+The current implementation (`acdhOeaw\oai\search\BasicSearch`) 

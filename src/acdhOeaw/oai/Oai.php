@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,57 +26,78 @@
 
 namespace acdhOeaw\oai;
 
-use EasyRdf\Sparql\Result;
 use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
-use acdhOeaw\oai\metadata\MetadataInterface;
+use acdhOeaw\oai\data\HeaderData;
+use acdhOeaw\oai\data\RepositoryInfo;
 use acdhOeaw\util\RepoConfig as RC;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
-use InvalidArgumentException;
 use RuntimeException;
 use StdClass;
 use Throwable;
 
 /**
- * Description of Oai
+ * Implements controller for the OAI-PMH service:
+ * - checks OAI-PMH requests correctness, 
+ * - handles OAI-PMH `identify` and `ListMetadataFormats` commands
+ * - delegates OAI-PMH `GetRecord`, `ListIdentifiers` and `ListRecords` commands 
+ *   to a chosen class implementing the `acdhOeaw\oai\search\SearchInterface`
+ * - delegates OAI-PMH `ListSets` command to a chosen class extending the
+ *   `acdhOeaw\oai\set\SetInterface` class.
+ * - generates OAI-PMH compliant output from results of above mentioned actions
+ * - catches errors and generates OAI-PMH compliant error responses
  *
  * @author zozlak
  */
 class Oai {
 
-    static private $respBegin = <<<TMPL
+    /**
+     * OAI-PMH response beginning template
+     * @var string
+     */
+    static private $respBegin  = <<<TMPL
 <?xml version="1.0" encoding="UTF-8"?>
 <OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
     <responseDate>%s</responseDate>
     <request %s>%s</request>
 
 TMPL;
-    static private $respEnd   = <<<TMPL
+
+    /**
+     * OAI-PMH response ending template
+     * @var string
+     */
+    static private $respEnd    = <<<TMPL
 </OAI-PMH>     
 TMPL;
 
     /**
-     *
+     * OAI-PMH date format regexp
+     * @var string
+     */
+    static private $dateRegExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
+
+    /**
+     * Repository connection object
      * @var \acdhOeaw\fedora\Fedora 
      */
     private $fedora;
 
     /**
-     *
+     * XML object used to serialize OAI-PMH response parts
      * @var \DOMDocument
      */
     private $response;
 
     /**
-     *
+     * List of metadata descriptors
      * @var array
      */
     private $metadataFormats = array();
 
     /**
-     *
+     * Repository info object used to serve OAI-PMH `Identify` requests
      * @var \acdhOeaw\oai\RepositoryInfo
      */
     private $info;
@@ -84,14 +105,12 @@ TMPL;
     /**
      * Initialized the OAI-PMH server object.
      * 
-     * @param \acdhOeaw\oai\RepositoryInfo $info
+     * @param \acdhOeaw\oai\data\RepositoryInfo $info
      * @param array $metadataFormats
-     * @param Fedora $fedora
      */
-    public function __construct(RepositoryInfo $info, array $metadataFormats,
-                                Fedora $fedora) {
+    public function __construct(RepositoryInfo $info, array $metadataFormats) {
         $this->info   = $info;
-        $this->fedora = $fedora;
+        $this->fedora = new Fedora();
 
         foreach ($metadataFormats as $i) {
             $this->metadataFormats[$i->metadataPrefix] = $i;
@@ -228,52 +247,54 @@ TMPL;
      * @throws OaiException
      */
     public function oaiListRecords(string $verb, string $id = '') {
-        $from           = filter_input(\INPUT_GET, 'from') . '';
-        $until          = filter_input(\INPUT_GET, 'until') . '';
-        $set            = filter_input(\INPUT_GET, 'set');
-        $metadataPrefix = filter_input(\INPUT_GET, 'metadataPrefix') . '';
+        $from           = (string) filter_input(\INPUT_GET, 'from') . '';
+        $until          = (string) filter_input(\INPUT_GET, 'until') . '';
+        $set            = (string) filter_input(\INPUT_GET, 'set');
+        $metadataPrefix = (string) filter_input(\INPUT_GET, 'metadataPrefix') . '';
 
-        if ($set !== null) {
-            throw new OaiException('noSetHierarchy');
-        }
-        if ($verb == 'GetRecord' && $id == '' || $metadataPrefix == '') {
+        if ($verb == 'GetRecord' && $id == '') {
             throw new OaiException('badArgument');
         }
-
-        try {
-            $records = $this->findRecords($metadataPrefix, $from, $until, $id);
-        } catch (InvalidArgumentException $e) {
-            throw new OaiException($e->getMessage());
+        if (!isset($this->metadataFormats[$metadataPrefix])) {
+            throw new OaiException('badArgument');
         }
-
-        if (count($records) == 0) {
-            throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
+        if ($from && !preg_match(self::$dateRegExp, $from)) {
+            throw new OaiException('badArgument');
+        }
+        if ($until && !preg_match(self::$dateRegExp, $until)) {
+            throw new OaiException('badArgument');
         }
 
         $format = $this->metadataFormats[$metadataPrefix];
 
+        $search = RC::get('oaiSearchClass');
+        $search = new $search($format, $this->fedora);
+        /* @var $search \acdhOeaw\oai\search\SearchInterface */
+        $search->find($id, $from, $until, $set);
+        if ($search->getCount() == 0) {
+            throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
+        }
+
         echo "    <" . $verb . ">\n";
-        foreach ($records as $i) {
+        for ($i = 0; $i < $search->getCount(); $i++) {
             try {
-                $uri = isset($i->metaRes) ? $i->metaRes : $i->res;
-                $meta = new $format->class($this->fedora->getResourceByUri($uri), $format);
-                
-                $header = $this->createHeader($i);
+                $header = $this->createHeader($search->getHeader($i));
                 if ($verb === 'ListIdentifiers') {
                     $record = $header;
                 } else {
                     $record = $this->createElement('record');
 
                     $record->appendChild($header);
-                    
+
                     $metaNode = $this->createElement('metadata');
-                    $meta->appendTo($metaNode);
+                    $xml      = $search->getMetadata($i)->getXml();
+                    $metaNode->appendChild($metaNode->ownerDocument->importNode($xml, true));
                     $record->appendChild($metaNode);
                 }
                 $this->response->documentElement->appendChild($record);
                 echo $record->C14N() . "\n";
                 $this->response->documentElement->appendChild($record);
-            } catch (Throwable $e) {
+            } catch (OaiException $e) {
                 //echo $e;
             }
         }
@@ -281,10 +302,30 @@ TMPL;
     }
 
     /**
-     * Implements the ListSets OAI-PMH verb
+     * Implements the ListSets OAI-PMH verb.
+     * 
+     * Fetches set description using a chosen (config:oaiSetClass) class and
+     * formats its output as an OAI-PMH XML.
      */
     public function oaiListSets() {
-        throw new OaiException('noSetHierarchy');
+        $class = RC::get('oaiSetClass');
+        $sets  = $class::listSets($this->fedora);
+        echo "    <listSets>\n";
+        foreach ($sets as $i) {
+            /* @var $i \acdhOeaw\oai\SetInfo */
+            $node = $this->createElement('set');
+            $node->appendChild($this->createElement('setSpec', $i->spec));
+            $node->appendChild($this->createElement('setName', $i->name));
+            if ($i->description) {
+                $tmp = $this->createElement('setDescription');
+                $tmp->appendChild($tmp->ownerDocument->importNode($i->description, true));
+                $node->appendChild($tmp);
+            }
+            $this->response->appendChild($node);
+            echo $node->C14N() . "\n";
+            $this->response->removeChild($node);
+        }
+        echo "    </listSets>\n";
     }
 
     /**
@@ -293,87 +334,14 @@ TMPL;
      * @param StdClass $res
      * @return DOMElement
      */
-    private function createHeader(StdClass $res): DOMElement {
+    private function createHeader(HeaderData $res): DOMElement {
         $node = $this->createElement('header');
         $node->appendChild($this->createElement('identifier', $res->id));
         $node->appendChild($this->createElement('datestamp', $res->date));
+        foreach ($res->sets as $i) {
+            $node->appendChild($this->createElement('setSpec', $i));
+        }
         return $node;
-    }
-
-    /**
-     * Searches in the triplestore for repository resources matching given
-     * criteria.
-     * 
-     * @param string $metadataPrefix
-     * @param string $from
-     * @param string $until
-     * @param string $id
-     * @return \EasyRdf\Sparql\Result
-     * @throws InvalidArgumentException
-     */
-    private function findRecords(string $metadataPrefix, string $from = '',
-                                 string $until = '', string $id = ''): Result {
-        $dateRexExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
-        $param      = array();
-
-        // metadata format clause
-        if (!isset($this->metadataFormats[$metadataPrefix])) {
-            throw new InvalidArgumentException('cannotDisseminateFormat');
-        }
-        $format  = $this->metadataFormats[$metadataPrefix];
-        $metaRes = '';
-        if ($format->rdfProperty != '') {
-            $metaRes = '?res ?@ / ^?@ ?metaRes . ';
-            $param[] = $format->rdfProperty;
-            $param[] = RC::idProp();
-        }
-
-        // resource id clause
-        $idFilter = '';
-        if ($id) {
-            $idFilter = '?res ?@ ?@ .';
-            $param[]  = RC::idProp();
-            $param[]  = $id;
-        }
-
-        
-        $query   = "
-            SELECT ?id ?res ?metaRes ?date
-            WHERE {
-                ?res <http://fedora.info/definitions/v4/repository#lastModified> ?date .
-                " . $metaRes . "
-                " . $idFilter . "
-                ?res ?@ ?id .
-                FILTER (
-                    regex(str(?id), ?#)
-                    {{OTHER_FILTERS}}
-                )
-            }
-        ";
-        $param[] = RC::idProp();
-        $param[] = RC::idNmsp();
-
-        // date filters
-        $filter = '';
-        if ($from) {
-            if (!preg_match($dateRexExp, $from)) {
-                throw new InvalidArgumentException('badArgument');
-            }
-            $filter  .= ' && ?date >= @#^^xsd:dateTime';
-            $param[] = $from;
-        }
-        if ($until) {
-            if (!preg_match($dateRexExp, $until)) {
-                throw new InvalidArgumentException('badArgument');
-            }
-            $filter  .= ' && ?date <= @#^^xsd:dateTime';
-            $param[] = $until;
-        }
-
-        // inject filters
-        $query = str_replace('{{OTHER_FILTERS}}', $filter, $query);
-
-        return $this->fedora->runQuery(new SimpleQuery($query, $param));
     }
 
     /**

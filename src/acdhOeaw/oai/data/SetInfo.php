@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,47 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\data;
+
+use DOMElement;
 
 /**
- * Container for OAI-PMH repository information
+ * Simple container for OAI-PMH set data
+ * (https://www.openarchives.org/OAI/openarchivesprotocol.html#Set)
  *
  * @author zozlak
  */
-class RepositoryInfo {
-    public $repositoryName;
-    public $baseUrl;
-    public $protocolVersion = '2.0';
-    public $earliestDatestamp = '1900-01-01T00:00:00Z';
-    public $deletedRecord = 'no';
-    public $granularity = 'YYYY-MM-DDThh:mm:ssZ';
-    public $adminEmail = array();
-    
-    public function __construct(string $repositoryName, string $baseUrl) {
-        $this->repositoryName = $repositoryName;
-        $this->baseUrl = $baseUrl;
+class SetInfo {
+
+    /**
+     * Set spec - see the OAI-PMH documentation
+     * @var string
+     */
+    public $spec;
+
+    /**
+     * Set name - see the OAI-PMH documentation
+     * @var string
+     */
+    public $name;
+
+    /**
+     * Set metadata to be put inside a <setDescription>
+     * @var \DOMElement
+     */
+    public $description;
+
+    /**
+     * Creates a set descriptor object by copying provided values.
+     * @param string $spec setSpec value
+     * @param string $name setName value
+     * @param DOMElement $description XML containing setDescription
+     */
+    public function __construct(string $spec, string $name,
+                                DOMElement $description = null) {
+        $this->spec        = $spec;
+        $this->name        = $name;
+        $this->description = $description;
     }
+
 }

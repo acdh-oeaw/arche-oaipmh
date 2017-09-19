@@ -24,16 +24,45 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\set;
 
-use Exception;
+use acdhOeaw\fedora\Fedora;
+use acdhOeaw\oai\OaiException;
 
 /**
- * Simple specialized exception class to easy distinguish between OAI-PMH and
- * internal exceptions.
+ * Implements proper reporting of repository without sets.
  *
  * @author zozlak
  */
-class OaiException extends Exception {
-    
+class NoSets extends SetInterface {
+
+    /**
+     * Reports no support for sets
+     * @param string $resVar
+     * @param string $set
+     * @throws OaiException
+     */
+    public static function getSetFilter(string $resVar, string $set): string {
+        throw new OaiException('noSetHierarchy');
+    }
+
+    /**
+     * Reports no support for sets
+     * @param string $resVar
+     * @param string $setVar
+     * @throws OaiException
+     */
+    public static function getSetClause(string $resVar, string $setVar): string {
+        throw new OaiException('noSetHierarchy');
+    }
+
+    /**
+     * Reports no support for sets
+     * @param Fedora $fedora
+     * @throws OaiException
+     */
+    public static function listSets(Fedora $fedora): array {
+        throw new OaiException('noSetHierarchy');
+    }
+
 }

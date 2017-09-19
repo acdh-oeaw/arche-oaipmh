@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\data;
 
 /**
  * Container for OAI-PMH metada format data
@@ -34,46 +34,35 @@ namespace acdhOeaw\oai;
 class MetadataFormat {
 
     /**
-     *
+     * OAI-PMH metadataPrefix
      * @var string
+     * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
     public $metadataPrefix;
 
     /**
-     *
+     * OAI-PMH metadata schema
      * @var string
+     * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
     public $schema;
 
     /**
-     *
+     * OAI-PMH metadataNamespace
      * @var string
+     * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
     public $metadataNamespace;
 
     /**
-     *
-     * @var string
-     */
-    public $rdfProperty;
-
-    /**
-     *
-     * @var string
-     */
-    public $class;
-
-    /**
-     * 
-     * @param array $fields
+     * Creates a metadata format descriptor
+     * @param array $fields values to set in the descriptor
      */
     public function __construct(array $fields = null) {
         if (is_array($fields)) {
-            $this->metadataPrefix    = isset($fields['metadataPrefix']) ? $fields['metadataPrefix'] : null;
-            $this->schema            = isset($fields['schema']) ? $fields['schema'] : null;
-            $this->metadataNamespace = isset($fields['metadataNamespace']) ? $fields['metadataNamespace'] : null;
-            $this->rdfProperty       = isset($fields['rdfProperty']) ? $fields['rdfProperty'] : null;
-            $this->class             = isset($fields['class']) ? $fields['class'] : null;
+            foreach ($fields as $k => $v) {
+                $this->$k = $v; 
+            }
         }
     }
 

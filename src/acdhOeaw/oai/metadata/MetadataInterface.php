@@ -1,9 +1,9 @@
 <?php
 
-/*
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +27,16 @@
 namespace acdhOeaw\oai\metadata;
 
 use DOMElement;
+use stdClass;
 use acdhOeaw\fedora\FedoraResource;
-use acdhOeaw\oai\MetadataFormat;
+use acdhOeaw\oai\data\MetadataFormat;
 
 /**
- * Interface for handling different metadata source formats.
+ * Interface for different metadata providers.
+ * 
+ * OAI-PMH metadata can be generated in various ways. This interface provides
+ * a common API enabling the \acdhOeaw\oai\Oai class to handle metadata no 
+ * matter how they are generated.
  * 
  * @author zozlak
  */
@@ -40,16 +45,37 @@ interface MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource for which the
-     *   metadata should be returned
-     * @param MetadataFormat $format metadata format description
+     * @param FedoraResource $resource repository resource object
+     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param MetadataFormat $format metadata format descriptor
+     *   describing this resource
      */
-    public function __construct(FedoraResource $resource, MetadataFormat $format);
+    public function __construct(FedoraResource $resource,
+                                stdClass $sparqlResultRow,
+                                MetadataFormat $format);
 
     /**
-     * Appends resource metadata to the OAI-PMG response.
-     * 
-     * @param DOMElement $el OAI-PMH response element to attach metadata to
+     * Returns resource's XML metadata
      */
-    public function appendTo(DOMElement $el);
+    public function getXml(): DOMElement;
+
+    /**
+     * Allows to extend a search query with additional clauses specific to the
+     * given metadata source.
+     * 
+     * Returned string must be a valid SPARQL query part one can insert as `...` 
+     * in a query like `SELECT * WHERE { ... LIMIT (someRule)}`. It means if
+     * you need your own LIMIT clause or other advanced constructs, you must  
+     * return a subquery.
+     * 
+     * Remark! PHP doesn't consider static methods as an interface part 
+     * therefore existance of this method in classes implementing this interface
+     * is not enforced.
+     * 
+     * @param MetadataFormat $format metadata format descriptor
+     * @param string $resVar variable used in the search query to denote the
+     *   repository resource
+     */
+    static public function extendSearchQuery(MetadataFormat $format,
+                                             string $resVar): string;
 }

@@ -1,9 +1,9 @@
 <?php
 
-/* 
+/**
  * The MIT License
  *
- * Copyright 2017 zozlak.
+ * Copyright 2017 Austrian Centre for Digital Humanities.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,10 +29,9 @@ require_once 'src/acdhOeaw/oai/Oai.php';
 
 use zozlak\util\Config;
 use zozlak\util\ClassLoader;
-use acdhOeaw\fedora\Fedora;
-use acdhOeaw\oai\MetadataFormat;
-use acdhOeaw\oai\RepositoryInfo;
 use acdhOeaw\oai\Oai;
+use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\oai\data\RepositoryInfo;
 use acdhOeaw\util\RepoConfig as RC;
 
 $loader = new ClassLoader('src');
@@ -48,6 +47,5 @@ foreach ($config as $i) {
 $info = new RepositoryInfo(RC::GET('oaiRepositoryName'), RC::get('oaiApiUrl'));
 $info->adminEmail[] = RC::get('oaiAdminEmail');
 
-$fedora = new Fedora();
-$oai = new Oai($info, $formats, $fedora);
+$oai = new Oai($info, $formats);
 $oai->handleRequest();

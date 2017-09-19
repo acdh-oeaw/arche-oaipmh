@@ -24,16 +24,55 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\oai\data;
 
-use Exception;
+use stdClass;
 
 /**
- * Simple specialized exception class to easy distinguish between OAI-PMH and
- * internal exceptions.
+ * Container for data required to generate OAI-PMH resource's header.
  *
  * @author zozlak
  */
-class OaiException extends Exception {
-    
+class HeaderData {
+
+    /**
+     * Resource's OAI-PMH id
+     * @var string
+     */
+    public $id;
+
+    /**
+     * Resource's last modification date
+     * @var string
+     */
+    public $date;
+
+    /**
+     * List of <setSpec> values denoting sets a resource belongs to
+     * @var array
+     */
+    public $sets = array();
+
+    /**
+     * Creates a HeaderData object optionally copying data from a provided object.
+     * @param stdClass $src data to copy from
+     */
+    public function __construct(stdClass $src = null) {
+        if ($src === null) {
+            return;
+        }
+        if (isset($src->id)) {
+            $this->id = (string) $src->id;
+        }
+        if (isset($src->date)) {
+            $this->date = (string) $src->date;
+        }
+        if (isset($src->sets)) {
+            $tmp = is_array($src->sets) ? $src->sets : array($src->sets);
+            foreach ($tmp as $i) {
+                $this->sets[] = (string) $i;
+            }
+        }
+    }
+
 }

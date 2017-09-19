@@ -43,6 +43,8 @@ Please read the documentation provided in the `config.ini.inc` and, if needed, t
 
 # Architecture
 
+Source code documentation can be found at https://rawgit.com/acdh-oeaw/fcrepo-oai/master/docs/index.html
+
 ```
 +-----+    +-----------+
 |     |    | Search    |    +-----------+
@@ -74,7 +76,7 @@ alter this class.**
 
 ## SetInterface
 
-The `SetInterface` provides an API:
+The `acdhOeaw\oai\set\SetInterface` provides an API:
 
 * for the `Oai` class to handle the `ListSets` OAI-PMH requests
 * for the `SearchInterface` implementations to include set information in searches
@@ -94,7 +96,7 @@ in the `config.ini` file to your class name.
 
 ## SearchInterface
 
-The `SearchInterface` provides an API for the `Oai` class to:
+The `acdhOeaw\oai\search\SearchInterface` provides an API for the `Oai` class to:
 
 * Perform search for resources.
 * Get basic resource metadata required to serve the `ListIdentifiers` OAI-PMH request.  
@@ -109,4 +111,40 @@ The `SearchInterface` implementations depend on two other interfaces:
 * `MetadataInterface` for getting the full resource metadata required to serve 
   `ListResources` and `GetRecord` OAI-PMH requests.  
 
-The current implementation (`acdhOeaw\oai\search\BasicSearch`) 
+The current implementation (`acdhOeaw\oai\search\BasicSearch`) is quite flexible:
+
+* takes OAI-PMH `identifier` and `datestamp` mappings from the configuration file
+  (`oaiIdProp` and `oaiDateProp`)
+* honors set and metadata format SPARQL search query extensions provided by the
+  `SetInterface` and `MetadataInterface`
+
+Until you don't need to alter the way `identifier` and `datestamp` are fetched
+there should be no need to develop an alternative implementation (possibly with
+additional filters).
+
+## MetadataInterface
+
+The `acdhOeaw\oai\metadata\MetadataInterface` provides a common API for fetching
+full OAI-PMH metadata from different sources, e.g. the repository resource
+metadata (by applying different mappings) or other repository resource.
+
+To make it as flexible as possible:
+
+* It allows to extend SPARQL search queries performed by the `SearchInterface`
+  implementations.
+* The `MetadataInterface` object constructor is provided with repository
+  resource object, the metadata format description and full set of SPARQL search
+  query data describing a given resource.
+
+Existing implementations are:
+
+* `acdhOeaw\oai\metadata\DcMetadata` creating Dublin Core metadata by simply
+  filtering resource metadata properties matching the DC and DC terms namespace.
+* `acdhOeaw\oai\metadata\ResMetadata` reading metadata from a binary payload
+  of another repository resource.
+* `acdhOeaw\oai\metadata\CmdiMetadata` a specialization of the `ResMetadata`
+  additionaly checking for the binary resource content schema.
+
+It's likely that you'll need to generate OAI-PMH metadata in (yet) another way.
+In such case you must develop your own class implementing the `MetadataInterface`.
+Taking look at already existing implementations should be a good starting point.

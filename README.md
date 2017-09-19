@@ -6,7 +6,7 @@
 * Can handle big repositories (doesn't buffer output data so memory consumption is very low).
 * Is flexible:
     * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
-    * It's shipped with a classes implementing OAI-PMH metadata generation from:
+    * It's shipped with classes implementing OAI-PMH metadata generation from:
         * Dublin Core and Dublin Core terms in repository resource's RDF metadata.
         * Metadata provided as other binary resource in the repository.
             * With additional filtering based on the binary resource RDF metadata.

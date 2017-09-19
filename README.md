@@ -1,4 +1,4 @@
-An OAI-PMH service for Fedora 4 repositories.
+# OAI-PMH service for Fedora 4 repositories
 
 * Uses metadata from the Fedora repository triplestore
   (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)

@@ -169,6 +169,9 @@ Existing implementations are:
   of another repository resource.
 * `acdhOeaw\oai\metadata\CmdiMetadata` a specialization of the `ResMetadata`
   additionaly checking for the binary resource content schema.
+* `acdhOeaw\oai\metadata\DcMetadata` creating Dublin Core metadata by mapping
+  resource's metadata properties to their DC equivalents. The mappings are taken
+  from the ontology being part of the repository.
 
 It's likely that you'll need to generate OAI-PMH metadata in (yet) another way.
 In such case you must develop your own class implementing the `MetadataInterface`.

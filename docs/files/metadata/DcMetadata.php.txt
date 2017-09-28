@@ -33,7 +33,7 @@ use acdhOeaw\fedora\FedoraResource;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
- * Creates OAI-PMH <metadata> element in Dublin Core format from 
+ * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from 
  * a FedoraResource RDF metadata.
  * 
  * Simply takes all Dublin Core elements and their Dublin Core Terms

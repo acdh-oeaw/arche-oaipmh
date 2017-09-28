@@ -56,7 +56,7 @@ class Oai {
      * OAI-PMH response beginning template
      * @var string
      */
-    static private $respBegin  = <<<TMPL
+    static private $respBegin = <<<TMPL
 <?xml version="1.0" encoding="UTF-8"?>
 <OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
     <responseDate>%s</responseDate>
@@ -68,7 +68,7 @@ TMPL;
      * OAI-PMH response ending template
      * @var string
      */
-    static private $respEnd    = <<<TMPL
+    static private $respEnd = <<<TMPL
 </OAI-PMH>     
 TMPL;
 
@@ -109,9 +109,9 @@ TMPL;
      * @param array $metadataFormats
      */
     public function __construct(RepositoryInfo $info, array $metadataFormats) {
-        $delClass = RC::get('oaiDeletedClass');
+        $delClass            = RC::get('oaiDeletedClass');
         $info->deletedRecord = $delClass::getDeletedRecord();
-            
+
         $this->info   = $info;
         $this->fedora = new Fedora();
 
@@ -279,29 +279,32 @@ TMPL;
         }
 
         echo "    <" . $verb . ">\n";
-        for ($i = 0; $i < $search->getCount(); $i++) {
-            try {
-                $header = $this->createHeader($search->getHeader($i));
-                if ($verb === 'ListIdentifiers') {
-                    $record = $header;
-                } else {
-                    $record = $this->createElement('record');
+        try {
+            for ($i = 0; $i < $search->getCount(); $i++) {
+                try {
+                    $header = $this->createHeader($search->getHeader($i));
+                    if ($verb === 'ListIdentifiers') {
+                        $record = $header;
+                    } else {
+                        $record = $this->createElement('record');
 
-                    $record->appendChild($header);
+                        $record->appendChild($header);
 
-                    $metaNode = $this->createElement('metadata');
-                    $xml      = $search->getMetadata($i)->getXml();
-                    $metaNode->appendChild($metaNode->ownerDocument->importNode($xml, true));
-                    $record->appendChild($metaNode);
+                        $metaNode = $this->createElement('metadata');
+                        $xml      = $search->getMetadata($i)->getXml();
+                        $metaNode->appendChild($metaNode->ownerDocument->importNode($xml, true));
+                        $record->appendChild($metaNode);
+                    }
+                    $this->response->documentElement->appendChild($record);
+                    echo $record->C14N() . "\n";
+                    $this->response->documentElement->appendChild($record);
+                } catch (OaiException $e) {
+                    //echo $e;
                 }
-                $this->response->documentElement->appendChild($record);
-                echo $record->C14N() . "\n";
-                $this->response->documentElement->appendChild($record);
-            } catch (OaiException $e) {
-                //echo $e;
             }
+        } finally {
+            echo "    </" . $verb . ">\n";
         }
-        echo "    </" . $verb . ">\n";
     }
 
     /**

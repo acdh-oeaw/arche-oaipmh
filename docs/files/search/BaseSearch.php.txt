@@ -92,13 +92,14 @@ class BaseSearch implements SearchInterface {
         }
 
         $query = "
-            SELECT *
+            SELECT DISTINCT *
             WHERE {
                 ?res ?@ ?date .
                 " . $this->getIdFilter($id) . "
                 ?res ?@ ?id .
                 " . $this->getSetFilter($set) . "
-                OPTIONAL {" . $this->getSetClause() . "}
+                OPTIONAL { " . $this->getSetClause() . " }
+                OPTIONAL { " . $this->getDeletedClause() . " }
                 " . $ext . "
                 " . $this->getDateFilter($from, $until) . "
             }
@@ -214,5 +215,15 @@ class BaseSearch implements SearchInterface {
         return $class::getSetClause('?res', '?set');
     }
 
+    /**
+     * Cretes SPARQL clause getting information on resource deletion.
+     * @return string
+     */
+    private function getDeletedClause(): string {
+        $class = RC::get('oaiDeletedClass');
+        /* @var $class \acdhOeaw\oai\deleted\DeletedInterface */
+        return $class::getDeletedClause('?res', '?deleted');
+        
+    }
 }
 

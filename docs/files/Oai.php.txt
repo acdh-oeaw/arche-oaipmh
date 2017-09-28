@@ -109,6 +109,9 @@ TMPL;
      * @param array $metadataFormats
      */
     public function __construct(RepositoryInfo $info, array $metadataFormats) {
+        $delClass = RC::get('oaiDeletedClass');
+        $info->deletedRecord = $delClass::getDeletedRecord();
+            
         $this->info   = $info;
         $this->fedora = new Fedora();
 
@@ -335,7 +338,11 @@ TMPL;
      * @return DOMElement
      */
     private function createHeader(HeaderData $res): DOMElement {
-        $node = $this->createElement('header');
+        $attr = array();
+        if ($res->deleted) {
+            $attr['status'] = 'deleted';
+        }
+        $node = $this->createElement('header', '', $attr);
         $node->appendChild($this->createElement('identifier', $res->id));
         $node->appendChild($this->createElement('datestamp', $res->date));
         foreach ($res->sets as $i) {

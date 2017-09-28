@@ -35,7 +35,7 @@ use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\OaiException;
 
 /**
- * Creates <metadata> element by simply taking binary content of another
+ * Creates &lt;metadata&gt; element by simply taking binary content of another
  * repository resource.
  * 
  * Of course it will work only if the target resource is an XML file satisfying 

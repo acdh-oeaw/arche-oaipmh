@@ -48,6 +48,12 @@ class HeaderData {
     public $date;
 
     /**
+     * If the resource is deleted
+     * @var bool
+     */
+    public $deleted = false;
+
+    /**
      * List of <setSpec> values denoting sets a resource belongs to
      * @var array
      */
@@ -55,6 +61,12 @@ class HeaderData {
 
     /**
      * Creates a HeaderData object optionally copying data from a provided object.
+     * 
+     * Assumes object to provide data in fields:
+     * - id - an OAI-PMH record identifier
+     * - date - an OAI-PMH record datestamp field
+     * - deleted - if an object is deleted (presence of a field means deletion)
+     * - sets - a list of OAI-PMH sets a record belongs to
      * @param stdClass $src data to copy from
      */
     public function __construct(stdClass $src = null) {
@@ -66,6 +78,9 @@ class HeaderData {
         }
         if (isset($src->date)) {
             $this->date = (string) $src->date;
+        }
+        if (isset($src->deleted)) {
+            $this->deleted = true;
         }
         if (isset($src->sets)) {
             $tmp = is_array($src->sets) ? $src->sets : array($src->sets);

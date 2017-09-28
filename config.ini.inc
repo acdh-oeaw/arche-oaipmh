@@ -17,13 +17,33 @@ fedoraPswd="***"
 fedoraIdProp="http://dummy.uri/"
 
 ;; Information reported for `verb=Identify`
-; All the other properties reported for `verb=Identify` are hardcoded in the index.php at the moment.
-; Adjust the index.php to change them.
-oaiApiUrl="https://my.oai.endpoint/root"
-oaiAdminEmail="oai-admin@my.domain"
+; Properties defined by the OAI-PMH specification but missing here:
+; - 'granularity' is fixed to "YYYY-MM-DDThh:mm:ssZ" because that's the granularity provided by the Fedora
+; - 'deletedRecord' is fetched from the class providing deleted resources handling - see the section below
 oaiRepositoryName="myRepositoryName"
+oaiBaseUrl="https://my.oai.endpoint/root"
+oaiEarliestDatestamp="1900-01-01T00:00:00Z"
+oaiAdminEmail="oai-admin@my.domain"
 
-;; OAI search facets (date and id) to RDF property mappings 
+;; Class used to implement deleted records handling
+;
+; Class implementing deleted resources handling. There are two implementations
+; available:
+; - \acdhOeaw\oai\deleted\No - when the feature is not supported
+; - \acdhOeaw\oai\deleted\RdfProperty - when the deleted resources have a given
+;   RDF property values (and not deleted resources don't)
+oaiDeletedClass="acdhOeaw\oai\deleted\RdfProperty"
+; Value to be reported for the `deletedRecord` property for the OAI-PMH 
+; `identify` request (can be "transient" or "persistent" - 
+; see https://www.openarchives.org/OAI/openarchivesprotocol.html#DeletedRecords).
+; Needed only if `oaiDeletedClass` other then "acdhOeaw\oai\deleted\no".
+oaiDeletedRecord="transient"
+; RDF property marking a resource as a deleted (resources having this property
+; will be reported as deleted).
+; Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
+oaiDeletedProp="https://vocabs.acdh.oeaw.ac.at/#isDeleted"
+
+;; OAI search facets (datestamp and identifier) to RDF property mappings 
 oaiDateProp="http://fedora.info/definitions/v4/repository#lastModified"
 oaiIdProp="https://vocabs.acdh.oeaw.ac.at/#hasPid"
 

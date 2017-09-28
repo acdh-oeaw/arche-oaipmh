@@ -44,8 +44,12 @@ foreach ($config as $i) {
         $formats[] = new MetadataFormat($i);
     }
 }
-$info = new RepositoryInfo(RC::GET('oaiRepositoryName'), RC::get('oaiApiUrl'));
-$info->adminEmail[] = RC::get('oaiAdminEmail');
+$info = new RepositoryInfo(array(
+    'repositoryName' => RC::GET('oaiRepositoryName'), 
+    'baseUrl' => RC::get('oaiBaseUrl'),
+    'earliestDatestamp' => RC::get('oaiEarliestDatestamp'),
+    'adminEmail' => array(RC::get('oaiAdminEmail'))
+));
 
 $oai = new Oai($info, $formats);
 $oai->handleRequest();

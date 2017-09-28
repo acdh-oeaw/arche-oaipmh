@@ -35,15 +35,15 @@ class RepositoryInfo {
 
     /**
      * Repository name to be reported
-     * @var type 
+     * @var string 
      */
-    public $repositoryName;
+    public $repositoryName = '';
 
     /**
      * OAI-PMH service location
-     * @var type 
+     * @var string 
      */
-    public $baseUrl;
+    public $baseUrl = '';
 
     /**
      * OAI-PMH protocol version.
@@ -76,13 +76,15 @@ class RepositoryInfo {
     public $adminEmail        = array();
 
     /**
-     * Creates a RepositoryInfo object by setting up values without defaults.
-     * @param string $repositoryName repository name to report
-     * @param string $baseUrl OAI-PMH location
+     * Creates a RepositoryInfo object setting up provided property values.
+     * @param array $param property values
      */
-    public function __construct(string $repositoryName, string $baseUrl) {
-        $this->repositoryName = $repositoryName;
-        $this->baseUrl        = $baseUrl;
+    public function __construct(array $param) {
+        foreach ($param as $k => $v) {
+            if (isset($this->$k)) {
+                $this->$k = $v;
+            }
+        }
     }
 
 }

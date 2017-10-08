@@ -41,11 +41,11 @@ oaiDeletedRecord="transient"
 ; RDF property marking a resource as a deleted (resources having this property
 ; will be reported as deleted).
 ; Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
-oaiDeletedProp="https://vocabs.acdh.oeaw.ac.at/#isDeleted"
+oaiDeletedProp="https://vocabs.acdh.oeaw.ac.at/schema#isDeleted"
 
 ;; OAI search facets (datestamp and identifier) to RDF property mappings 
 oaiDateProp="http://fedora.info/definitions/v4/repository#lastModified"
-oaiIdProp="https://vocabs.acdh.oeaw.ac.at/#hasPid"
+oaiIdProp="https://vocabs.acdh.oeaw.ac.at/schema#hasPid"
 
 ; Class used to implement the search.
 ; There is only one implementation provided \acdhOeaw\oai\search\BaseSearch.
@@ -74,7 +74,7 @@ oaiSetProp="http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 ; RDF property used to link set id to the repository resource describing the set:
 ;   [oaiResource] --oaiSetProp-->   setId 
 ;   [setResource] --oaiSetIdProp--> setId
-oaiSetIdProp="https://vocabs.acdh.oeaw.ac.at/#hasIdentifier"
+oaiSetIdProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 ; Only when class equals \acdhOeaw\oai\set\Complex
 ; RDF property storing OAI-PMH <setSpec> value:
 ;   [setResource] --oaiSetSpecProp--> setSpecValue
@@ -124,21 +124,21 @@ schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/cla
 metadataNamespace="http://www.clarin.eu/cmd/"
 class="\acdhOeaw\oai\metadata\CmdiMetadata"
 ; RDF property denoting repository resource storing actual CMDI XML
-cmdiResProp="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
+cmdiResProp="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
 ; as in ACDH repository resource are denoted indirectly using their internal repository ID, also the RDF property storing ID must be provided
-idProp="https://vocabs.acdh.oeaw.ac.at/#hasIdentifier"
+idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 ; CMDI resource RDF property storing its schema
-cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/#hasSchema"
+cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/schema#hasSchema"
 
 [cmdi_lexRes]
 metadataPrefix="cmdi_lexRes"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694579/xsd"
 metadataNamespace="http://www.clarin.eu/cmd/"
-rdfProperty="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
+rdfProperty="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
 class="\acdhOeaw\oai\metadata\CmdiMetadata"
 ; RDF property denoting repository resource storing actual CMDI XML
-cmdiResProp="https://vocabs.acdh.oeaw.ac.at/#hasMetadata"
+cmdiResProp="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
 ; as in ACDH repository resource are denoted indirectly using their internal repository ID, also the RDF property storing ID must be provided
-idProp="https://vocabs.acdh.oeaw.ac.at/#hasIdentifier"
+idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 ; CMDI resource RDF property storing its schema
-cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/#hasSchema"
+cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/schema#hasSchema"

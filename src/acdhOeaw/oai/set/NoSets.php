@@ -53,7 +53,7 @@ class NoSets extends SetInterface {
      * @throws OaiException
      */
     public static function getSetClause(string $resVar, string $setVar): string {
-        throw new OaiException('noSetHierarchy');
+        return '';
     }
 
     /**

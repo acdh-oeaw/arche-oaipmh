@@ -46,7 +46,7 @@ foreach ($config as $i) {
 }
 $info = new RepositoryInfo(array(
     'repositoryName' => RC::GET('oaiRepositoryName'), 
-    'baseUrl' => RC::get('oaiBaseUrl'),
+    'baseURL' => RC::get('oaiBaseUrl'),
     'earliestDatestamp' => RC::get('oaiEarliestDatestamp'),
     'adminEmail' => array(RC::get('oaiAdminEmail'))
 ));

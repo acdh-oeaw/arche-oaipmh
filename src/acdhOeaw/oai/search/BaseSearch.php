@@ -106,7 +106,6 @@ class BaseSearch implements SearchInterface {
         ";
         $param = array(RC::get('oaiDateProp'), RC::get('oaiIdProp'));
         $query = new SimpleQuery($query, $param);
-        //echo $query->getQuery();
         $res   = $this->fedora->runQuery($query);
 
         // as a resource may be a part of many sets, aggregation is needed
@@ -161,7 +160,7 @@ class BaseSearch implements SearchInterface {
         $filter = '';
         if ($id) {
             $param  = array(RC::get('oaiIdProp'), $id);
-            $filter = new SimpleQuery('?res ?@ ?@ .', $param);
+            $filter = new SimpleQuery('?res ?@ ?id . FILTER (str(?id) = ?#)', $param);
             $filter = $filter->getQuery();
         }
         return $filter;

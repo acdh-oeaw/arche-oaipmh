@@ -27,6 +27,8 @@
 namespace acdhOeaw\oai;
 
 use acdhOeaw\fedora\Fedora;
+use acdhOeaw\fedora\exceptions\NotFound;
+use acdhOeaw\fedora\exceptions\Deleted;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\RepositoryInfo;
 use acdhOeaw\util\RepoConfig as RC;
@@ -139,36 +141,29 @@ TMPL;
         printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseUrl));
 
         try {
-
-            $token = filter_input(\INPUT_GET, 'resumptionToken');
-            if ($token !== null) {
-                // we do not implement partial responses
-                throw new OaiException('badResumptionToken');
-            } else {
-                $verb = filter_input(\INPUT_GET, 'verb') . '';
-                switch ($verb) {
-                    case 'ListSets':
-                        $this->oaiListSets();
-                        break;
-                    case 'ListRecords':
-                        $this->oaiListRecords('ListRecords');
-                        break;
-                    case 'ListMetadataFormats':
-                        $this->oaiListMetadataFormats();
-                        break;
-                    case 'ListIdentifiers':
-                        $this->oaiListRecords('ListIdentifiers');
-                        break;
-                    case 'Identify':
-                        $this->oaiIdentify();
-                        break;
-                    case 'GetRecord':
-                        $id = filter_input(\INPUT_GET, 'identifier') . '';
-                        $this->oaiListRecords('GetRecord', $id);
-                        break;
-                    default:
-                        throw new OaiException('badVerb');
-                }
+            $verb = filter_input(\INPUT_GET, 'verb') . '';
+            switch ($verb) {
+                case 'ListSets':
+                    $this->oaiListSets();
+                    break;
+                case 'ListRecords':
+                    $this->oaiListRecords('ListRecords');
+                    break;
+                case 'ListMetadataFormats':
+                    $this->oaiListMetadataFormats();
+                    break;
+                case 'ListIdentifiers':
+                    $this->oaiListRecords('ListIdentifiers');
+                    break;
+                case 'Identify':
+                    $this->oaiIdentify();
+                    break;
+                case 'GetRecord':
+                    $id = filter_input(\INPUT_GET, 'identifier') . '';
+                    $this->oaiListRecords('GetRecord', $id);
+                    break;
+                default:
+                    throw new OaiException('badVerb');
             }
         } catch (Throwable $e) {
             if ($e instanceof OaiException) {
@@ -187,6 +182,7 @@ TMPL;
      * Implements the Identify OAI-PMH verb
      */
     public function oaiIdentify() {
+        $this->checkRequestParam(array());
         $parent = $this->response->createElement('Identify');
         foreach ($this->info as $key => $value) {
             if (!is_array($value)) {
@@ -205,12 +201,17 @@ TMPL;
      * @throws OaiException
      */
     public function oaiListMetadataFormats() {
+        $this->checkRequestParam(array('identifier'));
         $id = filter_input(\INPUT_GET, 'identifier');
 
         if ($id != '') {
-            try {
-                $res  = $this->fedora->getResourceById($id);
-                $meta = $res->getMetadata();
+            $res  = $this->fedora->getResourcesByProperty(RC::get('oaiIdProp'), $id);
+            if (count($res) == 0) {
+                throw new OaiException('idDoesNotExist');
+            } else if (count($res) > 1) {
+                throw new RuntimeException('OAI id property not unique');
+            } else {
+                $meta = $res[0]->getMetadata();
 
                 $supFormats = array();
                 foreach ($this->metadataFormats as $format) {
@@ -220,8 +221,6 @@ TMPL;
                         $supFormats[] = $format;
                     }
                 }
-            } catch (RuntimeException $e) {
-                throw new OaiException('idDoesNotExist');
             }
         } else {
             $supFormats = $this->metadataFormats;
@@ -255,8 +254,13 @@ TMPL;
         $set            = (string) filter_input(\INPUT_GET, 'set');
         $metadataPrefix = (string) filter_input(\INPUT_GET, 'metadataPrefix') . '';
 
-        if ($verb == 'GetRecord' && $id == '') {
-            throw new OaiException('badArgument');
+        if ($verb == 'GetRecord') {
+            $this->checkRequestParam(array('identifier', 'metadataPrefix'));
+            if($id == '') {
+                throw new OaiException('badArgument');
+            }
+        } else {
+            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set'));
         }
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
@@ -265,6 +269,9 @@ TMPL;
             throw new OaiException('badArgument');
         }
         if ($until && !preg_match(self::$dateRegExp, $until)) {
+            throw new OaiException('badArgument');
+        }
+        if ($from && $until && strlen($from) !== strlen($until)) {
             throw new OaiException('badArgument');
         }
 
@@ -314,6 +321,7 @@ TMPL;
      * formats its output as an OAI-PMH XML.
      */
     public function oaiListSets() {
+        $this->checkRequestParam(array());
         $class = RC::get('oaiSetClass');
         $sets  = $class::listSets($this->fedora);
         echo "    <listSets>\n";
@@ -372,6 +380,38 @@ TMPL;
             $node->setAttribute($k, $v);
         }
         return $node;
+    }
+
+    /**
+     * Validates request parameters.
+     *
+     * @param array $allowed allowed parameter names list
+     * @throws OaiException
+     */
+    private function checkRequestParam(array $allowed) {
+        $token = filter_input(\INPUT_GET, 'resumptionToken');
+        if ($token !== null) {
+            // we do not implement partial responses
+            throw new OaiException('badResumptionToken');
+        }
+
+        $seen = array();
+        $param = filter_input(\INPUT_SERVER, 'QUERY_STRING');
+        $param = explode('&', $param ? $param : '' );
+        foreach ($param as $i) {
+            $i = explode('=', $i);
+            if (isset($seen[$i[0]])) {
+                throw new OaiException('badArgument');
+            }
+            $seen[$i[0]] = 1;
+        }
+
+        $allowed[] = 'verb';
+        foreach ($_GET as $k => $v) {
+            if (!in_array($k, $allowed)) {
+                throw new OaiException('badArgument');
+            }
+        }
     }
 
 }

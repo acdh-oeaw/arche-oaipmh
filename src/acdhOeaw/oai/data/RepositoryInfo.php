@@ -43,7 +43,7 @@ class RepositoryInfo {
      * OAI-PMH service location
      * @var string 
      */
-    public $baseUrl = '';
+    public $baseURL = '';
 
     /**
      * OAI-PMH protocol version.

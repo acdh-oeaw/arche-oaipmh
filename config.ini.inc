@@ -54,20 +54,24 @@ oaiSearchClass="\acdhOeaw\oai\search\BaseSearch"
 
 ;; Set-related config
 ;
-; Class implementing sets. There are three implementations available:
+; Class implementing sets. There are four implementations available:
 ; - \acdhOeaw\oai\set\NoSets - when your repository doesn't use sets
 ; - \acdhOeaw\oai\set\Simple - when the set(s) resource belongs to is denoted
 ;   by a given RDF property value(s) but there is no other iformation about
 ;   the sets (<setName> equals <setSet>, no <setDescription> in reply to ListSets OAI-PMH request)
+; - \acdhOeaw\oai\set\Acdh - like the `\acdhOeaw\oai\set\Simple`, just also
+;   parent resources (in ACDH resource inheritance terms) are searched for the
+    RDF property describing the set
 ; - \acdhOeaw\oai\set\Complex - when a given RDF property points to other
 ;   repository resource describing the set. In this case full set information
 ;   can be provided in reply to ListSets OAI-PMH request but of course corresponding
 ;   resources describing sets must exist in your repository. <setDescripiotn> is
-;   gathered using the `acdhOeaw\oai\metadata\DcMetadata` class created for the
+;   gathered using the `\acdhOeaw\oai\metadata\DcMetadata` class created for the
 ;   resource describing a set.
 ; If none of them fits your needs, provide your own implementation and update this property.
 oaiSetClass="\acdhOeaw\oai\set\Complex"
-; Only when class equals \acdhOeaw\oai\set\Simple or \acdhOeaw\oai\set\Complex
+; Only when class equals \acdhOeaw\oai\set\Simple, \acdhOeaw\oai\set\Acdh or 
+; \acdhOeaw\oai\set\Complex
 ; RDF property denoting sets the resource is part of
 oaiSetProp="http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 ; Only when class equals \acdhOeaw\oai\set\Complex

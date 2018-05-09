@@ -27,8 +27,6 @@
 namespace acdhOeaw\oai;
 
 use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\exceptions\NotFound;
-use acdhOeaw\fedora\exceptions\Deleted;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\RepositoryInfo;
 use acdhOeaw\util\RepoConfig as RC;
@@ -118,6 +116,7 @@ TMPL;
         $this->fedora = new Fedora();
 
         foreach ($metadataFormats as $i) {
+            $i->info = $this->info;
             $this->metadataFormats[$i->metadataPrefix] = $i;
         }
 

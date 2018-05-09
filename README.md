@@ -172,6 +172,8 @@ Existing implementations are:
 * `acdhOeaw\oai\metadata\DcMetadata` creating Dublin Core metadata by mapping
   resource's metadata properties to their DC equivalents. The mappings are taken
   from the ontology being part of the repository.
+* `acdhOeaw\oai\metadata\LiveCmdiMetadata` creating CMDI metadata by filling up
+  CMDI XML templates with data fetched from resource's metadata.
 
 It's likely that you'll need to generate OAI-PMH metadata in (yet) another way.
 In such case you must develop your own class implementing the `MetadataInterface`.

@@ -95,7 +95,7 @@ oaiSetTitleProp="http://www.w3.org/2000/01/rdf-schema#label"
 ; - `metadataPrefix`, `schema` and `metadataNamespace` configuration properties 
 ;   are simply OAI properties reported for `verb=ListMetadataFormats`
 ; - `class`  configuration property denotes a PHP class implementing the given metadata format.
-;   At the moment three classes are available:
+;   At the moment four classes are available:
 ;   - `\acdhOeaw\oai\metatada\DcMetata` - takes resource's RDF metadata and 
 ;     extracts all RDF properties in `dc` and `dcterms` namespaces.
 ;     Doesn't require any additional configuration properties.
@@ -113,6 +113,10 @@ oaiSetTitleProp="http://www.w3.org/2000/01/rdf-schema#label"
 ;       [metaRes] --format.cmdiSchemaProp--> format.schema
 ;       [metaRes] binary contains XML with the metadata
 ;     Requires additional configuration properties: `idProp`, `cmdiResProp` and `cmdiSchemaProp`.
+;   - `\acdhOeaw\oai\metadata\LiveCmdiMetadata` - generates metadata by filling up
+;     CMDI XML templates with resource's metadata values
+;     Requires additional configuration properties: `idProp`, `uriProp`, `labelProp`, 
+;     `template`, `propNmsp` and `defaultLang`.
 ; - ... other properties required by class handling given metadata format
 ;   (see classes documentation)
 
@@ -125,7 +129,7 @@ class="\acdhOeaw\oai\metadata\DcMetadata"
 [cmdi_collection]
 metadataPrefix="cmdi_collection"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1345561703620/xsd"
-metadataNamespace="http://www.clarin.eu/cmd/"
+metadataNamespace="http://www.clarin.eu/cmd/1"
 class="\acdhOeaw\oai\metadata\CmdiMetadata"
 ; RDF property denoting repository resource storing actual CMDI XML
 cmdiResProp="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
@@ -137,7 +141,7 @@ cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/schema#hasSchema"
 [cmdi_lexRes]
 metadataPrefix="cmdi_lexRes"
 schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694579/xsd"
-metadataNamespace="http://www.clarin.eu/cmd/"
+metadataNamespace="http://www.clarin.eu/cmd/1"
 rdfProperty="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
 class="\acdhOeaw\oai\metadata\CmdiMetadata"
 ; RDF property denoting repository resource storing actual CMDI XML
@@ -146,3 +150,22 @@ cmdiResProp="https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata"
 idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 ; CMDI resource RDF property storing its schema
 cmdiSchemaProp="https://vocabs.acdh.oeaw.ac.at/schema#hasSchema"
+
+[cmdi_dcmiTerms]
+metadataPrefix="cmdi_dcmiTerms"
+metadataNamespace="http://www.clarin.eu/cmd/1"
+schema="http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1288172614023/xsd"
+class="\acdhOeaw\oai\metadata\LiveCmdiMetadata"
+; RDF property used as `cmd:ResourceRef` CMDI value
+uriProp="https://vocabs.acdh.oeaw.ac.at/schema#hasPid"
+; idProp and labelProp are used to fetch URI labels (e.g. fetch name of a resource creator)
+; They are tightly coupled with the metadata repository structure used by the ACDH:
+;   resIdUri <--idProp-- res --labelProp--> label
+idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
+labelProp="https://vocabs.acdh.oeaw.ac.at/schema#hasTitle"
+; Path to the XML storing CMDI template
+template="src/acdhOeaw/oai/metadata/liveCmdi/DcmiTerms.xml"
+; Default namespace for the metadata property placeholders used in the template file
+propNmsp="https://vocabs.acdh.oeaw.ac.at/schema#"
+; Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
+defaultLang="en"

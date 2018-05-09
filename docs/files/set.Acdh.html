@@ -21,7 +21,55 @@
     <script src="../js/jquery.smooth-scroll.js"></script>
     <script src="../js/prism.min.js"></script>
     <!-- TODO: Add http://jscrollpane.kelvinluck.com/ to style the scrollbars for browsers not using webkit-->
-    
+        <script type="text/javascript">
+        function loadExternalCodeSnippets() {
+            Array.prototype.slice.call(document.querySelectorAll('pre[data-src]')).forEach(function (pre) {
+                var src = pre.getAttribute('data-src');
+                var extension = (src.match(/\.(\w+)$/) || [, ''])[1];
+                var language = 'php';
+
+                var code = document.createElement('code');
+                code.className = 'language-' + language;
+
+                pre.textContent = '';
+
+                code.textContent = 'Loading…';
+
+                pre.appendChild(code);
+
+                var xhr = new XMLHttpRequest();
+
+                xhr.open('GET', src, true);
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState == 4) {
+
+                        if (xhr.status < 400 && xhr.responseText) {
+                            code.textContent = xhr.responseText;
+
+                            Prism.highlightElement(code);
+                        }
+                        else if (xhr.status >= 400) {
+                            code.textContent = '✖ Error ' + xhr.status + ' while fetching file: ' + xhr.statusText;
+                        }
+                        else {
+                            code.textContent = '✖ Error: File does not exist or is empty';
+                        }
+                    }
+                };
+
+                xhr.send(null);
+            });
+        }
+
+        $(document).ready(function(){
+            loadExternalCodeSnippets();
+        });
+        $('#source-view').on('shown', function () {
+            loadExternalCodeSnippets();
+        })
+    </script>
+
     <link rel="shortcut icon" href="../images/favicon.ico"/>
     <link rel="apple-touch-icon" href="../images/apple-touch-icon.png"/>
     <link rel="apple-touch-icon" sizes="72x72" href="../images/apple-touch-icon-72x72.png"/>
@@ -96,37 +144,37 @@
                                 <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-1034154052"></a>
+                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-1260465762"></a>
                                 <a href="../namespaces/default.html" style="margin-left: 30px; padding-left: 0">\</a>
             </div>
-            <div id="namespace-1034154052" class="accordion-body collapse in">
+            <div id="namespace-1260465762" class="accordion-body collapse in">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1034751372"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-770496024"></a>
                                 <a href="../namespaces/acdhOeaw.html" style="margin-left: 30px; padding-left: 0">acdhOeaw</a>
             </div>
-            <div id="namespace-1034751372" class="accordion-body collapse ">
+            <div id="namespace-770496024" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-350955103"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1624794549"></a>
                                 <a href="../namespaces/acdhOeaw.oai.html" style="margin-left: 30px; padding-left: 0">oai</a>
             </div>
-            <div id="namespace-350955103" class="accordion-body collapse ">
+            <div id="namespace-1624794549" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-2131643034"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1781685355"></a>
                                 <a href="../namespaces/acdhOeaw.oai.data.html" style="margin-left: 30px; padding-left: 0">data</a>
             </div>
-            <div id="namespace-2131643034" class="accordion-body collapse ">
+            <div id="namespace-1781685355" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -144,10 +192,10 @@
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1073913788"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-742211295"></a>
                                 <a href="../namespaces/acdhOeaw.oai.deleted.html" style="margin-left: 30px; padding-left: 0">deleted</a>
             </div>
-            <div id="namespace-1073913788" class="accordion-body collapse ">
+            <div id="namespace-742211295" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -164,10 +212,10 @@
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1744372111"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1632497222"></a>
                                 <a href="../namespaces/acdhOeaw.oai.metadata.html" style="margin-left: 30px; padding-left: 0">metadata</a>
             </div>
-            <div id="namespace-1744372111" class="accordion-body collapse ">
+            <div id="namespace-1632497222" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -187,10 +235,10 @@
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1419930794"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1909454333"></a>
                                 <a href="../namespaces/acdhOeaw.oai.search.html" style="margin-left: 30px; padding-left: 0">search</a>
             </div>
-            <div id="namespace-1419930794" class="accordion-body collapse ">
+            <div id="namespace-1909454333" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -206,10 +254,10 @@
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1694447020"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1232510350"></a>
                                 <a href="../namespaces/acdhOeaw.oai.set.html" style="margin-left: 30px; padding-left: 0">set</a>
             </div>
-            <div id="namespace-1694447020" class="accordion-body collapse ">
+            <div id="namespace-1232510350" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -256,48 +304,39 @@
     <section class="row-fluid">
         <div class="span10 offset2">
             <div class="row-fluid">
-                <div class="span8 content namespace">
+                <div class="span8 content file">
                     <nav>
-                                                <a href="../namespaces/acdhOeaw.oai.html">\acdhOeaw\oai</a>
-                                            </nav>
-                    <h1><small>\acdhOeaw\oai</small>deleted</h1>
+                                                                    </nav>
 
+                    <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal"><i class="icon-code"></i></a>
+                    <h1><small>set</small>Acdh.php</h1>
+                    <p><em></em></p>
                     
+
                     
                     
                                         <h2>Classes</h2>
                     <table class="table table-hover">
                                             <tr>
-                            <td><a href="../classes/acdhOeaw.oai.deleted.DeletedInterface.html">DeletedInterface</a></td>
-                            <td><em>Interface for OAI-PMH deleted records implementations.</em></td>
-                        </tr>
-                                            <tr>
-                            <td><a href="../classes/acdhOeaw.oai.deleted.No.html">No</a></td>
-                            <td><em>Implementation of the `acdhOeaw\oai\deleted\DeletedInterface`
-for repositories not providing data on deleted resources.</em></td>
-                        </tr>
-                                            <tr>
-                            <td><a href="../classes/acdhOeaw.oai.deleted.RdfProperty.html">RdfProperty</a></td>
-                            <td><em>Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` deriving
-information on a resource deletion from existence of a given RDF triple
-in the resource metadata.</em></td>
+                            <td><a href="../classes/acdhOeaw.oai.set.Acdh.html">Acdh</a></td>
+                            <td><em>Implements sets by simply taking the &amp;llt;setSpec&amp;gt; from a given resource&#039;s
+metadataRDF property.</em></td>
                         </tr>
                                         </table>
                                     </div>
 
                 <aside class="span4 detailsbar">
                     <dl>
-                        <dt>Namespace hierarchy</dt>
-                        <dd class="hierarchy">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-                                    <div class="namespace-wrapper"><a href="../namespaces/default.html">\</a></div>
-                                                            
-                                    <div class="namespace-wrapper"><a href="../namespaces/acdhOeaw.html">\acdhOeaw</a></div>
-                                                            
-                                    <div class="namespace-wrapper"><a href="../namespaces/acdhOeaw.oai.html">\acdhOeaw\oai</a></div>
-                                                                                        <div class="namespace-wrapper">\acdhOeaw\oai\deleted</div>
-                        </dd>
+                                                    <dt>Package</dt>
+                            <dd><div class="namespace-wrapper">\Default</div></dd>
+                        
+                        
                     </dl>
+                    <h2>Tags</h2>
+                    <table class="table table-condensed">
+                                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                                            </table>
+
                 </aside>
             </div>
 
@@ -305,6 +344,16 @@ in the resource metadata.</em></td>
             
         </div>
     </section>
+
+    <div id="source-view" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="source-view-label" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="source-view-label"></h3>
+        </div>
+        <div class="modal-body">
+            <pre data-src="../files/set/Acdh.php.txt" class="language-php line-numbers"></pre>
+        </div>
+    </div>
 
     <footer class="row-fluid">
         <section class="span10 offset2">

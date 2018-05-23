@@ -116,7 +116,8 @@ oaiSetTitleProp="http://www.w3.org/2000/01/rdf-schema#label"
 ;   - `\acdhOeaw\oai\metadata\LiveCmdiMetadata` - generates metadata by filling up
 ;     CMDI XML templates with resource's metadata values
 ;     Requires additional configuration properties: `idProp`, `uriProp`, `labelProp`, 
-;     `template`, `propNmsp` and `defaultLang`.
+;     `template` and `defaultLang`.
+;     The `propNmsp[]` configuration property is optional.
 ; - ... other properties required by class handling given metadata format
 ;   (see classes documentation)
 
@@ -165,7 +166,7 @@ idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 labelProp="https://vocabs.acdh.oeaw.ac.at/schema#hasTitle"
 ; Path to the XML storing CMDI template
 template="src/acdhOeaw/oai/metadata/liveCmdi/DcmiTerms.xml"
-; Default namespace for the metadata property placeholders used in the template file
-propNmsp="https://vocabs.acdh.oeaw.ac.at/schema#"
 ; Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
 defaultLang="en"
+; Namespace prefixes used in template file's metadata property placeholders
+propNmsp[acdh]="https://vocabs.acdh.oeaw.ac.at/schema#"

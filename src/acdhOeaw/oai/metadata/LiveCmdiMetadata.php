@@ -147,8 +147,8 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseUrl . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
-        } else if (strpos($val, 'RES/') === 0) {
-            $this->insertMetaValues($el, substr($val, 4));
+        } else if (substr($val, 0, 1) === '/') {
+            $this->insertMetaValues($el, substr($val, 1));
         }
 
         $el->removeAttribute('val');
@@ -163,7 +163,11 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return null
      */
     private function insertMetaValues(DOMElement $el, string $val) {
-        $prop     = $this->format->propNmsp . $val;
+        $prop = $val;
+        $nmsp = substr($prop, 0, strpos($prop, ':'));
+        if ($nmsp !== '' && isset($this->format->propNmsp[$nmsp])) {
+            $prop = str_replace($nmsp . ':', $this->format->propNmsp[$nmsp], $prop);
+        }
         $count    = $el->getAttribute('count');
         $lang     = ($el->getAttribute('lang') ?? '' ) === 'true';
         $getLabel = ($el->getAttribute('getLabel') ?? '') == 'true';

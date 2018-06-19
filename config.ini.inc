@@ -95,9 +95,12 @@ oaiSetTitleProp="http://www.w3.org/2000/01/rdf-schema#label"
 ; - `metadataPrefix`, `schema` and `metadataNamespace` configuration properties 
 ;   are simply OAI properties reported for `verb=ListMetadataFormats`
 ; - `class`  configuration property denotes a PHP class implementing the given metadata format.
-;   At the moment four classes are available:
+;   At the moment five classes are available:
 ;   - `\acdhOeaw\oai\metatada\DcMetata` - takes resource's RDF metadata and 
 ;     extracts all RDF properties in `dc` and `dcterms` namespaces.
+;     Doesn't require any additional configuration properties.
+;   - `\acdhOeaw\oai\metadata\RdfXml` - takes resource's RDF metadata and serialises
+;     them as an RDF-XML.
 ;     Doesn't require any additional configuration properties.
 ;   - `\acdhOeaw\oai\metadata\ResMetadata` - fetches metadata from a binary 
 ;     content of another repository resource:

@@ -145,7 +145,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         } else if ($val === 'OAIURI') {
             $id              = urlencode($this->res->getMetadata()->getResource($this->format->uriProp)->getUri());
             $prefix          = urlencode($this->format->metadataPrefix);
-            $el->textContent = $this->format->info->baseUrl . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
+            $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if (substr($val, 0, 1) === '/') {
             $this->insertMetaValues($el, substr($val, 1));

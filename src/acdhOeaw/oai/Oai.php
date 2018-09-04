@@ -137,10 +137,13 @@ TMPL;
         foreach ($_GET as $key => $value) {
             $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
         }
-        printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseUrl));
+        foreach ($_POST as $key => $value) {
+            $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
+        }
+        printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseURL));
 
         try {
-            $verb = filter_input(\INPUT_GET, 'verb') . '';
+            $verb = $this->getParam('verb') . '';
             switch ($verb) {
                 case 'ListSets':
                     $this->oaiListSets();
@@ -158,7 +161,7 @@ TMPL;
                     $this->oaiIdentify();
                     break;
                 case 'GetRecord':
-                    $id = filter_input(\INPUT_GET, 'identifier') . '';
+                    $id = $this->getParam('identifier') . '';
                     $this->oaiListRecords('GetRecord', $id);
                     break;
                 default:
@@ -201,7 +204,7 @@ TMPL;
      */
     public function oaiListMetadataFormats() {
         $this->checkRequestParam(array('identifier'));
-        $id = filter_input(\INPUT_GET, 'identifier');
+        $id = $this->getParam('identifier');
 
         if ($id != '') {
             $res  = $this->fedora->getResourcesByProperty(RC::get('oaiIdProp'), $id);
@@ -248,10 +251,10 @@ TMPL;
      * @throws OaiException
      */
     public function oaiListRecords(string $verb, string $id = '') {
-        $from           = (string) filter_input(\INPUT_GET, 'from') . '';
-        $until          = (string) filter_input(\INPUT_GET, 'until') . '';
-        $set            = (string) filter_input(\INPUT_GET, 'set');
-        $metadataPrefix = (string) filter_input(\INPUT_GET, 'metadataPrefix') . '';
+        $from           = (string) $this->getParam('from') . '';
+        $until          = (string) $this->getParam('until') . '';
+        $set            = (string) $this->getParam('set');
+        $metadataPrefix = (string) $this->getParam('metadataPrefix') . '';
 
         if ($verb == 'GetRecord') {
             $this->checkRequestParam(array('identifier', 'metadataPrefix'));
@@ -388,7 +391,7 @@ TMPL;
      * @throws OaiException
      */
     private function checkRequestParam(array $allowed) {
-        $token = filter_input(\INPUT_GET, 'resumptionToken');
+        $token = $this->getParam('resumptionToken');
         if ($token !== null) {
             // we do not implement partial responses
             throw new OaiException('badResumptionToken');
@@ -411,6 +414,11 @@ TMPL;
                 throw new OaiException('badArgument');
             }
         }
+    }
+
+
+    private function getParam(string $name) {
+        return filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
     }
 
 }

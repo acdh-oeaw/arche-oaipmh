@@ -43,13 +43,19 @@ class RepositoryInfo {
      * OAI-PMH service location
      * @var string 
      */
-    public $baseUrl = '';
+    public $baseURL = '';
 
     /**
      * OAI-PMH protocol version.
      * @var string
      */
     public $protocolVersion   = '2.0';
+
+    /**
+     * List of repository admin emails
+     * @var array
+     */
+    public $adminEmail        = array();
 
     /**
      * Earliest date which can be reported.
@@ -68,12 +74,6 @@ class RepositoryInfo {
      * @var string
      */
     public $granularity       = 'YYYY-MM-DDThh:mm:ssZ';
-
-    /**
-     * List of repository admin emails
-     * @var array
-     */
-    public $adminEmail        = array();
 
     /**
      * Creates a RepositoryInfo object setting up provided property values.

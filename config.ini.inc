@@ -119,8 +119,8 @@ oaiSetTitleProp="http://www.w3.org/2000/01/rdf-schema#label"
 ;   - `\acdhOeaw\oai\metadata\LiveCmdiMetadata` - generates metadata by filling up
 ;     CMDI XML templates with resource's metadata values
 ;     Requires additional configuration properties: `idProp`, `uriProp`, `labelProp`, 
-;     `template` and `defaultLang`.
-;     The `propNmsp[]` configuration property is optional.
+;     `schemaProp`, `templateDir` and `defaultLang`.
+;     The `propNmsp[]`, `schemaEnforce` and `schenaDefault` configuration properties are optional.
 ; - ... other properties required by class handling given metadata format
 ;   (see classes documentation)
 

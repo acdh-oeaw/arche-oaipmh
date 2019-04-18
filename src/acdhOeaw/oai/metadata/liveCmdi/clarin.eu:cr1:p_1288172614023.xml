@@ -7,26 +7,26 @@
                         http://www.clarin.eu/cmd/1/xsd/cmd-envelop.xsd
                         http://www.clarin.eu/cmd/1/profiles/clarin.eu:cr1:p_1288172614023
                         http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1288172614023/xsd">
-  <cmd:Header>
-    <cmd:MdCreator></cmd:MdCreator>
-    <cmd:MdCreationDate val="NOW"></cmd:MdCreationDate>
-    <cmd:MdSelfLink val="OAIURI"></cmd:MdSelfLink>
-    <cmd:MdProfile>clarin.eu:cr1:p_1288172614023</cmd:MdProfile>
-    <cmd:MdCollectionDisplayName val="/acdh:hasTitle"></cmd:MdCollectionDisplayName>
-  </cmd:Header>
-  <cmd:Resources>
-    <cmd:ResourceProxyList>
-      <cmd:ResourceProxy id="1">
-        <cmd:ResourceType>Resource</cmd:ResourceType>
-        <cmd:ResourceRef val="URI"></cmd:ResourceRef>
-      </cmd:ResourceProxy>
-    </cmd:ResourceProxyList>
-    <cmd:JournalFileProxyList/>
-    <cmd:ResourceRelationList/>
-  </cmd:Resources>
-  <cmd:IsPartOfList>
-    <cmd:IsPartOf count="*" val="/acdh:isPartOf"></cmd:IsPartOf>
-  </cmd:IsPartOfList>
+    <cmd:Header>
+        <cmd:MdCreator></cmd:MdCreator>
+        <cmd:MdCreationDate val="NOW"></cmd:MdCreationDate>
+        <cmd:MdSelfLink val="OAIURI"></cmd:MdSelfLink>
+        <cmd:MdProfile>clarin.eu:cr1:p_1288172614023</cmd:MdProfile>
+        <cmd:MdCollectionDisplayName val="/acdh:hasTitle"></cmd:MdCollectionDisplayName>
+    </cmd:Header>
+    <cmd:Resources>
+        <cmd:ResourceProxyList>
+            <cmd:ResourceProxy id="1">
+                <cmd:ResourceType>Resource</cmd:ResourceType>
+                <cmd:ResourceRef val="URI"></cmd:ResourceRef>
+            </cmd:ResourceProxy>
+        </cmd:ResourceProxyList>
+        <cmd:JournalFileProxyList/>
+        <cmd:ResourceRelationList/>
+    </cmd:Resources>
+    <cmd:IsPartOfList>
+        <cmd:IsPartOf count="*" val="/acdh:isPartOf"></cmd:IsPartOf>
+    </cmd:IsPartOfList>
   <cmd:Components>
     <cmdp:DcmiTerms ref="1">
       <cmdp:abstract count="*" lang="true" val=""/>

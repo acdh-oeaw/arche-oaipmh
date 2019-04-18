@@ -6,10 +6,12 @@
 * Can handle big repositories (doesn't buffer output data so memory consumption is very low).
 * Is flexible:
     * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
-    * It's shipped with classes implementing OAI-PMH metadata generation from:
-        * Dublin Core and Dublin Core terms in repository resource's RDF metadata.
-        * Metadata provided as other binary resource in the repository.
+    * It's shipped with classes implementing OAI-PMH metadata generation by:
+        * Serializing whole repository resource RDF metadata to XML.
+        * Using Dublin Core and Dublin Core terms contained in the repository resource RDF metadata.
+        * Serving another linked repository resource as the OAI-PMH metadata.
             * With additional filtering based on the binary resource RDF metadata.
+        * Filling an XML template with repository resource RDF metadata.
     * It's easy to extend
         * implement your own metadata sources
         * implement your own search class
@@ -41,7 +43,7 @@ Please read the documentation provided in the `config.ini.inc` and, if needed, t
 
 # Architecture
 
-Source code documentation can be found at https://rawgit.com/acdh-oeaw/fcrepo-oai/master/docs/index.html
+Source code documentation can be found at https://acdh-oeaw.github.io/fcrepo-oai/
 
 ```
     +------------------+
@@ -92,7 +94,7 @@ Currenlty there are three implementations of the `SetInterface`:
 * `acdhOeaw\oai\set\Simple` where set membership is fetched from a given RDF
   metadata property. This property value is taken as both &lt;setSpec&gt; and
   &lt;setName&gt; values and no &lt;setDescription&gt; is provided.
-* `acdhOeaw\oai\set\Comples` where a given RDF metadata property points to
+* `acdhOeaw\oai\set\Complex` where a given RDF metadata property points to
   another repository resource describing the set.
 
 If exsisting implementations don't fulfil your needs, you need to write your own
@@ -108,7 +110,7 @@ The `acdhOeaw\oai\deleted\DeletedInterface` provides an API:
 * for the `SearchInterface` implementations to include information on resource
   deletion
 
-Currenlty there are two implementations of the `DeletedInterface`:
+Currently there are two implementations of the `DeletedInterface`:
 
 * `acdhOeaw\oai\deleted\No` reporting no support for deleted resources
 * `acdhOeaw\oai\deleted\RdfProeprty` where a resource having a given metadata 
@@ -163,18 +165,19 @@ To make it as flexible as possible:
 
 Existing implementations are:
 
-* `acdhOeaw\oai\metadata\DcMetadata` creating Dublin Core metadata by simply
-  filtering resource metadata properties matching the DC and DC terms namespace.
-* `acdhOeaw\oai\metadata\ResMetadata` reading metadata from a binary payload
-  of another repository resource.
+* `acdhOeaw\oai\metadata\RdfXml` serializes all resource's RDF metadata into XML.
+* `acdhOeaw\oai\metadata\DcMetadata` like the `RdfXml` but returns only Dublin Core
+  and Dublin Core Terms metadata properties.
+* `acdhOeaw\oai\metadata\ResMetadata` uses another (linked trough metadata) 
+  resource's binary payload as the OAI-PMH metadata.
 * `acdhOeaw\oai\metadata\CmdiMetadata` a specialization of the `ResMetadata`
   additionaly checking for the binary resource content schema.
-* `acdhOeaw\oai\metadata\DcMetadata` creating Dublin Core metadata by mapping
+* `acdhOeaw\oai\metadata\AcdhDcMetadata` creats Dublin Core metadata by mapping
   resource's metadata properties to their DC equivalents. The mappings are taken
   from the ontology being part of the repository.
-* `acdhOeaw\oai\metadata\LiveCmdiMetadata` creating CMDI metadata by filling up
-  CMDI XML templates with data fetched from resource's metadata.
+* `acdhOeaw\oai\metadata\LiveCmdiMetadata` creats CMDI metadata by filling up
+  XML templates with data fetched from resource's metadata.
 
 It's likely that you'll need to generate OAI-PMH metadata in (yet) another way.
-In such case you must develop your own class implementing the `MetadataInterface`.
+In such a case you must develop your own class implementing the `MetadataInterface`.
 Taking look at already existing implementations should be a good starting point.

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cmd:CMD xmlns:dcr="http://www.isocat.org/ns/dcr" 
+         xmlns:cmd="http://www.clarin.eu/cmd/" 
+         xmlns:ann="http://www.clarin.eu" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://www.clarin.eu/cmd/ 
+                             http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1290431694580/xsd" 
+         CMDVersion="1.2">
+    <i              val="/acdh:auxiliaryData[paragraphs]"></i>
+    <u    count="*" val="/acdh:hasCreator" lang="true" getLabel="true"></u>
+    <diva count="*" val="/acdh:hasTitle" c="*" d="2" lang="true"></diva>
+    <divb count="+" val="/acdh:hasTitle" c="+" d="2"></divb>
+    <divc count="1" val="/acdh:hasTitle" c="1" d="2" lang="true"></divc>
+    <divd           val="/acdh:hasTitle" c=""  d="2"></divd>
+    <ema count="*" val="/acdh:hasLicense" c="*" d="1"></ema>
+    <emb count="+" val="/acdh:hasLicense" c="+" d="1"></emb>
+    <emc count="1" val="/acdh:hasLicense" c="1" d="1"></emc>
+    <emd           val="/acdh:hasLicense" c="" d="1"></emd>
+    <spana count="*" val="/acdh:foo" c="*" d="0"></spana>
+    <spanb count="+" val="/acdh:foo" c="+" d="0"></spanb>
+    <spanc count="1" val="/acdh:foo" c="1" d="0"></spanc>
+    <spand           val="/acdh:foo" c=""  d="0"></spand>
+</cmd:CMD>

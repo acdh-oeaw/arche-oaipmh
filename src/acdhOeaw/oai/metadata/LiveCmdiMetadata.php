@@ -32,6 +32,7 @@ use RuntimeException;
 use stdClass;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
+use EasyRdf\Graph;
 use acdhOeaw\fedora\Fedora;
 use acdhOeaw\fedora\FedoraResource;
 use acdhOeaw\fedora\metadataQuery\SimpleQuery;
@@ -61,13 +62,15 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   are processed.
  * 
  * XML tags in the template can be annotated with following attributes:
- * - `val="/propURI"` or `val="/propURI[key]"` - specifies the metadata property 
- *   to fetch the value from;
- *   The `/propURI[key]` means the metadata property value should be parsed as YAML and the `key` value should be used.
- *   There are also few special `val` attribute values: `NOW`, `URI` and `OAIURI`
- *   which correspond, respectively, to the current time, repository resource's URI
- *   and the repository resource's OAI-PMH id. When special `val` attribute values are used
- *   other attributes described bellow are not taken into account.
+ * - `val="valuePath"` specifies how to get the value. Possible `valuePath` variants are:
+ *     - `/propUri` - get a value from a given metadata property value
+ *     - `/propUri[key]` - parse given metadata property value as YAML and take the value 
+ *       at the key `key`
+ *     - `@propUri1/propUri2` - get another resource URI from the `propUri1` metadata
+ *       property value, then use the `propUri2` metadata property value of this resource
+ *     - `NOW` - get the current time
+ *     - `URI` - get the resource's repository URI
+ *     - `OAIURI` - get the resource's OAI-PMH ID
  * - `count="N"` (default `1`)
  *     - when "*" and metadata contain no property specified by the `val` attribute
  *       the tag is removed from the template;
@@ -79,46 +82,12 @@ use acdhOeaw\oai\data\MetadataFormat;
  *       first metadata property value is used
  * - `lang="true"` if present and a metadata property value contains information about
  *   the language, the `xml:lang` attribute is added to the template tag
- * - `getLabel="true"` if present and a metadata property value is an URI, corresponding 
- *   resource's label is used as a value instead of the URI
+ * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
+ *   as XML
  * 
  * @author zozlak
  */
 class LiveCmdiMetadata implements MetadataInterface {
-
-    /**
-     * Stores URI to label cache
-     * @var array
-     */
-    static private $labelCache = [];
-
-    /**
-     * Resolves an URI to its label
-     * @param string $uri
-     * @param Fedora $fedora
-     * @param MetadataFormat $format
-     * @param string $language
-     * @return string
-     */
-    static private function getLabel(string $uri, Fedora $fedora,
-                                     MetadataFormat $format,
-                                     string $language = ''): string {
-        if (!isset(self::$labelCache[$uri])) {
-            self::$labelCache[$uri] = [];
-
-            $query   = new SimpleQuery('SELECT ?label WHERE {?@ ^?@ / ?@ ?label.}');
-            $query->setValues([$uri, $format->idProp, $format->labelProp]);
-            $results = $fedora->runQuery($query);
-            foreach ($results as $i) {
-                if ($i->label instanceof Literal) {
-                    self::$labelCache[$uri][$i->label->getLang()] = (string) $i->label;
-                } else {
-                    self::$labelCache[$uri][''] = (string) $i->label;
-                }
-            }
-        }
-        return self::$labelCache[$uri][$language] ?? (self::$labelCache[$uri][''] ?? $uri);
-    }
 
     /**
      * Repository resource object
@@ -152,7 +121,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $this->res    = $resource;
         $this->format = $format;
 
-        $formats = $this->res->getMetadata()->allResources($this->format->schemaProp);
+        $formats = $this->res->getMetadata()->all($this->format->schemaProp);
         foreach ($formats as $i) {
             $i    = preg_replace('|^.*(clarin.eu:[^/]+).*$|', '\\1', (string) $i);
             $path = $this->format->templateDir . '/' . $i . '.xml';
@@ -183,7 +152,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     /**
-     * This implementation has no need to extend the SPRARQL search query.
+     * Applies metadata format restrictions.
      * 
      * @param MetadataFormat $format
      * @param string $resVar
@@ -193,7 +162,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                                              string $resVar): string {
         $query = '';
         if (!empty($format->schemaEnforce)) {
-            $param = [$format->schemaProp, $format->schemaEnforce];
+            $param = [$format->schemaProp, '^' . $format->schemaEnforce . '$'];
             $query = new SimpleQuery('{' . $resVar . ' ?@ ?schemaUri . FILTER regex(str(?schemaUri), ?#)}', $param);
             $query = $query->getQuery();
         } else if (empty($format->schemaDefault)) {
@@ -248,8 +217,8 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
-        } else if (substr($val, 0, 1) === '/') {
-            $this->insertMetaValues($el, substr($val, 1));
+        } else {
+            $this->insertMetaValues($el, $val);
         }
 
         $el->removeAttribute('val');
@@ -263,11 +232,16 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @param string $val DOMElement's `val` attribute value
      */
     private function insertMetaValues(DOMElement $el, string $val) {
-        $prop = $val;
-        $nmsp = substr($prop, 0, strpos($prop, ':'));
-        if ($nmsp !== '' && isset($this->format->propNmsp[$nmsp])) {
-            $prop = str_replace($nmsp . ':', $this->format->propNmsp[$nmsp], $prop);
+        $meta = $this->res->getMetadata();
+
+        $extUriProp = null;
+        $prop       = substr($val, 1);
+        if (substr($val, 0, 1) === '@') {
+            $i          = strpos($val, '/');
+            $prop       = substr($val, 1, $i - 1);
+            $extUriProp = $this->replacePropNmsp(substr($val, $i + 1));
         }
+        $prop    = $this->replacePropNmsp($prop);
         $i       = strpos($prop, '[');
         $subprop = null;
         if ($i !== false) {
@@ -275,30 +249,22 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prop    = substr($prop, 0, $i);
         }
 
-        $lang     = ($el->getAttribute('lang') ?? '' ) === 'true';
-        $getLabel = ($el->getAttribute('getLabel') ?? '') == 'true';
-        $count    = $el->getAttribute('count');
+        $lang  = ($el->getAttribute('lang') ?? '' ) === 'true';
+        $asXml = ($el->getAttribute('asXML') ?? '' ) === 'true';
+        $count = $el->getAttribute('count');
         if (empty($count)) {
             $count = '1';
         }
         $values = [];
-        foreach ($this->res->getMetadata()->all($prop) as $i) {
-            $language = '';
-            $value    = (string) $i;
-            if ($i instanceof Literal) {
-                $language = $i->getLang();
+        foreach ($meta->all($prop) as $i) {
+            if ($extUriProp !== null && $i instanceof Resource) {
+                $metaTmp = $this->res->getFedora()->getResourceById($i)->getMetadata();
+                foreach ($metaTmp->all($extUriProp) as $j) {
+                    $this->collectMetaValue($values, $j, null);
+                }
+            } else {
+                $this->collectMetaValue($values, $i, $subprop);
             }
-            if ($i instanceof Resource && $getLabel) {
-                $value    = self::getLabel($value, $this->res->getFedora(), $this->format, $this->format->defaultLang);
-                $language = $this->format->defaultLang;
-            }
-            if (!isset($values[$language])) {
-                $values[$language] = [];
-            }
-            if ($subprop !== null) {
-                $value = yaml_parse($value)[$subprop];
-            }
-            $values[$language][] = $value;
         }
 
         if (count($values) === 0 && in_array($count, ['1', '+'])) {
@@ -317,18 +283,58 @@ class LiveCmdiMetadata implements MetadataInterface {
         $parent = $el->parentNode;
         foreach ($values as $language => $tmp) {
             foreach ($tmp as $value) {
-                $ch              = $el->cloneNode(true);
+                $ch = $el->cloneNode(true);
                 $ch->removeAttribute('val');
                 $ch->removeAttribute('count');
                 $ch->removeAttribute('lang');
                 $ch->removeAttribute('getLabel');
-                $ch->textContent = $value;
+                if ($asXml) {
+                    $df = $ch->ownerDocument->createDocumentFragment();
+                    $df->appendXML($value);
+                    $ch->appendChild($df);
+                } else {
+                    $ch->textContent = $value;
+                }
                 if ($lang && $language !== '') {
                     $ch->setAttribute('xml:lang', $language);
                 }
                 $parent->appendChild($ch);
             }
         }
+    }
+
+    /**
+     * Extracts metadata value from a given EasyRdf node
+     * @param array $values
+     * @param Literal $metaVal
+     * @param type $subprop
+     */
+    private function collectMetaValue(array &$values, $metaVal, $subprop) {
+        $language = '';
+        $value    = (string) $metaVal;
+        if ($metaVal instanceof Literal) {
+            $language = $metaVal->getLang();
+        }
+        if (!isset($values[$language])) {
+            $values[$language] = [];
+        }
+        if ($subprop !== null) {
+            $value = yaml_parse($value)[$subprop];
+        }
+        $values[$language][] = $value;
+    }
+
+    /**
+     * 
+     * @param string $prop
+     * @return string
+     */
+    private function replacePropNmsp(string $prop): string {
+        $nmsp = substr($prop, 0, strpos($prop, ':'));
+        if ($nmsp !== '' && isset($this->format->propNmsp[$nmsp])) {
+            $prop = str_replace($nmsp . ':', $this->format->propNmsp[$nmsp], $prop);
+        }
+        return $prop;
     }
 
 }

@@ -167,9 +167,15 @@ uriProp="https://vocabs.acdh.oeaw.ac.at/schema#hasPid"
 ;   resIdUri <--idProp-- res --labelProp--> label
 idProp="https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier"
 labelProp="https://vocabs.acdh.oeaw.ac.at/schema#hasTitle"
-; Path to the XML storing CMDI template
-template="src/acdhOeaw/oai/metadata/liveCmdi/DcmiTerms.xml"
 ; Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
 defaultLang="en"
+; Path to the directory storing CMDI XML templates
+templateDir="src/acdhOeaw/oai/metadata/liveCmdi"
+; Metadata property prividng the CMDI schema to be used for a given resource
+schemaProp="https://vocabs.acdh.oeaw.ac.at/schema#hasSchema"
 ; Namespace prefixes used in template file's metadata property placeholders
 propNmsp[acdh]="https://vocabs.acdh.oeaw.ac.at/schema#"
+; Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property or it points to a schema without a tempalte
+schemaDefault="clarin.eu:cr1:p_1288172614023"
+; Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
+schemaEnforce=""

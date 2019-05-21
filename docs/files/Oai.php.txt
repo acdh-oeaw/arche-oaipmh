@@ -133,6 +133,14 @@ TMPL;
     public function handleRequest() {
         header('Content-Type: text/xml');
 
+        // an ugly workaround allowing to serve raw CMDI records
+        $verb = $this->getParam('verb') . '';
+	if ($verb === 'GetRecordRaw') {
+            $id = $this->getParam('identifier') . '';
+            $this->oaiListRecordRaw($id);
+            return;
+        }
+
         $params = array();
         foreach ($_GET as $key => $value) {
             $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
@@ -313,6 +321,38 @@ TMPL;
             }
         } finally {
             echo "    </" . $verb . ">\n";
+        }
+    }
+
+    /**
+     * Returns a single metadata record without any OAI structures
+     * @param string $id
+     */
+    public function oaiListRecordRaw(string $id = '') {
+        try {
+            $this->checkRequestParam(array('identifier', 'metadataPrefix'));
+            if($id == '') {
+                throw new OaiException('badArgument');
+            }
+
+            $metadataPrefix = (string) $this->getParam('metadataPrefix') . '';
+            if (!isset($this->metadataFormats[$metadataPrefix])) {
+                throw new OaiException('badArgument');
+            }
+            $format = $this->metadataFormats[$metadataPrefix];
+
+            $search = RC::get('oaiSearchClass');
+            $search = new $search($format, $this->fedora);
+            /* @var $search \acdhOeaw\oai\search\SearchInterface */
+            $search->find($id, '', '', '');
+            if ($search->getCount() == 0) {
+                throw new OaiException('idDoesNotExist');
+            }
+
+            $xml = $search->getMetadata(0)->getXml();
+            echo $xml->C14N() . "\n";
+        } catch (OaiException $e) {
+            echo '<error>' . htmlspecialchars($e->getMessage()) . '</error>';
         }
     }
 

@@ -217,7 +217,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
-        } else {
+        } else if ($val !== '')  {
             $this->insertMetaValues($el, $val);
         }
 

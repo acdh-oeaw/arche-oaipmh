@@ -56,16 +56,7 @@
             </cmd:CorpusContext>
             <cmd:Creation ComponentId="clarin.eu:cr1:c_1290431694570">
                 <cmd:Creators ComponentId="clarin.eu:cr1:c_1290431694499">
-                    <cmd:Creator ComponentId="clarin.eu:cr1:c_1290431694498">
-                        <cmd:Contact ComponentId="clarin.eu:cr1:c_1290431694487">
-                            <cmd:Person count="*" val="@acdh:hasCreator/acdh:hasTitle"></cmd:Person>
-                            <cmd:Address count="1" val="@acdh:hasContact/acdh:hasAddressLine1">Sonnenfelsgasse 19, 1010 Wien</cmd:Address>
-                            <cmd:Email count="1" val="@acdh:hasContact/acdh:hasEmail">acdh@oeaw.ac.at</cmd:Email>
-                            <cmd:Department></cmd:Department>                 
-                            <cmd:Organisation></cmd:Organisation>
-                            <cmd:Url></cmd:Url>
-                        </cmd:Contact>
-                    </cmd:Creator>
+                    <cmd:Creator count="*" val="@acdh:hasCreator" ComponentId="clarin.eu:cr1:c_1290431694498"></cmd:Creator>
                 </cmd:Creators>
                 <cmd:Annotation ComponentId="clarin.eu:cr1:c_1290431694569" val="/acdh:extData[Annotation]" asXML="true"></cmd:Annotation>
                 <cmd:Source ComponentId="clarin.eu:cr1:c_1290431694524">

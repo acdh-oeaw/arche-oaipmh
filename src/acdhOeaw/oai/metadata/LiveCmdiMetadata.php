@@ -68,6 +68,9 @@ use acdhOeaw\oai\data\MetadataFormat;
  *       at the key `key`
  *     - `@propUri1/propUri2` - get another resource URI from the `propUri1` metadata
  *       property value, then use the `propUri2` metadata property value of this resource
+ *     - `@propUri` in a tag having the `ComponentId` attribute - inject the CMDI component
+ *       identified by the `ComponentId` attribute taking the resource `propUri` metadata
+ *       property points to as its base resource
  *     - `NOW` - get the current time
  *     - `URI` - get the resource's repository URI
  *     - `OAIURI` - get the resource's OAI-PMH ID
@@ -177,23 +180,24 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @param DOMElement $el DOM element to be processed
      */
     private function processElement(DOMElement $el): bool {
-        $toRemove = [];
-        foreach ($el->childNodes as $ch) {
-            if ($ch instanceof DOMElement) {
-                $remove = $this->processElement($ch);
-                if ($remove) {
-                    $toRemove[] = $ch;
-                }
-            }
-        }
-        foreach ($toRemove as $i) {
-            $el->removeChild($i);
-        }
-
         $remove = false;
         if ($el->hasAttribute('val')) {
             $remove = $this->insertValue($el);
         }
+
+        $chToRemove = [];
+        foreach ($el->childNodes as $ch) {
+            if ($ch instanceof DOMElement) {
+                $chRemove = $this->processElement($ch);
+                if ($chRemove) {
+                    $chToRemove[] = $ch;
+                }
+            }
+        }
+        foreach ($chToRemove as $i) {
+            $el->removeChild($i);
+        }
+
         return $remove;
     }
 
@@ -217,8 +221,15 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
-        } else if ($val !== '')  {
-            $this->insertMetaValues($el, $val);
+        } else if ($val !== '') {
+            $meta      = $this->res->getMetadata();
+            list($prop, $subprop, $extUriProp) = $this->parseVal($val);
+            $component = $el->getAttribute('ComponentId');
+            if (!empty($component) && empty($subprop)) {
+                $this->insertCmdiComponents($el, $meta, $component, $extUriProp);
+            } else {
+                $this->insertMetaValues($el, $meta, $prop, $subprop, $extUriProp);
+            }
         }
 
         $el->removeAttribute('val');
@@ -226,14 +237,20 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     /**
-     * Fetches values from repository resource's metadata and creates corresponding
-     * CMDI parts.
-     * @param DOMElement $el
-     * @param string $val DOMElement's `val` attribute value
+     * Parses the `val` attribute into three components and returns them as 
+     * an array.
+     * 
+     * The components are:
+     * - `prop` the metadata property to be read
+     * - `subprop` the YAML object key (null if the property value should be
+     *   taken as it is)
+     * - `extUriProp` the metadata property pointing to the resource which
+     *   metadata should be used (null if the current resource should be used)
+     * 
+     * @param string $val
+     * @return array
      */
-    private function insertMetaValues(DOMElement $el, string $val) {
-        $meta = $this->res->getMetadata();
-
+    private function parseVal(string $val): array {
         $extUriProp = null;
         $prop       = substr($val, 1);
         if (substr($val, 0, 1) === '@') {
@@ -249,12 +266,78 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prop    = substr($prop, 0, $i);
         }
 
+        return [$prop, $subprop, $extUriProp];
+    }
+
+    /**
+     * Inserts a value by injecting an external CMDI template.
+     * @param DOMElement $el
+     * @param Resource $meta
+     * @param string $component
+     * @param string $prop
+     */
+    private function insertCmdiComponents(DOMElement $el, Resource $meta,
+                                          string $component, string $prop) {
+        $oldMeta = $this->res->getMetadata();
+
+        $format                = clone($this->format);
+        $format->schemaDefault = null;
+
+        $count = $el->getAttribute('count');
+        if (empty($count)) {
+            $count = '1';
+        }
+
+        $resources = [];
+        foreach ($meta->all($prop) as $i) {
+            $resources[] = $this->res->getFedora()->getResourceById($i);
+            if ($count === '1') {
+                break;
+            }
+        }
+        if (in_array($count, ['1', '+']) && count($resources) === 0) {
+            $graph       = new Graph();
+            $meta        = $graph->addLiteral('https://dummy.res', $this->format->schemaProp, $component);
+            $this->res->setMetadata($graph->resource('https://dummy.res'));
+            $resources[] = $this->res;
+        }
+
+        try {
+            foreach ($resources as $res) {
+                $meta         = $res->getMetadata();
+                $meta->delete($this->format->schemaProp);
+                $meta->addLiteral($this->format->schemaProp, $component);
+                $res->setMetadata($meta);
+                $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
+                $componentXml = $componentObj->getXml();
+                $componentXml = $el->ownerDocument->importNode($componentXml, true);
+                $el->parentNode->appendChild($componentXml);
+            }
+        } catch (RuntimeException $ex) {
+            
+        }
+
+        $this->res->setMetadata($oldMeta);
+    }
+
+    /**
+     * Inserts a value from metadata.
+     * @param DOMElement $el
+     * @param Resource $meta
+     * @param string $prop
+     * @param string|null $subprop
+     * @param string|null $extUriProp
+     */
+    private function insertMetaValues(DOMElement $el, Resource $meta,
+                                      string $prop, ?string $subprop,
+                                      ?string $extUriProp) {
         $lang  = ($el->getAttribute('lang') ?? '' ) === 'true';
         $asXml = ($el->getAttribute('asXML') ?? '' ) === 'true';
         $count = $el->getAttribute('count');
         if (empty($count)) {
             $count = '1';
         }
+
         $values = [];
         foreach ($meta->all($prop) as $i) {
             if ($extUriProp !== null && $i instanceof Resource) {

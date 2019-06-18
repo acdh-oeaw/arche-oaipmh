@@ -371,6 +371,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $ch->removeAttribute('count');
                 $ch->removeAttribute('lang');
                 $ch->removeAttribute('getLabel');
+                $ch->removeAttribute('asXML');
                 if ($asXml) {
                     $df = $ch->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);

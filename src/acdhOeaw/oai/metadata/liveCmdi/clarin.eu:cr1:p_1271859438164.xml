@@ -39,7 +39,7 @@
                     <cmdp:PublicationYear val="/acdh:extData[PublicationYear]"></cmdp:PublicationYear>                   
                     <cmdp:TimeCoverage>
                         <cmdp:minDate val="/acdh:hasCoverageStartDate"></cmdp:minDate>
-                        <cmdp:minDate val="/acdh:hasCoverageEndDate"></cmdp:minDate>                       
+                        <cmdp:maxDate val="/acdh:hasCoverageEndDate"></cmdp:maxDate>                       
                     </cmdp:TimeCoverage>
                     
                     <cmdp:Description>
@@ -98,12 +98,13 @@
                 <cmdp:AnnotationTypes asXML="true" val="/acdh:extData[AnnotationTypes]"></cmdp:AnnotationTypes>              
                 <cmdp:Size>
                         <cmdp:TotalSize>
-                            <cmdp:Number count="*" val="/acdh:extData[NumberOfToken]"></cmdp:Number>
-                            <cmdp:SizeUnit>token</cmdp:SizeUnit>
+<!--                            A hack! we had to intrduce SizeUnit as extData-property to guearantee correct ordering-->
+                            <cmdp:Number    val="/acdh:extData[NumberOfToken]"></cmdp:Number>
+                            <cmdp:SizeUnitx val="/acdh:extData[SizeUnitToken]"></cmdp:SizeUnitx>
                         </cmdp:TotalSize>
                         <cmdp:TotalSize>
-                            <cmdp:Number val="/acdh:extData[NumberOfDocuments]"></cmdp:Number>
-                            <cmdp:SizeUnit>documents</cmdp:SizeUnit>
+                            <cmdp:Number    val="/acdh:extData[NumberOfDocuments]"></cmdp:Number>
+                            <cmdp:SizeUnit  val="/acdh:extData[SizeUnitDocs]"></cmdp:SizeUnit>
                         </cmdp:TotalSize>                                         
                 </cmdp:Size>
                 <cmdp:SubjectLanguages>

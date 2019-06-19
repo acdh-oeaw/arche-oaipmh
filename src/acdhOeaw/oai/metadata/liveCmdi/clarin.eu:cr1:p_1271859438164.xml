@@ -72,7 +72,8 @@
                     </cmdp:Creator>
                 </cmdp:Creators>
                 <cmdp:Access>
-                    <cmdp:Availability val="/acdh:hasLicense" count="+"></cmdp:Availability>
+                    <cmdp:Availability val="/acdh:hasLicense"></cmdp:Availability>
+                    <cmdp:Availability val="/acdh:extData[Availability]"></cmdp:Availability>
                     <!--  ist immer "public" 
                     <cmdp:AvailabilityX val="/acdh:hasAccessRestriction" count="+"></cmdp:AvailabilityX>
                     -->
@@ -98,9 +99,9 @@
                 <cmdp:AnnotationTypes asXML="true" val="/acdh:extData[AnnotationTypes]"></cmdp:AnnotationTypes>              
                 <cmdp:Size>
                         <cmdp:TotalSize>
-<!--                            A hack! we had to intrduce SizeUnit as extData-property to guearantee correct ordering-->
+<!--                            A hack! we had to introduce SizeUnit as extData-property to guarantee correct ordering-->
                             <cmdp:Number    val="/acdh:extData[NumberOfToken]"></cmdp:Number>
-                            <cmdp:SizeUnitx val="/acdh:extData[SizeUnitToken]"></cmdp:SizeUnitx>
+                            <cmdp:SizeUnit  val="/acdh:extData[SizeUnitToken]"></cmdp:SizeUnit>
                         </cmdp:TotalSize>
                         <cmdp:TotalSize>
                             <cmdp:Number    val="/acdh:extData[NumberOfDocuments]"></cmdp:Number>

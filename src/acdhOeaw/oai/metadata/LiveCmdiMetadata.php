@@ -33,7 +33,6 @@ use stdClass;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
 use EasyRdf\Graph;
-use acdhOeaw\fedora\Fedora;
 use acdhOeaw\fedora\FedoraResource;
 use acdhOeaw\fedora\metadataQuery\SimpleQuery;
 use acdhOeaw\oai\data\MetadataFormat;
@@ -87,6 +86,10 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   the language, the `xml:lang` attribute is added to the template tag
  * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
  *   as XML
+ * - `dateFormat="FORMAT"` (default native precision read from the resource metadata value)
+ *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
+ *   as when present it will also naivly process any string values (cutting them or appending
+ *   with a default time).
  * 
  * @author zozlak
  */
@@ -331,9 +334,10 @@ class LiveCmdiMetadata implements MetadataInterface {
     private function insertMetaValues(DOMElement $el, Resource $meta,
                                       string $prop, ?string $subprop,
                                       ?string $extUriProp) {
-        $lang  = ($el->getAttribute('lang') ?? '' ) === 'true';
-        $asXml = ($el->getAttribute('asXML') ?? '' ) === 'true';
-        $count = $el->getAttribute('count');
+        $lang       = ($el->getAttribute('lang') ?? '' ) === 'true';
+        $asXml      = ($el->getAttribute('asXML') ?? '' ) === 'true';
+        $count      = $el->getAttribute('count');
+        $dateFormat = $el->getAttribute('dateFormat');
         if (empty($count)) {
             $count = '1';
         }
@@ -343,10 +347,10 @@ class LiveCmdiMetadata implements MetadataInterface {
             if ($extUriProp !== null && $i instanceof Resource) {
                 $metaTmp = $this->res->getFedora()->getResourceById($i)->getMetadata();
                 foreach ($metaTmp->all($extUriProp) as $j) {
-                    $this->collectMetaValue($values, $j, null);
+                    $this->collectMetaValue($values, $j, null, $dateFormat);
                 }
             } else {
-                $this->collectMetaValue($values, $i, $subprop);
+                $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
         }
 
@@ -372,6 +376,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $ch->removeAttribute('lang');
                 $ch->removeAttribute('getLabel');
                 $ch->removeAttribute('asXML');
+                $ch->removeAttribute('dateFormat');
                 if ($asXml) {
                     $df = $ch->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
@@ -382,7 +387,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 if ($lang && $language !== '') {
                     $ch->setAttribute('xml:lang', $language);
                 }
-                $parent->appendChild($ch);
+                $parent->insertBefore($ch, $el);
             }
         }
     }
@@ -393,7 +398,8 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @param Literal $metaVal
      * @param type $subprop
      */
-    private function collectMetaValue(array &$values, $metaVal, $subprop) {
+    private function collectMetaValue(array &$values, $metaVal, $subprop,
+                                      $dateFormat) {
         $language = '';
         $value    = (string) $metaVal;
         if ($metaVal instanceof Literal) {
@@ -404,6 +410,14 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         if ($subprop !== null) {
             $value = yaml_parse($value)[$subprop];
+        }
+        switch ($dateFormat) {
+            case 'Date':
+                $value = substr($value, 0, 10);
+                break;
+            case 'DateTime':
+                $value = $value . substr('0000-01-01T00:00:00Z', strlen($value));
+                break;
         }
         $values[$language][] = $value;
     }

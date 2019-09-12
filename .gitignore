@@ -2,3 +2,4 @@ config.ini
 /nbproject
 /vendor
 /composer.lock
+/cache

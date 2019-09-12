@@ -103,12 +103,20 @@ TMPL;
     private $info;
 
     /**
+     * Cache object
+     * @var \acdhOeaw\oai\Cache
+     */
+    private $cache;
+
+    /**
      * Initialized the OAI-PMH server object.
      * 
      * @param \acdhOeaw\oai\data\RepositoryInfo $info
      * @param array $metadataFormats
+     * @param string $cacheDir path to the directory storying metadata records cache
+     *   if null, cache is not used
      */
-    public function __construct(RepositoryInfo $info, array $metadataFormats) {
+    public function __construct(RepositoryInfo $info, array $metadataFormats, string $cacheDir = null) {
         $delClass            = RC::get('oaiDeletedClass');
         $info->deletedRecord = $delClass::getDeletedRecord();
 
@@ -118,6 +126,10 @@ TMPL;
         foreach ($metadataFormats as $i) {
             $i->info = $this->info;
             $this->metadataFormats[$i->metadataPrefix] = $i;
+        }
+
+        if ($cacheDir !== null) {
+            $this->cache = new Cache($cacheDir);
         }
 
         // response initialization
@@ -299,22 +311,28 @@ TMPL;
         try {
             for ($i = 0; $i < $search->getCount(); $i++) {
                 try {
-                    $header = $this->createHeader($search->getHeader($i));
+                    $headerData = $search->getHeader($i);
+                    $header = $this->createHeader($headerData);
+                    $this->response->documentElement->appendChild($header);
                     if ($verb === 'ListIdentifiers') {
-                        $record = $header;
+                        echo $header->C14N() . "\n";
                     } else {
-                        $record = $this->createElement('record');
-
-                        $record->appendChild($header);
-
-                        $metaNode = $this->createElement('metadata');
-                        $xml      = $search->getMetadata($i)->getXml();
-                        $metaNode->appendChild($metaNode->ownerDocument->importNode($xml, true));
-                        $record->appendChild($metaNode);
+                        echo "<record>\n";
+                        echo $header->C14N() . "\n";
+                        echo "<metadata>";
+                        if ($this->cache !== null) {
+                            if (!$this->cache->check($headerData, $format)) {
+                                $xml = $search->getMetadata($i)->getXml();
+                                $this->cache->put($headerData, $format, $xml->ownerDocument);
+                            }
+                            echo $this->cache->get($headerData, $format);
+                        } else {
+                            $xml = $search->getMetadata($i)->getXml();
+                            echo $xml->C14N();
+                        }
+                        echo "</metadata>\n";
+                        echo "</record>\n";
                     }
-                    $this->response->documentElement->appendChild($record);
-                    echo $record->C14N() . "\n";
-                    $this->response->documentElement->appendChild($record);
                 } catch (OaiException $e) {
                     //echo $e;
                 }

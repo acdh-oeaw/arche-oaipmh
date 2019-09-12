@@ -24,32 +24,48 @@
  * THE SOFTWARE.
  */
 
-require_once 'vendor/autoload.php';
-require_once 'src/acdhOeaw/oai/Oai.php';
+namespace acdhOeaw\oai;
 
-use zozlak\util\Config;
-use zozlak\util\ClassLoader;
-use acdhOeaw\oai\Oai;
+use DOMDocument;
+use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\data\RepositoryInfo;
-use acdhOeaw\util\RepoConfig as RC;
 
-$loader = new ClassLoader('src');
-$config = new Config('config.ini', true);
-RC::init('config.ini');
+/**
+ * Implements simple caching 
+ *
+ * @author zozlak
+ */
+class Cache {
 
-$formats = array();
-foreach ($config as $i) {
-    if (is_array($i) && isset($i['metadataPrefix'])) {
-        $formats[] = new MetadataFormat($i);
+    private $cacheDir;
+
+    public function __construct(string $cacheDir) {
+        $this->cacheDir = $cacheDir;
+        if (!file_exists($this->cacheDir)) {
+            mkdir($this->cacheDir, 0750);
+        }
     }
-}
-$info = new RepositoryInfo(array(
-    'repositoryName' => RC::GET('oaiRepositoryName'), 
-    'baseURL' => RC::get('oaiBaseUrl'),
-    'earliestDatestamp' => RC::get('oaiEarliestDatestamp'),
-    'adminEmail' => array(RC::get('oaiAdminEmail')),
-));
 
-$oai = new Oai($info, $formats, RC::get('oaiCacheDir'));
-$oai->handleRequest();
+    public function check(HeaderData $header, MetadataFormat $format): bool {
+         $path = $this->getPath($header->id, $format->metadataPrefix);
+         if (!file_exists($path)) {
+             return false;
+         }
+         $cacheDate = date('Y-m-d\TH:i:s\Z', filemtime($path));
+         return $cacheDate > $header->date;
+    }
+
+    public function put(HeaderData $header, MetadataFormat $format, DOMDocument $doc): void {
+        $doc->C14NFile($this->getPath($header->id, $format->metadataPrefix));
+    }
+
+    public function get(HeaderData $header, MetadataFormat $format): string {
+        return file_get_contents($this->getPath($header->id, $format->metadataPrefix));
+    }
+
+    private function getPath(string $id, string $metaPrefix): string {
+        return $this->cacheDir . '/' . sha1($metaPrefix . ':' . $id);
+    }
+
+}
+

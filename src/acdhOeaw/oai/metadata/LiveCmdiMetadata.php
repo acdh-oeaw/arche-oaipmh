@@ -225,11 +225,15 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if ($val !== '') {
-            $meta      = $this->res->getMetadata();
-            list($prop, $subprop, $extUriProp) = $this->parseVal($val);
+            list('prop' => $prop, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
+            if ($inverse) {
+                $meta = $this->getInverseResources($prop);
+            } else {
+                $meta = $this->res->getMetadata();
+            }
             $component = $el->getAttribute('ComponentId');
             if (!empty($component) && empty($subprop)) {
-                $this->insertCmdiComponents($el, $meta, $component, $extUriProp);
+                $this->insertCmdiComponents($el, $meta, $component, $prop);
             } else {
                 $this->insertMetaValues($el, $meta, $prop, $subprop, $extUriProp);
             }
@@ -247,19 +251,29 @@ class LiveCmdiMetadata implements MetadataInterface {
      * - `prop` the metadata property to be read
      * - `subprop` the YAML object key (null if the property value should be
      *   taken as it is)
-     * - `extUriProp` the metadata property pointing to the resource which
-     *   metadata should be used (null if the current resource should be used)
+     * - `extUriProp` if `prop` value points to a resource, metadata property
+     *   which should be read from the target resource's metadata
+     * - `inverse` boolean value indicating if `extUriProp` points to the
+     *   external resource (`false`) or if the external resource is pointing
+     *   to the current one (`true`)
      * 
      * @param string $val
      * @return array
      */
     private function parseVal(string $val): array {
+        $inverse    = false;
         $extUriProp = null;
         $prop       = substr($val, 1);
         if (substr($val, 0, 1) === '@') {
-            $i          = strpos($val, '/');
-            $prop       = substr($val, 1, $i - 1);
-            $extUriProp = $this->replacePropNmsp(substr($val, $i + 1));
+            $tmp   = explode('/', $prop);
+            $prop  = $tmp[0];
+            if (count($tmp) > 1) {
+                $extUriProp = $this->replacePropNmsp($tmp[1]);
+            }
+        }
+        if (substr($prop, 0, 1) == '^') {
+            $prop    = substr($prop, 1);
+            $inverse = true;
         }
         $prop    = $this->replacePropNmsp($prop);
         $i       = strpos($prop, '[');
@@ -268,8 +282,12 @@ class LiveCmdiMetadata implements MetadataInterface {
             $subprop = substr($prop, $i + 1, -1);
             $prop    = substr($prop, 0, $i);
         }
-
-        return [$prop, $subprop, $extUriProp];
+        return [
+            'prop'       => $prop,
+            'subprop'    => $subprop,
+            'extUriProp' => $extUriProp,
+            'inverse'    => $inverse,
+        ];
     }
 
     /**
@@ -353,6 +371,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
         }
+//print_r($values);
 
         if (count($values) === 0 && in_array($count, ['1', '+'])) {
             $values[''] = [''];
@@ -433,6 +452,25 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prop = str_replace($nmsp . ':', $this->format->propNmsp[$nmsp], $prop);
         }
         return $prop;
+    }
+
+    /**
+     * Prepares fake resource metadata allowing to resolve reverse properties
+     * resource links.
+     * @param string $prop
+     * @return \EasyRdf\Resource
+     */
+    private function getInverseResources(string $prop): Resource {
+        $fedora = $this->res->getFedora();
+        $graph  = new Graph();
+        $meta   = $graph->resource('.');
+        $query  = new SimpleQuery('SELECT ?res WHERE {?res ?@ ?@.}', [$prop, $this->res->getId()]);
+        $resources = $fedora->runQuery($query);
+        foreach ($resources as $i) {
+            $res = $fedora->getResourceByUri((string) $i->res);
+            $meta->addResource($prop, $res->getId());
+        }
+        return $meta;
     }
 
 }

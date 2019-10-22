@@ -128,7 +128,7 @@ TMPL;
             $this->metadataFormats[$i->metadataPrefix] = $i;
         }
 
-        if ($cacheDir !== null) {
+        if (!empty($cacheDir)) {
             $this->cache = new Cache($cacheDir);
         }
 

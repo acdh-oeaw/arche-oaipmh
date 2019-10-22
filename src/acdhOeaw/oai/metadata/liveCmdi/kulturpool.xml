@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource>
+  <!-- simple resource property example -->
+  <title val="/acdh:hasTitle" count="1"/>
+
+  <!-- simple resource property example - multiple values allowed -->
+  <id val="/acdh:hasIdentifier" count="*"/>
+
+  <!-- fetching linked resources meta example -->
+  <creatorTitle val="@acdh:hasCreator/acdh:hasTitle" count="*"/>
+
+  <!-- components usage example (allow repeating of complex structures) -->
+  <x ComponentId="kulturpoolPerson" val="@acdh:hasCreator" count="*"/>
+
+  <!-- fetching inverse-linked resources meta example -->
+  <image val="@^acdh:isSourceOf/acdh:hasPid" count="*"/>
+
+  <!-- fetching inverse-linked resources into components example -->
+  <x ComponentId="kulturpoolExample" val="@^acdh:isSourceOf" count="*"/>
+</resource>

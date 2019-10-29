@@ -94,10 +94,19 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   extended with a `?format=FORMAT`. Allows to provide links to particular serialization
  *   of repository objects when the default one (typically the repository GUI) is not the
  *   desired one. The `asXML` attribute takes a precedense.
+ * - `valueMapProp="RDFpropertyURI"` causes value denoted by the `val` attribute to be
+ *   mapped to another values using a given RDF property. The value must be an URL
+ *   (e.g. a SKOS concept URL) which is then resolved to an RDF graph and all the values
+ *   of indicated property are returned.
+ * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
+ *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
+ *   Taken into account only if `valueMapProp` provided and not empty.
  * 
  * @author zozlak
  */
 class LiveCmdiMetadata implements MetadataInterface {
+
+    static private $mapper;
 
     /**
      * Repository resource object
@@ -145,6 +154,10 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         if (empty($this->template)) {
             throw new RuntimeException('No CMDI template matched');
+        }
+
+        if (self::$mapper === null) {
+            self::$mapper = new ValueMapper();
         }
     }
 
@@ -269,8 +282,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $extUriProp = null;
         $prop       = substr($val, 1);
         if (substr($val, 0, 1) === '@') {
-            $tmp   = explode('/', $prop);
-            $prop  = $tmp[0];
+            $tmp  = explode('/', $prop);
+            $prop = $tmp[0];
             if (count($tmp) > 1) {
                 $extUriProp = $this->replacePropNmsp($tmp[1]);
             }
@@ -361,12 +374,15 @@ class LiveCmdiMetadata implements MetadataInterface {
         $count      = $el->getAttribute('count');
         $dateFormat = $el->getAttribute('dateFormat');
         $format     = $el->getAttribute('format');
+        $valueMap   = $el->getAttribute('valueMapProp');
+        $keepSrc    = $el->getAttribute('valueMapKeepSrc');
         if (empty($count)) {
             $count = '1';
         }
         if (!empty($format)) {
             $format = '?format=' . urlencode($format);
         }
+        $valueMap = $this->replacePropNmsp($valueMap);
 
         $values = [];
         foreach ($meta->all($prop) as $i) {
@@ -378,6 +394,21 @@ class LiveCmdiMetadata implements MetadataInterface {
             } else {
                 $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
+        }
+
+        if ($valueMap) {
+            foreach ($values as $lang => &$i) {
+                $tmp = [];
+                foreach ($i as $j) {
+                    $tmp = array_merge($tmp, self::$mapper->getMapping($j, $valueMap));
+                }
+                if ($keepSrc) {
+                    $i = array_merge($i, $tmp);
+                } else {
+                    $i = $tmp;
+                }
+            }
+            unset($i);
         }
 
         if (count($values) === 0 && in_array($count, ['1', '+'])) {
@@ -404,6 +435,8 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $ch->removeAttribute('asXML');
                 $ch->removeAttribute('dateFormat');
                 $ch->removeAttribute('format');
+                $ch->removeAttribute('valueMapProp');
+                $ch->removeAttribute('valueMapKeepSrc');
                 if ($asXml) {
                     $df = $ch->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
@@ -469,10 +502,10 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return \EasyRdf\Resource
      */
     private function getInverseResources(string $prop): Resource {
-        $fedora = $this->res->getFedora();
-        $graph  = new Graph();
-        $meta   = $graph->resource('.');
-        $query  = new SimpleQuery('SELECT ?res WHERE {?res ?@ ?@.}', [$prop, $this->res->getId()]);
+        $fedora    = $this->res->getFedora();
+        $graph     = new Graph();
+        $meta      = $graph->resource('.');
+        $query     = new SimpleQuery('SELECT ?res WHERE {?res ?@ ?@.}', [$prop, $this->res->getId()]);
         $resources = $fedora->runQuery($query);
         foreach ($resources as $i) {
             $res = $fedora->getResourceByUri((string) $i->res);

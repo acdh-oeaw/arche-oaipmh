@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<example>
-  <id val="/acdh:hasPid" count="*"/>
-  <title val="/acdh:hasTitle" count="1"/>
-</example>

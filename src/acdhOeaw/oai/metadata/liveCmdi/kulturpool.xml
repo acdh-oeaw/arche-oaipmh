@@ -1,20 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource>
   <!-- simple resource property example -->
-  <title val="/acdh:hasTitle" count="1"/>
+  <Title val="/acdh:hasTitle" count="1" lang="true"/>
 
   <!-- simple resource property example - multiple values allowed -->
   <id val="/acdh:hasIdentifier" count="*"/>
 
-  <!-- fetching linked resources meta example -->
-  <creatorTitle val="@acdh:hasCreator/acdh:hasTitle" count="*"/>
+  <ShortDescription val="/acdh:hasDescription" count="*" lang="true"/>
+  <Keyword val="/acdh:hasSubject" count="*" lang="true"/>
 
-  <!-- components usage example (allow repeating of complex structures) -->
-  <x ComponentId="kulturpoolPerson" val="@acdh:hasCreator" count="*"/>
+  <CreationDate val="/acdh:hasCreatedDate" count="*"/>
+  <EarliestDate val="/acdh:hasCreatedStartDate" count="*"/>
+  <LatestDate val="/acdh:hasCreatedEndDate" count="*"/>
 
-  <!-- fetching inverse-linked resources meta example -->
-  <image val="@^acdh:isSourceOf/acdh:hasPid" count="*"/>
+  <IsShownBy val="/acdh:hasPid" count="1"/>
+  <IsShownAt val="/acdh:hasUrl" count="*"/>
 
-  <!-- fetching inverse-linked resources into components example -->
-  <x ComponentId="kulturpoolExample" val="@^acdh:isSourceOf" count="*"/>
+  <ObjectType val="/acdh:hasCategory" count="*" valueMapProp="skos:relatedMatch" valueMapKeepSrc="true"/> <!-- not used for arche collection -->
+  <Format val="/acdh:hasFormat" count="*"/> <!-- not used for arche collection -->
+
+  <Language val="/acdh:hasLanguage" count="*"/>
+  <Extent val="/acdh:hasExtent" count="1"/>
+
+<!--  <Spatial val="@acdh:hasSpatialCoverage" count="*" lang="true"/> -->
+  <Spatial ComponentId="kulturpoolSpatial" val="@acdh:hasSpatialCoverage" count="*"/>
+
+<!--  <Temporal val="@acdh:hasTemporalCoverage" count="*" lang="true"/> -->
+  <Temporal ComponentId="kulturpoolTemporal" val="@acdh:hasTemporalCoverage" count="*"/>
+  <TemporalID val="/acdh:hasTemporalCoverageIdentifier" count="*"/>
+
+  <!-- Hosting institution is called 'Contributor' at Kulturpool -->
+  <Contributor val="@acdh:hasHosting/acdh:hasTitle" count="*"/>
+
+  <Rights val="/acdh:hasLicense" count="1"/>
+  <RightsStatus val="/acdh:hasLicense" count="1"/>
+<!--  <Publisher val="@acdh:hasRightsHolder" count="*" lang="true"/> -->
+  <Publisher ComponentId="kulturpoolPublisher" val="@acdh:hasRightsHolder" count="*"/>
+
+<!--  <Source val="@acdh:hasSource" count="*"/> -->
+  <Source ComponentId="kulturpoolSource" val="@acdh:hasSource" count="*"/>
+
+<!--  <Relation val="@acdh:relation" count="*"/> -->
+  <Relation ComponentId="kulturpoolRelatedEntity" val="@acdh:relation" count="*"/>
+
+<!--  <HasPart val="@^acdh:isPartOf/acdh:hasPid" count="*"/> -->
+  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>
+
+<!--  <IsPartOf val="@acdh:isPartOf/acdh:hasTitle" count="*"/> -->
+  <IsPartOf ComponentId="kulturpoolIsPart" val="@acdh:isPartOf" count="*"/>
+
+  <AvailableDate val="/acdh:hasAvailableDate" count="1"/>
 </resource>

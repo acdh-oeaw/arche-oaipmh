@@ -90,6 +90,10 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
  *   as when present it will also naivly process any string values (cutting them or appending
  *   with a default time).
+ * - `format="FORMAT"` forces an URI value fetched according to the `val` attribute to be
+ *   extended with a `?format=FORMAT`. Allows to provide links to particular serialization
+ *   of repository objects when the default one (typically the repository GUI) is not the
+ *   desired one. The `asXML` attribute takes a precedense.
  * 
  * @author zozlak
  */
@@ -356,8 +360,12 @@ class LiveCmdiMetadata implements MetadataInterface {
         $asXml      = ($el->getAttribute('asXML') ?? '' ) === 'true';
         $count      = $el->getAttribute('count');
         $dateFormat = $el->getAttribute('dateFormat');
+        $format     = $el->getAttribute('format');
         if (empty($count)) {
             $count = '1';
+        }
+        if (!empty($format)) {
+            $format = '?format=' . urlencode($format);
         }
 
         $values = [];
@@ -371,7 +379,6 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
         }
-//print_r($values);
 
         if (count($values) === 0 && in_array($count, ['1', '+'])) {
             $values[''] = [''];
@@ -396,12 +403,13 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $ch->removeAttribute('getLabel');
                 $ch->removeAttribute('asXML');
                 $ch->removeAttribute('dateFormat');
+                $ch->removeAttribute('format');
                 if ($asXml) {
                     $df = $ch->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
                     $ch->appendChild($df);
                 } else {
-                    $ch->textContent = $value;
+                    $ch->textContent = $value . $format;
                 }
                 if ($lang && $language !== '') {
                     $ch->setAttribute('xml:lang', $language);

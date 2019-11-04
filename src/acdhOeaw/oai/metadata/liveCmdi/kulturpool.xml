@@ -9,9 +9,9 @@
   <ShortDescription val="/acdh:hasDescription" count="*" lang="true"/>
   <Keyword val="/acdh:hasSubject" count="*" lang="true"/>
 
-  <CreationDate val="/acdh:hasCreatedDate" count="*"/>
-  <EarliestDate val="/acdh:hasCreatedStartDate" count="*"/>
-  <LatestDate val="/acdh:hasCreatedEndDate" count="*"/>
+  <CreationDate val="/acdh:hasCreatedDate" count="*" dateFormat="date"/>
+  <EarliestDate val="/acdh:hasCreatedStartDate" count="*" dateFormat="date"/>
+  <LatestDate val="/acdh:hasCreatedEndDate" count="*" dateFormat="date"/>
 
   <IsShownBy val="/acdh:hasPid" count="1"/>
   <IsShownAt val="/acdh:hasUrl" count="*"/>
@@ -20,7 +20,7 @@
   <Format val="/acdh:hasFormat" count="*"/> <!-- not used for arche collection -->
 
   <Language val="/acdh:hasLanguage" count="*"/>
-  <Extent val="/acdh:hasExtent" count="1"/>
+  <Extent val="/acdh:hasExtent" count="1" lang="true"/>
 
 <!--  <Spatial val="@acdh:hasSpatialCoverage" count="*" lang="true"/> -->
   <Spatial ComponentId="kulturpoolSpatial" val="@acdh:hasSpatialCoverage" count="*"/>
@@ -30,7 +30,7 @@
   <TemporalID val="/acdh:hasTemporalCoverageIdentifier" count="*"/>
 
   <!-- Hosting institution is called 'Contributor' at Kulturpool -->
-  <Contributor val="@acdh:hasHosting/acdh:hasTitle" count="*"/>
+  <Contributor val="@acdh:hasHosting/acdh:hasTitle" count="*" lang="true"/>
 
   <Rights val="/acdh:hasLicense" count="1"/>
   <RightsStatus val="/acdh:hasLicense" count="1"/>
@@ -44,10 +44,10 @@
   <Relation ComponentId="kulturpoolRelatedEntity" val="@acdh:relation" count="*"/>
 
 <!--  <HasPart val="@^acdh:isPartOf/acdh:hasPid" count="*"/> -->
-  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>
+<!--  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>-->
 
 <!--  <IsPartOf val="@acdh:isPartOf/acdh:hasTitle" count="*"/> -->
   <IsPartOf ComponentId="kulturpoolIsPart" val="@acdh:isPartOf" count="*"/>
 
-  <AvailableDate val="/acdh:hasAvailableDate" count="1"/>
+  <AvailableDate val="/acdh:hasAvailableDate" count="1" dateFormat="date"/>
 </resource>

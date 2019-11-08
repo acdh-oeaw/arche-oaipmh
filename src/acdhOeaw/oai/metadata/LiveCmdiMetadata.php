@@ -45,13 +45,13 @@ use acdhOeaw\oai\data\MetadataFormat;
  * - `uriProp` - metadata property storing resource's OAI-PMH id
  * - `idProp` - metadata property identifying a repository resource
  * - `labelProp` - metadata property storing repository resource label
- * - `schemaProp` - metadata property storing resource's CMDI profile URI
+ * - `schemaProp` - metadata property storing resource's CMDI profile URL
  * - `templateDir` - path to a directory storing XML templates;
  *    each template should have exactly same name as the CMDI profile id, e.g. `clarin.eu:cr1:p_1290431694580.xml`
  * - `defaultLang` - default language to be used when the template doesn't explicitly specify one
  * 
  * Optional metadata format definition properties:
- * - `propNmsp[prefix]` - an array of property URIs namespaces used in the template
+ * - `propNmsp[prefix]` - an array of property URLs namespaces used in the template
  * - `schemaDefault` provides a default CMDI profile (e.g. `clarin.eu:cr1:p_1290431694580.xml`)
  *   to be used when a resource's metadata don't contain the `schemaProp` or none of its values
  *   correspond to an existing CMDI template.
@@ -65,13 +65,14 @@ use acdhOeaw\oai\data\MetadataFormat;
  *     - `/propUri` - get a value from a given metadata property value
  *     - `/propUri[key]` - parse given metadata property value as YAML and take the value 
  *       at the key `key`
- *     - `@propUri1/propUri2` - get another resource URI from the `propUri1` metadata
+ *     - `@propUri1/propUri2` - get another resource URL from the `propUri1` metadata
  *       property value, then use the `propUri2` metadata property value of this resource
  *     - `@propUri` in a tag having the `ComponentId` attribute - inject the CMDI component
  *       identified by the `ComponentId` attribute taking the resource `propUri` metadata
  *       property points to as its base resource
  *     - `NOW` - get the current time
- *     - `URI` - get the resource's repository URI
+ *     - `URL` - get the resource's repository URL
+ *     - `ID` - get the resource's ACDH repo UUID
  *     - `OAIURI` - get the resource's OAI-PMH ID
  * - `count="N"` (default `1`)
  *     - when "*" and metadata contain no property specified by the `val` attribute
@@ -90,11 +91,12 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
  *   as when present it will also naivly process any string values (cutting them or appending
  *   with a default time).
- * - `format="FORMAT"` forces an URI value fetched according to the `val` attribute to be
+ * - `format="FORMAT"` forces an URL value fetched according to the `val` attribute to be
  *   extended with a `?format=FORMAT`. Allows to provide links to particular serialization
  *   of repository objects when the default one (typically the repository GUI) is not the
  *   desired one. The `asXML` attribute takes a precedense.
- * - `valueMapProp="RDFpropertyURI"` causes value denoted by the `val` attribute to be
+ *   Doesn't work for special `val` attribute values of `NOW`, `URL` and `OAIURI`.
+ * - `valueMapProp="RDFpropertyURL"` causes value denoted by the `val` attribute to be
  *   mapped to another values using a given RDF property. The value must be an URL
  *   (e.g. a SKOS concept URL) which is then resolved to an RDF graph and all the values
  *   of indicated property are returned.
@@ -233,8 +235,13 @@ class LiveCmdiMetadata implements MetadataInterface {
         if ($val === 'NOW') {
             $el->textContent = date('Y-m-d');
             $remove          = false;
-        } else if ($val === 'URI') {
-            $el->textContent = $this->res->getMetadata()->getResource($this->format->uriProp)->getUri();
+        } else if ($val === 'ID') {
+            $format = $el->getAttribute('format');
+            $format = !empty($format) ? '?format=' . urlencode($format) : '';
+            $el->textContent = $this->res->getId() . $format;
+            $remove          = false;
+        } else if ($val === 'URI' || $val === 'URL') {
+            $el->textContent = $this->res->getUri(true);
             $remove          = false;
         } else if ($val === 'OAIURI') {
             $id              = urlencode($this->res->getMetadata()->getResource($this->format->uriProp)->getUri());
@@ -257,6 +264,13 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $el->removeAttribute('val');
+        $el->removeAttribute('count');
+        $el->removeAttribute('lang');
+        $el->removeAttribute('format');
+        $el->removeAttribute('dateFormat');
+        $el->removeAttribute('asXML');
+        $el->removeAttribute('valueMapProp');
+        $el->removeAttribute('valueMapKeepSrc');
         return $remove;
     }
 

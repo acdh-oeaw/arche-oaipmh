@@ -44,7 +44,7 @@
   <Relation ComponentId="kulturpoolRelatedEntity" val="@acdh:relation" count="*"/>
 
 <!--  <HasPart val="@^acdh:isPartOf/acdh:hasPid" count="*"/> -->
-<!--  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>-->
+  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>
 
 <!--  <IsPartOf val="@acdh:isPartOf/acdh:hasTitle" count="*"/> -->
   <IsPartOf ComponentId="kulturpoolIsPart" val="@acdh:isPartOf" count="*"/>

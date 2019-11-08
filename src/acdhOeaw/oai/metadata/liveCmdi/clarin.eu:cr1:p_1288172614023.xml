@@ -18,7 +18,7 @@
         <cmd:ResourceProxyList>
             <cmd:ResourceProxy id="1">
                 <cmd:ResourceType>Resource</cmd:ResourceType>
-                <cmd:ResourceRef val="URI"></cmd:ResourceRef>
+                <cmd:ResourceRef val="URL"></cmd:ResourceRef>
             </cmd:ResourceProxy>
         </cmd:ResourceProxyList>
         <cmd:JournalFileProxyList/>

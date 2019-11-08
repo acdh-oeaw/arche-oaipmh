@@ -456,7 +456,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                     $df->appendXML($value);
                     $ch->appendChild($df);
                 } else {
-                    $ch->textContent = $value . $format;
+                    $ch->textContent = $value . (!empty($value) ? $format : '');
                 }
                 if ($lang && $language !== '') {
                     $ch->setAttribute('xml:lang', $language);

@@ -9,11 +9,13 @@
   <ShortDescription val="/acdh:hasDescription" count="*" lang="true"/>
   <Keyword val="/acdh:hasSubject" count="*" lang="true"/>
 
-  <CreationDate val="/acdh:hasCreatedDate" count="*" dateFormat="date"/>
-  <EarliestDate val="/acdh:hasCreatedStartDate" count="*" dateFormat="date"/>
-  <LatestDate val="/acdh:hasCreatedEndDate" count="*" dateFormat="date"/>
+  <CreationDate val="/acdh:hasCreatedDate" count="*" dateFormat="Date"/>
+  <EarliestDate val="/acdh:hasCreatedStartDate" count="*" dateFormat="Date"/>
+  <LatestDate val="/acdh:hasCreatedEndDate" count="*" dateFormat="Date"/>
 
-  <IsShownBy val="/acdh:hasPid" count="1"/>
+  <Object val="/acdh:hasTitleImage" count="1" format="raw"/>
+
+  <IsShownBy val="/acdh:isSourceOf" format="raw"/>
   <IsShownAt val="/acdh:hasUrl" count="*"/>
 
   <ObjectType val="/acdh:hasCategory" count="*" valueMapProp="skos:relatedMatch" valueMapKeepSrc="true"/> <!-- not used for arche collection -->
@@ -43,11 +45,11 @@
 <!--  <Relation val="@acdh:relation" count="*"/> -->
   <Relation ComponentId="kulturpoolRelatedEntity" val="@acdh:relation" count="*"/>
 
-<!--  <HasPart val="@^acdh:isPartOf/acdh:hasPid" count="*"/> -->
-  <HasPart ComponentId="kulturpoolHasPart" val="@^acdh:isPartOf" count="*"/>
+<!--  <HasView val="@^acdh:isPartOf/acdh:hasPid" count="*"/> -->
+  <HasView ComponentId="kulturpoolHasView" val="@^acdh:isPartOf" count="*"/>
 
 <!--  <IsPartOf val="@acdh:isPartOf/acdh:hasTitle" count="*"/> -->
   <IsPartOf ComponentId="kulturpoolIsPart" val="@acdh:isPartOf" count="*"/>
 
-  <AvailableDate val="/acdh:hasAvailableDate" count="1" dateFormat="date"/>
+  <AvailableDate val="/acdh:hasAvailableDate" count="1" dateFormat="Date"/>
 </resource>

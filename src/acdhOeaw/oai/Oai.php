@@ -275,14 +275,15 @@ TMPL;
         $until          = (string) $this->getParam('until') . '';
         $set            = (string) $this->getParam('set');
         $metadataPrefix = (string) $this->getParam('metadataPrefix') . '';
+        $reloadCache    = $this->getParam('metadataPrefix') !== null;
 
         if ($verb == 'GetRecord') {
-            $this->checkRequestParam(array('identifier', 'metadataPrefix'));
+            $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));
             if($id == '') {
                 throw new OaiException('badArgument');
             }
         } else {
-            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set'));
+            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set', 'reloadCache'));
         }
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
@@ -321,7 +322,7 @@ TMPL;
                         echo $header->C14N() . "\n";
                         echo "<metadata>";
                         if ($this->cache !== null) {
-                            if (!$this->cache->check($headerData, $format)) {
+                            if ($reloadCache || !$this->cache->check($headerData, $format)) {
                                 $xml = $search->getMetadata($i)->getXml();
                                 $this->cache->put($headerData, $format, $xml->ownerDocument);
                             }

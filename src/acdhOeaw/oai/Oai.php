@@ -275,7 +275,7 @@ TMPL;
         $until          = (string) $this->getParam('until') . '';
         $set            = (string) $this->getParam('set');
         $metadataPrefix = (string) $this->getParam('metadataPrefix') . '';
-        $reloadCache    = $this->getParam('metadataPrefix') !== null;
+        $reloadCache    = $this->getParam('reloadCache') !== null;
 
         if ($verb == 'GetRecord') {
             $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));

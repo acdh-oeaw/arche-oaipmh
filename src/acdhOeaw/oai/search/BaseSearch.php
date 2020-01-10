@@ -26,12 +26,16 @@
 
 namespace acdhOeaw\oai\search;
 
-use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use PDO;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoDb;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
+use acdhOeaw\acdhRepoLib\Schema;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\oai\deleted\DeletedInterface;
 use acdhOeaw\oai\metadata\MetadataInterface;
-use acdhOeaw\util\RepoConfig as RC;
+use acdhOeaw\oai\set\SetInterface;
 
 /**
  * Implements basic OAI-PMH search. It is assumed that all OAI-PMH search
@@ -56,71 +60,122 @@ class BaseSearch implements SearchInterface {
     private $format;
 
     /**
-     * Repository connection object
-     * @var \acdhOeaw\fedora\Fedora
+     * Object handling sets
+     * @var \acdhOeaw\oai\set\SetInterface
      */
-    private $fedora;
+    private $sets;
+
+    /**
+     * Object handling deleted resources information
+     * @var \acdhOeaw\oai\deleted\DeletedInterface
+     */
+    private $deleted;
+
+    /**
+     * Configuration object
+     * @var object
+     */
+    private $config;
+
+    /**
+     * Repistory database connection object
+     * @var \PDO
+     */
+    private $pdo;
+
+    /**
+     * High-level repository API handle object
+     * @var \acdhOeaw\acdhRepoLib\RepoDb
+     */
+    private $repo;
 
     /**
      * Last search results
-     * @var array
+     * @var \acdhOeaw\oai\data\HeaderData[]
      */
     private $records;
 
     /**
      * Creates a search engine object.
      * @param MetadataFormat $format metadata format descriptor
-     * @param Fedora $fedora repository connection object
+     * @param object $config repository connection object
      */
-    public function __construct(MetadataFormat $format, Fedora $fedora) {
-        $this->format = $format;
-        $this->fedora = $fedora;
+    public function __construct(MetadataFormat $format, SetInterface $sets,
+                                DeletedInterface $deleted, object $config,
+                                PDO $pdo) {
+        $this->format  = $format;
+        $this->sets    = $sets;
+        $this->deleted = $deleted;
+        $this->config  = $config;
+        $this->pdo     = $pdo;
+
+        $baseUrl    = $this->config->repoBaseUrl;
+        $schema     = new Schema((object) [
+                'id'          => $this->config->idProp,
+                'searchMatch' => 'search://match'
+        ]);
+        $this->repo = new RepoDb($baseUrl, $schema, $schema, $pdo, []);
     }
 
     /**
      * Performs search using given filter values.
+     * @param \PDO $pdo repository database connection object
      * @param string $id id filter value
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
      */
     public function find(string $id, string $from, string $until, string $set) {
-        $ext = '';
-        if (method_exists($this->format->class, 'extendSearchQuery')) {
-            $class = $this->format->class;
-            $ext   = $class::extendSearchQuery($this->format, '?res');
-        }
+        $class       = $this->format->class;
+        $extFilterQP = $class::extendSearchFilterQuery($this->format);
+        $extDataQP   = $class::extendSearchDataQuery($this->format);
 
-        $query = "
-            SELECT DISTINCT *
-            WHERE {
-                ?res ?@ ?date .
-                " . $this->getIdFilter($id) . "
-                ?res ?@ ?id .
-                " . $this->getSetFilter($set) . "
-                OPTIONAL { " . $this->getSetClause() . " }
-                OPTIONAL { " . $this->getDeletedClause() . " }
-                " . $ext . "
-                " . $this->getDateFilter($from, $until) . "
-            }
+        $idFilterQP    = $this->getIdFilter($id);
+        $setFilterQP   = $this->sets->getSetFilter($set);
+        $dateFilterQP  = $this->getDateFilter($from, $until);
+        $delDataQP     = $this->deleted->getDeletedData();
+        $setDataQP     = $this->sets->getSetData();
+        $query         = "
+            WITH valid AS (
+                SELECT id
+                FROM
+                    resources
+                    " . $idFilterQP->join("JOIN", "USING (id)") . "
+                    " . $setFilterQP->join("JOIN", "USING (id)") . "
+                    " . $dateFilterQP->join("JOIN", "USING (id)") . "
+                    " . $extFilterQP->join("JOIN", "USING (id)") . "
+            )
+            SELECT 
+                v.id AS repoid, 
+                i.ids AS id, 
+                to_char(m1.value_t, 'YYYY-MM-DD') || 'T' || to_char(m1.value_t, 'HH24:MI:SS') || 'Z' AS date,
+                deleted, json_agg(set) AS sets
+            FROM 
+                valid v
+                JOIN identifiers i ON v.id = i.id AND ids LIKE ?
+                JOIN metadata m1 ON v.id = m1.id AND m1.property = ?
+                LEFT JOIN (" . $delDataQP->query . ") d ON v.id = d.id
+                LEFT JOIN (" . $setDataQP->query . ") s ON v.id = s.id
+            GROUP BY 1, 2, 3, 4
+            ORDER BY 1
         ";
-        $param = array(RC::get('oaiDateProp'), RC::get('oaiIdProp'));
-        $query = new SimpleQuery($query, $param);
-        $res   = $this->fedora->runQuery($query);
-
-        // as a resource may be a part of many sets, aggregation is needed
-        $this->records = array();
-        foreach ($res as $i) {
-            $uri = (string) $i->res;
-            if (!isset($this->records[$uri])) {
-                $this->records[$uri] = $i;
-                $i->sets = array();
-            }
-            if (isset($i->set) && $i->set) {
-                $this->records[$uri]->sets[] = (string) $i->set;
-            }
+        $param         = array_merge(
+            $idFilterQP->param,
+            $setFilterQP->param,
+            $dateFilterQP->param,
+            $extFilterQP->param,
+            [$this->config->idNmsp . '%', $this->config->dateProp],
+            $extDataQP->param,
+            $delDataQP->param,
+            $setDataQP->param,
+        );
+        $query         = $this->pdo->prepare($query);
+        $query->execute($param);
+        $query->setFetchMode(PDO::FETCH_CLASS, HeaderData::class);
+        $this->records = $query->fetchAll();
+        foreach ($this->records as $i) {
+            $i->sets = json_decode($i->sets);
         }
-        $this->records = array_values($this->records);
     }
 
     /**
@@ -137,7 +192,7 @@ class BaseSearch implements SearchInterface {
      * @return \acdhOeaw\oai\data\HeaderData
      */
     public function getHeader(int $pos): HeaderData {
-        return new HeaderData($this->records[$pos]);
+        return $this->records[$pos];
     }
 
     /**
@@ -146,22 +201,21 @@ class BaseSearch implements SearchInterface {
      * @return MetadataInterface
      */
     public function getMetadata(int $pos): MetadataInterface {
-        $res = $this->fedora->getResourceByUri((string) $this->records[$pos]->res);
-        $res = new $this->format->class($res, $this->records[$pos], $this->format);
-        return $res;
+        $resource = new RepoResourceDb($this->records[$pos]->repoid, $this->repo);
+        $result   = new $this->format->class($resource, $this->records[$pos], $this->format);
+        return $result;
     }
 
     /**
      * Creates SPARQL query clause implementing the id filter.
      * @param string $id id filter value
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    private function getIdFilter(string $id): string {
-        $filter = '';
-        if ($id) {
-            $param  = array(RC::get('oaiIdProp'), $id);
-            $filter = new SimpleQuery('?res ?@ ?id . FILTER (str(?id) = ?#)', $param);
-            $filter = $filter->getQuery();
+    private function getIdFilter(string $id): QueryPart {
+        $filter = new QueryPart();
+        if (!empty($id)) {
+            $filter->query = "SELECT id FROM identifiers WHERE ids = ?";
+            $filter->param = [$id];
         }
         return $filter;
     }
@@ -170,58 +224,37 @@ class BaseSearch implements SearchInterface {
      * Creates SPARQL clauses implementing the date filter.
      * @param string $from date from filter value
      * @param string $until date to filter value
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    private function getDateFilter(string $from, string $until): string {
-        $filter = array();
-        $param  = array();
-        if ($from) {
-            $filter[] = '?date >= ?#^^xsd:dateTime';
-            $param[]  = $from;
+    private function getDateFilter(string $from, string $until): QueryPart {
+        $filter = new QueryPart();
+        if (!empty($from) || !empty($until)) {
+            $filter->query   = "SELECT id FROM metadata WHERE property = ?";
+            $filter->param[] = $this->config->dateProp;
         }
-        if ($until) {
-            $filter[] = '?date <= ?#^^xsd:dateTime';
-            $param[]  = $until;
+        if (!empty($from)) {
+            $filter->query   .= " AND date_trunc('second', value_t) >= ?::timestamp";
+            $filter->param[] = $from;
         }
-        $filter = implode(' && ', $filter);
-        $filter = $filter ? 'FILTER (' . $filter . ')' : '';
-        $filter = new SimpleQuery($filter, $param);
-        $filter = $filter->getQuery();
+        if (!empty($until)) {
+            $filter->query   .= " AND date_trunc('second', value_t) <= ?::timestamp";
+            $filter->param[] = $until;
+        }
         return $filter;
     }
 
     /**
      * Creates SPARQL clause implementing the set filter.
      * @param string $set set filter value
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    private function getSetFilter(string $set): string {
-        if (!$set) {
-            return '';
+    private function getSetFilter(string $set): QueryPart {
+        if (empty($set)) {
+            return new QueryPart();
         }
-        $class = RC::get('oaiSetClass');
+        $class = $this->config->setClass;
         /* @var $class \acdhOeaw\oai\set\SetInterface */
-        return $class::getSetFilter('?res', $set);
+        return $class::getSetFilter($set);
     }
 
-    /**
-     * Creates SPARQL clause getting information on set membership
-     * @return string
-     */
-    private function getSetClause(): string {
-        $class = RC::get('oaiSetClass');
-        /* @var $class \acdhOeaw\oai\set\SetInterface */
-        return $class::getSetClause('?res', '?set');
-    }
-
-    /**
-     * Cretes SPARQL clause getting information on resource deletion.
-     * @return string
-     */
-    private function getDeletedClause(): string {
-        $class = RC::get('oaiDeletedClass');
-        /* @var $class \acdhOeaw\oai\deleted\DeletedInterface */
-        return $class::getDeletedClause('?res', '?deleted');
-        
-    }
 }

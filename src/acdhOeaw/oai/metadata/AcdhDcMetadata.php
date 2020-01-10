@@ -28,10 +28,13 @@ namespace acdhOeaw\oai\metadata;
 
 use DOMDocument;
 use DOMElement;
-use stdClass;
-use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\FedoraResource;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use PDO;
+use EasyRdf\Literal;
+use EasyRdf\Resource;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoDb;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
+use acdhOeaw\acdhRepoLib\RepoResourceInterface;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -40,20 +43,22 @@ use acdhOeaw\oai\data\MetadataFormat;
  * 
  * It reads the metadata property mappings from the ontology being part of the
  * repository by searching for:
- *   [ontologyRes] --cfg:fedoraIdProp--> acdhProp
- *   [ontologyRes] --cfg:oaiEqProp--> dcProp
- * and
- *   [dcRes] --cfg:oaiEqProp--> acdhProp
- *   [dcRes] --cfg:fedoraIdProp--> dcProp
+ *   [dcRes] --cfg:eqProp--> acdhProp
  *
  * Requires metadata format configuration properties:
- * - idProp  -RDF property used to store repository resource identifiers
- * - eqProp - RDF property used to denote properties equivalence
- * - acdhNmsp - ACDH properties namespace
+ * - eqProp     - RDF property denoting properties equivalence
+ * - title Prop - RDF property denoting a resource title/label
+ * - acdhNmsp   - ACDH properties namespace
+ * - mode       - URL/title/both - how RDF properties pointing to other resources
+ *                should be handled (by providing thei URLs, their titles or both)
  * 
  * @author zozlak
  */
 class AcdhDcMetadata implements MetadataInterface {
+
+    const MODE_URL   = 'URL';
+    const MODE_TITLE = 'title';
+    const MODE_BOTH  = 'both';
 
     /**
      * Dublin Core namespace
@@ -69,30 +74,30 @@ class AcdhDcMetadata implements MetadataInterface {
 
     /**
      * Fetches mappings from the triplestore
-     * @param Fedora $fedora
+     * @param \acdhOeaw\acdhRepoLib\RepoDb $repo
      * @param MetadataFormat $format
      */
-    static private function init(Fedora $fedora, MetadataFormat $format) {
+    static private function init(RepoDb $repo, MetadataFormat $format) {
         if (is_array(self::$mappings)) {
             return;
         }
 
-        $query   = "
-            SELECT DISTINCT ?dc ?acdh WHERE {
-                { ?dc ^?@ / ?@ ?acdh . }
-                UNION 
-                { ?acdh ^?@ / ?@ ?dc . }
-                FILTER (regex(str(?dc), '^http://purl.org/dc/') && regex(str(?acdh), ?#))
-            }
+        $query = "
+            SELECT i1.ids AS dc, i2.ids AS acdh
+            FROM
+                relations r
+                JOIN identifiers i1 USING (id)
+                JOIN identifiers i2 ON r.target_id = i2.id
+            WHERE
+                i1.ids LIKE 'http://purl.org/dc/%'
+                AND i2.ids LIKE ?
+                AND r.property = ?
         ";
-        $idProp  = $format->idProp;
-        $eqProp  = $format->eqProp;
-        $param   = array($idProp, $eqProp, $idProp, $eqProp, '^' . $format->acdhNmsp);
-        $query   = new SimpleQuery($query, $param);
-        $results = $fedora->runQuery($query);
+        $param = [$format->acdhNmsp . '%', $format->eqProp];
+        $query = $repo->runQuery($query, $param);
 
         self::$mappings = array();
-        foreach ($results as $i) {
+        while ($i              = $query->fetch(PDO::FETCH_OBJ)) {
             self::$mappings[(string) $i->acdh] = (string) $i->dc;
         }
     }
@@ -112,14 +117,14 @@ class AcdhDcMetadata implements MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource object
-     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     *   resource object
+     * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
-    public function __construct(FedoraResource $resource,
-                                stdClass $sparqlResultRow,
-                                MetadataFormat $format) {
+    public function __construct(RepoResourceDb $resource,
+                                object $searchResultRow, MetadataFormat $format) {
         $this->res    = $resource;
         $this->format = $format;
     }
@@ -130,37 +135,59 @@ class AcdhDcMetadata implements MetadataInterface {
      * @return DOMElement 
      */
     public function getXml(): DOMElement {
-        self::init($this->res->getFedora(), $this->format);
+        self::init($this->res->getRepo(), $this->format);
 
         $doc    = new DOMDocument();
         $parent = $doc->createElementNS('http://www.openarchives.org/OAI/2.0/oai_dc/', 'oai_dc:dc');
         $parent->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/oai_dc/http://www.openarchives.org/OAI/2.0/oai_dc.xsd');
+        $doc->appendChild($parent);
 
-        $meta       = $this->res->getMetadata();
+        $titleOrBoth = in_array($this->format->mode, [self::MODE_TITLE, self::MODE_BOTH]);
+        if ($titleOrBoth) {
+            $this->res->loadMetadata(true, RepoResourceInterface::META_NEIGHBORS);
+        }
+        $meta       = $this->res->getGraph();
         $properties = array_intersect($meta->propertyUris(), array_keys(self::$mappings));
         foreach ($properties as $property) {
             $propInNs = str_replace(self::$dcNmsp, 'dc:', self::$mappings[$property]);
             foreach ($meta->all($property) as $value) {
-                $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
-                $el->appendChild($doc->createTextNode($value));
-                $parent->appendChild($el);
+                if (is_a($value, Literal::class) || $this->format->mode == self::MODE_URL || $this->format->mode == self::MODE_BOTH) {
+                    $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
+                    $el->appendChild($doc->createTextNode((string) $value));
+                    $parent->appendChild($el);
+                }
+                if (is_a($value, Resource::class) && ($this->format->mode == self::MODE_TITLE || $this->format->mode == self::MODE_BOTH)) {
+                    /* @var $value \EasyRdf\Resource */
+                    $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
+                    $el->appendChild($doc->createTextNode((string) $value->get($this->format->titleProp)));
+                    $parent->appendChild($el);
+                }
+                if (is_a($value, Literal::class) && !empty($value->getLang())) {
+                    $el->setAttribute('xml:lang', $value->getLang());
+                }
             }
         }
-        $parent->appendChild($doc->createElementNS(self::$dcNmsp, 'dc:date', $meta->get('http://fedora.info/definitions/v4/repository#lastModified')));
-
         return $parent;
     }
 
     /**
-     * This implementation has no need to extend the SPRARQL search query.
+     * This implementation has no need to extend the search query.
      * 
      * @param MetadataFormat $format
-     * @param string $resVar
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    public static function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string {
-        return '';
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
+    /**
+     * This implementation has no need to extend the search query.
+     * 
+     * @param MetadataFormat $format
+     * @return \acdhOeaw\oai\QueryPart
+     */
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
     }
 
 }

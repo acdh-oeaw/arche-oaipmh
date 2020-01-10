@@ -29,21 +29,11 @@ namespace acdhOeaw\oai\deleted;
 use acdhOeaw\acdhRepoLib\QueryPart;
 
 /**
- * Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` deriving
- * information on a resource deletion from existence of a given RDF triple
- * in the resource metadata.
+ * Description of Tombstone
  *
- * Required configuration properties:
- * - oaiDeletedRecord value to be reported in the `deletedRecord` field of the
- *   OAI-PMH `identify` response ("transient" or "persistent" - see
- *   https://www.openarchives.org/OAI/openarchivesprotocol.html#DeletedRecords)
- * - oaiDeletedProp - RDF property which existence indicates a resource is 
- *   deleted
- * - oaiDeletedPropValue
- * 
  * @author zozlak
  */
-class RdfProperty implements DeletedInterface {
+class Tombstone implements DeletedInterface {
 
     /**
      * Configuration object
@@ -60,14 +50,7 @@ class RdfProperty implements DeletedInterface {
     }
 
     public function getDeletedData(): QueryPart {
-        $query        = new QueryPart();
-        $query->query = "SELECT id, true AS deleted FROM metadata WHERE property = ?";
-        $query->param = [$this->config->deletedProp];
-        if (!empty($this->config->deletedPropValue)) {
-            $query->query   .= " AND value = ?";
-            $query->param[] = $this->config->deletedPropValue;
-        }
-        return $query;
+        return new QueryPart("SELECT id, true AS deleted FROM resources WHERE state = 'tombstone'");
     }
 
 }

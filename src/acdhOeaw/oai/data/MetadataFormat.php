@@ -56,13 +56,11 @@ class MetadataFormat {
 
     /**
      * Creates a metadata format descriptor
-     * @param array $fields values to set in the descriptor
+     * @param object $fields values to set in the descriptor
      */
-    public function __construct(array $fields = null) {
-        if (is_array($fields)) {
-            foreach ($fields as $k => $v) {
-                $this->$k = $v; 
-            }
+    public function __construct(object $fields = null) {
+        foreach ($fields as $k => $v) {
+            $this->$k = $v; 
         }
     }
 

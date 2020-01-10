@@ -42,6 +42,7 @@ class ValueMapper {
 
     private $client;
     private $cache = [];
+    private $failed = [];
 
     /**
      * 
@@ -66,7 +67,7 @@ class ValueMapper {
      * @return array  mapped values
      */
     public function getMapping(string $value, string $property): array {
-        if (!isset($this->cache[$value])) {
+        if (!isset($this->cache[$value]) && !isset($this->failed[$value])) {
             $this->fetch($value);
         }
         $values = [];
@@ -87,11 +88,13 @@ class ValueMapper {
     private function fetch(string $value): void {
         $resp = $this->client->send(new Request('GET', $value));
         if ($resp->getStatusCode() === 200) {
-            $mime = $resp->getHeader('Content-Type')[0] ?? '';
-            $mime = explode(';', $mime)[0];
-            $graph = new Graph();
+            $mime                = $resp->getHeader('Content-Type')[0] ?? '';
+            $mime                = explode(';', $mime)[0];
+            $graph               = new Graph();
             $graph->parse((string) $resp->getBody(), $mime);
             $this->cache[$value] = $graph->resource($value);
+        } else {
+            $this->failed[$value] = true;
         }
     }
 

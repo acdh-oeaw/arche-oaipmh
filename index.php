@@ -25,31 +25,9 @@
  */
 
 require_once 'vendor/autoload.php';
-require_once 'src/acdhOeaw/oai/Oai.php';
 
-use zozlak\util\Config;
-use zozlak\util\ClassLoader;
 use acdhOeaw\oai\Oai;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\data\RepositoryInfo;
-use acdhOeaw\util\RepoConfig as RC;
 
-$loader = new ClassLoader('src');
-$config = new Config('config.ini', true);
-RC::init('config.ini');
-
-$formats = array();
-foreach ($config as $i) {
-    if (is_array($i) && isset($i['metadataPrefix'])) {
-        $formats[] = new MetadataFormat($i);
-    }
-}
-$info = new RepositoryInfo(array(
-    'repositoryName' => RC::GET('oaiRepositoryName'), 
-    'baseURL' => RC::get('oaiBaseUrl'),
-    'earliestDatestamp' => RC::get('oaiEarliestDatestamp'),
-    'adminEmail' => array(RC::get('oaiAdminEmail')),
-));
-
-$oai = new Oai($info, $formats, RC::get('oaiCacheDir'));
+$config = json_decode(json_encode(yaml_parse_file(__DIR__ . '/config.yaml')))->oai;
+$oai = new Oai($config);
 $oai->handleRequest();

@@ -28,9 +28,11 @@ namespace acdhOeaw\oai\metadata;
 
 use DOMDocument;
 use DOMElement;
-use stdClass;
-use acdhOeaw\fedora\FedoraResource;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Exception\RequestException;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\OaiException;
 
@@ -43,34 +45,39 @@ use acdhOeaw\oai\OaiException;
  * class)
  *
  * Required metadata format definitition properties:
- * - `metaResProp` 
- * - `idProp`
- * so that SPARQL path `?res metaResProp / ^idProp ?metaRes` will fetch a correct
- * metadata resource.
+ * - `metaResProp` - RDF property pointing to the resource containing metadata
+ * - `requestOptions` - Guzzle request options (http://docs.guzzlephp.org/en/stable/request-options.html)
+ *   to be used while fetching the metadata resource
  * 
  * @author zozlak
  */
 class ResMetadata implements MetadataInterface {
 
     /**
-     * Repository resouce storing actual metadata as its binary content.
-     * @var \acdhOeaw\fedora\FedoraResource
+     * Repository resource object
+     * @var \acdhOeaw\acdhRepoLib\RepoResourceDb
      */
-    private $metaRes;
+    private $res;
+
+    /**
+     *
+     * @var \acdhOeaw\oai\data\MetadataFormat
+     */
+    private $format;
 
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource object
-     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     *   resource object
+     * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
-    public function __construct(FedoraResource $resource,
-                                stdClass $sparqlResultRow,
-                                MetadataFormat $format) {
-        $fedora        = $resource->getFedora();
-        $this->metaRes = $fedora->getResourceByUri($sparqlResultRow->metaRes);
+    public function __construct(RepoResourceDb $resource,
+                                object $searchResultRow, MetadataFormat $format) {
+        $this->res    = $resource;
+        $this->format = $format;
     }
 
     /**
@@ -80,35 +87,45 @@ class ResMetadata implements MetadataInterface {
      * @throws \acdhOeaw\oai\OaiException
      */
     public function getXml(): DOMElement {
-        $meta    = new DOMDocument();
-        $success = $meta->loadXML((string) $this->metaRes->getContent()->getBody());
-        if (!$success) {
-            throw new OaiException('failed to parse given resource content as XML');
+        $metaRes = (string) $this->res->getGraph()->getResource($this->format->metaResProp);
+        $client  = new Client(json_decode(json_encode($this->format->requestOptions), true));
+        $request = new Request('get', $metaRes);
+        try {
+            $response = $client->send($request);
+            $meta     = new DOMDocument();
+            $body = (string) $response->getBody();
+            $success  = $meta->loadXML($body);
+            if (!$success) {
+                throw new OaiException('failed to parse given resource content as XML');
+            }
+        } catch (RequestException $ex) {
+            throw new OaiException("failed to fetch $metaRes");
         }
         return $meta->documentElement;
     }
 
     /**
-     * Returns a SPARQL search query part fetching additional data required by
-     * the `__construct()` method.
-     * 
-     * In this case it is an URI of the repository resource storing the actual
-     * metadata as its binary content.
+     * Extends the search query - only resources having a resource-metadata are
+     * matched.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @param string $resVar name of the SPARQL variable holding the repository
-     *   resource URI
-     * @return string
-     * @see __construct()
+     * @return \acdhOeaw\oai\QueryPart
      */
-    static public function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string {
-        $param = array(
-            $format->metaResProp,
-            $format->idProp
-        );
-        $query = new SimpleQuery($resVar . ' ?@ / ^?@ ?metaRes .', $param);
-        return $query->getQuery();
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        $query        = new QueryPart();
+        $query->query = "SELECT DISTINCT id FROM relations WHERE property = ?";
+        $query->param = [$format->metaResProp];
+        return $query;
+    }
+
+    /**
+     * This implementation has no fetch additional data trough the search query.
+     * 
+     * @param MetadataFormat $format metadata format descriptor
+     * @return \acdhOeaw\oai\QueryPart
+     */
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
     }
 
 }

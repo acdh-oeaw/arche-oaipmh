@@ -27,8 +27,8 @@
 namespace acdhOeaw\oai\metadata;
 
 use DOMElement;
-use stdClass;
-use acdhOeaw\fedora\FedoraResource;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -45,14 +45,14 @@ interface MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource object
-     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     *   resource object
+     * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
-    public function __construct(FedoraResource $resource,
-                                stdClass $sparqlResultRow,
-                                MetadataFormat $format);
+    public function __construct(RepoResourceDb $resource,
+                                object $searchResultRow, MetadataFormat $format);
 
     /**
      * Returns resource's XML metadata
@@ -63,19 +63,25 @@ interface MetadataInterface {
      * Allows to extend a search query with additional clauses specific to the
      * given metadata source.
      * 
-     * Returned string must be a valid SPARQL query part one can insert as `...` 
-     * in a query like `SELECT * WHERE { ... LIMIT (someRule)}`. It means if
-     * you need your own LIMIT clause or other advanced constructs, you must  
-     * return a subquery.
+     * Remark! PHP doesn't consider static methods as an interface part 
+     * therefore existance of this method in classes implementing this interface
+     * is not enforced.
+     * 
+     * @param MetadataFormat $format metadata format descriptor
+     * @return \acdhOeaw\oai\QueryPart 
+     */
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart;
+
+    /**
+     * Allows to extend a search query with additional clauses specific to the
+     * given metadata source.
      * 
      * Remark! PHP doesn't consider static methods as an interface part 
      * therefore existance of this method in classes implementing this interface
      * is not enforced.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @param string $resVar variable used in the search query to denote the
-     *   repository resource
+     * @return \acdhOeaw\oai\QueryPart 
      */
-    static public function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string;
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart;
 }

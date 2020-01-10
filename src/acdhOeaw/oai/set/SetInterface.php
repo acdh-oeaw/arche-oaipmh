@@ -26,40 +26,43 @@
 
 namespace acdhOeaw\oai\set;
 
-use acdhOeaw\fedora\Fedora;
+use PDO;
+use acdhOeaw\acdhRepoLib\QueryPart;
 
 /**
  * Interface for OAI-PMH sets implementations.
  * 
- * It is a class because PHP doesn't consider static methods part of an
- * interface  therefore interface can't be used.
  * @author zozlak
  */
-abstract class SetInterface {
+interface SetInterface {
+
+    public function __construct(object $config);
 
     /**
-     * Creates a part of the SPARQL search query filtring only resources
-     * belonging to a given set.
-     * @param string $resVar SPARQL variable denoting the resource URI
+     * Returns an SQL query returning a table with an `id` column providing
+     * repository resource ids belonging to a given set.
+     * 
      * @param string $set setSpec value to be matched
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    abstract public static function getSetFilter(string $resVar, string $set): string;
+    public function getSetFilter(string $set): QueryPart;
 
     /**
-     * Creates a part of the SPARQL search query fetching information on sets 
-     * a resource belongs to.
-     * @param string $resVar SPARQL variable denoting the resource URI
-     * @param string $setVar SPARQL variable which should denoted the setSpec 
-     *   value in the returned SPARQL query part
-     * @return string
+     * Returns an SQL query returning a table with two columns:
+     * 
+     * - `id` providing a repository resource id
+     * - `set` providing a name of the set a resource belongs to
+     * 
+     * If a resource belongs to many sets, many rows should be returned.
+     * 
+     * @return \acdhOeaw\oai\QueryPart
      */
-    abstract public static function getSetClause(string $resVar, string $setVar): string;
+    public function getSetData(): QueryPart;
 
     /**
      * Handles the `ListSets` OAI-PMH request.
-     * @param Fedora $fedora repository connection object
-     * @return array
+     * @param \PDO $pdo repository database connection object
+     * @return \acdhOeaw\oai\data\SetInfo[]
      */
-    abstract public static function listSets(Fedora $fedora): array;
+    public function listSets(PDO $pdo): array;
 }

@@ -77,9 +77,9 @@ class RepositoryInfo {
 
     /**
      * Creates a RepositoryInfo object setting up provided property values.
-     * @param array $param property values
+     * @param object $param property values
      */
-    public function __construct(array $param) {
+    public function __construct(object $param) {
         foreach ($param as $k => $v) {
             if (isset($this->$k)) {
                 $this->$k = $v;

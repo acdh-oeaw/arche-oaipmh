@@ -26,29 +26,34 @@
 
 namespace acdhOeaw\oai\deleted;
 
+use acdhOeaw\acdhRepoLib\QueryPart;
+
 /**
  * Interface for OAI-PMH deleted records implementations.
- * 
- * It is a class because PHP doesn't consider static methods part of an
- * interface  therefore interface can't be used.
  * @author zozlak
  */
-abstract class DeletedInterface {
+interface DeletedInterface {
+
+    public function __construct(object $config);
 
     /**
      * Returns the OAI-PMH `identify` response's `deletedRecord` value.
      * ("no", "transient" or "persistent")
-     */
-    abstract public static function getDeletedRecord(): string;
-
-    /**
-     * Creates a part of the SPARQL search query fetching if a resource is
-     * deleted or not.
-     * @param string $resVar SPARQL variable denoting the resource URI
-     * @param string $setVar SPARQL variable which should denoted if the 
-     *   resource is deleted or not - any non empty value will indicate it is
-     *   deleted
+     * 
      * @return string
      */
-    abstract public static function getDeletedClause(string $resVar, string $setVar): string;
+    public function getDeletedRecord(): string;
+
+    /**
+     * Returns an SQL query returning a table with two columns:
+     * 
+     * - `id` [bigint] providing a repository resource id
+     * - `deleted` [bool] indication if the resource is deleted
+     * 
+     * Query may skip resources which are not deleted but it has to always return
+     * above-mentioned columns (even with no rows).
+     * 
+     * @return \acdhOeaw\oai\QueryPart
+     */
+    public function getDeletedData(): QueryPart;
 }

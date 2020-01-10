@@ -1,9 +1,9 @@
 <?php
 
-/**
+/*
  * The MIT License
  *
- * Copyright 2017 Austrian Centre for Digital Humanities.
+ * Copyright 2019 zozlak.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,13 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\deleted;
-
-use acdhOeaw\acdhRepoLib\QueryPart;
-
+namespace acdhOeaw\oai\data;
+use EasyRdf\Resource;
 /**
- * Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` 
- * for repositories not providing data on deleted resources.
+ * Description of Resource
  *
  * @author zozlak
  */
-class No implements DeletedInterface {
-
-    public function __construct(object $config) {
-        
-    }
-
-    public function getDeletedRecord(): string {
-        return 'no';
-    }
-
-    public function getDeletedData(): QueryPart {
-        return QueryPart("SELECT 0::bigint AS id, false AS deleted WHERE false");
-    }
-
+class Resource {
+    //put your code here
 }

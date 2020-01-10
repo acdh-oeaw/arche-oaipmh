@@ -26,8 +26,6 @@
 
 namespace acdhOeaw\oai\data;
 
-use stdClass;
-
 /**
  * Container for data required to generate OAI-PMH resource's header.
  *
@@ -35,6 +33,12 @@ use stdClass;
  */
 class HeaderData {
 
+    /**
+     * Resource's internal repository identifier
+     * @var int
+     */
+    public $repoid;
+    
     /**
      * Resource's OAI-PMH id
      * @var string
@@ -57,7 +61,7 @@ class HeaderData {
      * List of <setSpec> values denoting sets a resource belongs to
      * @var array
      */
-    public $sets = array();
+    public $sets = [];
 
     /**
      * Creates a HeaderData object optionally copying data from a provided object.
@@ -67,9 +71,9 @@ class HeaderData {
      * - date - an OAI-PMH record datestamp field
      * - deleted - if an object is deleted (presence of a field means deletion)
      * - sets - a list of OAI-PMH sets a record belongs to
-     * @param stdClass $src data to copy from
+     * @param object $src data to copy from
      */
-    public function __construct(stdClass $src = null) {
+    public function __construct(object $src = null) {
         if ($src === null) {
             return;
         }
@@ -83,7 +87,7 @@ class HeaderData {
             $this->deleted = true;
         }
         if (isset($src->sets)) {
-            $tmp = is_array($src->sets) ? $src->sets : array($src->sets);
+            $tmp = is_array($src->sets) ? $src->sets : [$src->sets];
             foreach ($tmp as $i) {
                 $this->sets[] = (string) $i;
             }

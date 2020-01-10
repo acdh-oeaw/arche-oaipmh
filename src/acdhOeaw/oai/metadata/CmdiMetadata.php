@@ -26,7 +26,7 @@
 
 namespace acdhOeaw\oai\metadata;
 
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use acdhOeaw\acdhRepoLib\QueryPart;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -34,12 +34,11 @@ use acdhOeaw\oai\data\MetadataFormat;
  * metadata format requested by the user.
  * 
  * Required metadata format definitition properties:
- * - `cmdiResProp` 
+ * - `metaResProp` 
  * - `cmdiSchemaProp`
- * - `idProp` 
- * so that SPARQL path `?res cmdiResProp / ^idProp ?metaRes` will fetch right
- * metadata resources assuming that `?metaRes cmdiSchemaProp 'cmdiResSchema'` 
- * matches the requested metadata format schema.
+ * - `schema`
+ * - `requestOptions` - Guzzle request options (http://docs.guzzlephp.org/en/stable/request-options.html)
+ *   to be used while fetching the metadata resource
  *
  * @author zozlak
  */
@@ -51,21 +50,36 @@ class CmdiMetadata extends ResMetadata {
      * - assuring that the linked CMDI resource has the right schema
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @param string $resVar name of the SPARQL variable holding the repository
-     *   resource URI
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      * @see __construct()
      */
-    static public function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string {
-        $param = array(
-            $format->cmdiResProp,
-            $format->idProp,
-            $format->cmdiSchemaProp,
-            $format->schema
-        );
-        $query = new SimpleQuery($resVar . " ?@ / ^?@ ?metaRes . \n ?metaRes ?@ ?@ .", $param);
-        return $query->getQuery();
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        $query        = new QueryPart();
+        $query->query = "
+            SELECT DISTINCT r.id 
+            FROM 
+                relations r
+                LEFT JOIN metadata m ON r.target_id = m.id AND m.property = ? AND m.value = ?
+                LEFT JOIN relations rr ON r.target_id = rr.id AND rr.property = ?
+                LEFT JOIN identifiers ii ON rr.id = ii.id AND ii.ids = ?
+            WHERE r.property = ?
+        ";
+        $query->param = [
+            $format->cmdiSchemaProp, $format->schema, // m
+            $format->cmdiSchemaProp, $format->schema, // rr, ii
+            $format->metaResProp, // r. property
+        ];
+        return $query;
+    }
+
+    /**
+     * This implementation has no fetch additional data trough the search query.
+     * 
+     * @param MetadataFormat $format metadata format descriptor
+     * @return \acdhOeaw\oai\QueryPart
+     */
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
     }
 
 }

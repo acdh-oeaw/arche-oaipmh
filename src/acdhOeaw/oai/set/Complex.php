@@ -27,12 +27,11 @@
 namespace acdhOeaw\oai\set;
 
 use stdClass;
-use acdhOeaw\fedora\Fedora;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use PDO;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\data\SetInfo;
 use acdhOeaw\oai\metadata\DcMetadata;
-use acdhOeaw\util\RepoConfig as RC;
+use acdhOeaw\acdhRepoLib\QueryPart;
 
 /**
  * Provides full sets support.
@@ -41,76 +40,79 @@ use acdhOeaw\util\RepoConfig as RC;
  *
  * @author zozlak
  */
-class Complex extends SetInterface {
+class Complex implements SetInterface {
 
     /**
-     * Creates a part of the SPARQL search query fetching information on sets 
-     * a resource belongs to.
-     * @param string $resVar SPARQL variable denoting the resource URI
-     * @param string $setVar SPARQL variable which should denoted the setSpec 
-     *   value in the returned SPARQL query part
-     * @return string
+     * Configuration object
+     * @var object
      */
-    public static function getSetFilter(string $resVar, string $set): string {
-        $param = array(
-            RC::get('oaiSetProp'),
-            RC::get('oaiSetIdProp'),
-            RC::get('oaiSetSpecProp'),
-            $set
-        );
-        $query = new SimpleQuery($resVar . ' ?@ / ^?@ / ?@ ?# .', $param);
-        return $query->getQuery();
+    private $config;
+
+    public function __construct(object $config) {
+        $this->config = $config;
     }
 
-    /**
-     * Creates a part of the SPARQL search query fetching information on sets 
-     * a resource belongs to.
-     * @param string $resVar SPARQL variable denoting the resource URI
-     * @param string $setVar SPARQL variable which should denoted the setSpec 
-     *   value in the returned SPARQL query part
-     * @return string
-     */
-    public static function getSetClause(string $resVar, string $setVar): string {
-        $param = array(
-            RC::get('oaiSetProp'),
-            RC::get('oaiSetIdProp'),
-            RC::get('oaiSetSpecProp')
-        );
-        $query = $resVar . ' ?@ / ^?@ / ?@ ' . $setVar . ' .';
-        $query = new SimpleQuery($query, $param);
-        return $query->getQuery();
+    public function getSetFilter(string $set): QueryPart {
+        $query = new QueryPart();
+        if (!empty($set)) {
+            $query->query = "
+                SELECT r.id
+                FROM
+                    relations r
+                    JOIN metadata m ON r.target_id = m.id
+                WHERE
+                    r.property = ?
+                    AND m.property = ?
+                    AND m.value = ?
+            ";
+            $query->param = [$this->config->setProp, $this->config->setSpecProp,
+                $set];
+        }
+        return $query;
     }
 
-    /**
-     * Handles the `ListSets` OAI-PMH request.
-     * @param Fedora $fedora repository connection object
-     * @return array
-     */
-    public static function listSets(Fedora $fedora): array {
-        $param   = array(
-            RC::get('oaiIdProp'),
-            RC::get('oaiSetProp'),
-            RC::get('oaiSetIdProp'),
-            RC::get('oaiSetSpecProp'),
-            RC::get('oaiSetTitleProp')
-        );
-        $query   = "
-            SELECT DISTINCT ?set ?spec ?name WHERE {
-                ?res ?@ ?pid .
-                ?res ?@ / ^?@ ?set .
-                ?set ?@ ?spec .
-                ?set ?@ ?name .
-            }
+    public function getSetData(): QueryPart {
+        $query        = new QueryPart();
+        $query->query = "
+            SELECT r.id, m.value AS set 
+            FROM
+                relations r
+                JOIN metadata m ON r.target_id = m.id
+            WHERE
+                r.property = ?
+                AND m.property = ?
         ";
-        $query   = new SimpleQuery($query, $param);
-        //echo $query->getQuery();
-        $results = $fedora->runQuery($query);
+        $query->param = [$this->config->setProp, $this->config->setSpecProp];
+        return $query;
+    }
 
-        $ret = array();
-        foreach ($results as $i) {
-            $metaRes = $fedora->getResourceByUri($i->set);
-            $meta    = new DcMetadata($metaRes, new stdClass(), new MetadataFormat());
-            $ret[]   = new SetInfo((string) $i->spec, (string) $i->name, $meta->getXml());
+    public function listSets(PDO $pdo): array {
+        $query = "
+            SELECT 
+                s.id,
+                m1.value AS spec,
+                m2.value AS name,
+                json_agg(row_to_json(m.*)) AS meta
+            FROM
+                (
+                    SELECT target_id AS id
+                    FROM relations
+                    WHERE property = ?
+                ) s
+                JOIN metadata_view m USING (id)
+                JOIN metadata m1 ON s.id = m1.id AND m1.property = ?
+                JOIN metadata m2 ON s.id = m2.id AND m2.property = ?
+            GROUP BY 1, 2, 3
+            ORDER BY 1
+        ";
+        $param = [$this->config->setProp, $this->config->setSpecProp, $this->config->setNameProp];
+        $query = $pdo->prepare($query);
+        $query->execute($param);
+
+        $ret = [];
+        while ($i   = $query->fetch(PDO::FETCH_OBJ)) {
+            $meta  = new DcMetadata(json_decode($i->meta), new stdClass(), new MetadataFormat());
+            $ret[] = new SetInfo($i->spec, $i->name, $meta->getXml());
         }
         return $ret;
     }

@@ -28,8 +28,8 @@ namespace acdhOeaw\oai\metadata;
 
 use DOMDocument;
 use DOMElement;
-use stdClass;
-use acdhOeaw\fedora\FedoraResource;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -59,31 +59,31 @@ class DcMetadata implements MetadataInterface {
      * Dublin Core namespace
      * @var string
      */
-    static private $dcNmsp     = 'http://purl.org/dc/elements/1.1/';
+    static private $dcNmsp = 'http://purl.org/dc/elements/1.1/';
 
     /**
      * Dublin Core Terms namespace
      * @var string
      */
-    static private $dctNmsp    = 'http://purl.org/dc/terms/';
+    static private $dctNmsp = 'http://purl.org/dc/terms/';
 
     /**
      * Repository resource object
-     * @var \acdhOeaw\fedora\FedoraResource
+     * @var \acdhOeaw\acdhRepoLib\RepoResourceDb
      */
     private $res;
 
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource object
-     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     *   resource object
+     * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
-    public function __construct(FedoraResource $resource,
-                                stdClass $sparqlResultRow,
-                                MetadataFormat $format) {
+    public function __construct(RepoResourceDb $resource,
+                                object $searchResultRow, MetadataFormat $format) {
         $this->res = $resource;
     }
 
@@ -96,6 +96,7 @@ class DcMetadata implements MetadataInterface {
         $doc    = new DOMDocument();
         $parent = $doc->createElementNS('http://www.openarchives.org/OAI/2.0/oai_dc/', 'oai_dc:dc');
         $parent->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/oai_dc/http://www.openarchives.org/OAI/2.0/oai_dc.xsd');
+        $doc->appendChild($parent);
 
         $meta = $this->res->getMetadata();
         foreach ($meta->propertyUris() as $property) {
@@ -109,6 +110,9 @@ class DcMetadata implements MetadataInterface {
             foreach ($meta->all($propUri) as $value) {
                 $el = $doc->createElementNS(self::$dcNmsp, 'dc:' . $property);
                 $el->appendChild($doc->createTextNode($value));
+                if (is_a($value, Literal::class) && !empty($value->getLang())) {
+                    $el->setAttribute('xml:lang', $value->getLang());
+                }
                 $parent->appendChild($el);
             }
         }
@@ -118,15 +122,23 @@ class DcMetadata implements MetadataInterface {
     }
 
     /**
-     * This implementation has no need to extend the SPRARQL search query.
+     * This implementation has no need to extend the search query.
      * 
      * @param MetadataFormat $format
-     * @param string $resVar
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    public static function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string {
-        return '';
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
+    /**
+     * This implementation has no need to extend the search query.
+     * 
+     * @param MetadataFormat $format
+     * @return \acdhOeaw\oai\QueryPart
+     */
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
     }
 
 }

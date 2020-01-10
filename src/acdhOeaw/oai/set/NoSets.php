@@ -26,42 +26,46 @@
 
 namespace acdhOeaw\oai\set;
 
-use acdhOeaw\fedora\Fedora;
+use PDO;
 use acdhOeaw\oai\OaiException;
+use acdhOeaw\acdhRepoLib\QueryPart;
 
 /**
  * Implements proper reporting of repository without sets.
  *
  * @author zozlak
  */
-class NoSets extends SetInterface {
+class NoSets implements SetInterface {
 
     /**
      * Reports no support for sets
-     * @param string $resVar
+     * 
      * @param string $set
+     * @return \acdhOeaw\oai\QueryPart
      * @throws OaiException
      */
-    public static function getSetFilter(string $resVar, string $set): string {
+    public function getSetFilter(string $set): QueryPart {
         throw new OaiException('noSetHierarchy');
     }
 
     /**
-     * Reports no support for sets
-     * @param string $resVar
+     * Returns empty set name
+     * 
      * @param string $setVar
+     * @return \acdhOeaw\oai\QueryPart
      * @throws OaiException
      */
-    public static function getSetClause(string $resVar, string $setVar): string {
-        return '';
+    public function getSetData(): QueryPart {
+        return new QueryPart("SELECT id, null::text AS set FROM resources");
     }
 
     /**
      * Reports no support for sets
-     * @param Fedora $fedora
+     * 
+     * @return array
      * @throws OaiException
      */
-    public static function listSets(Fedora $fedora): array {
+    public function listSets(PDO $pdo): array {
         throw new OaiException('noSetHierarchy');
     }
 

@@ -33,8 +33,10 @@ use stdClass;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
 use EasyRdf\Graph;
-use acdhOeaw\fedora\FedoraResource;
-use acdhOeaw\fedora\metadataQuery\SimpleQuery;
+use acdhOeaw\acdhRepoLib\QueryPart;
+use acdhOeaw\acdhRepoLib\RepoResourceDb;
+use acdhOeaw\acdhRepoLib\RepoResourceInterface;
+use acdhOeaw\acdhRepoLib\SearchConfig;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -99,7 +101,9 @@ use acdhOeaw\oai\data\MetadataFormat;
  * - `valueMapProp="RDFpropertyURL"` causes value denoted by the `val` attribute to be
  *   mapped to another values using a given RDF property. The value must be an URL
  *   (e.g. a SKOS concept URL) which is then resolved to an RDF graph and all the values
- *   of indicated property are returned.
+ *   of indicated property are returned. Although the value must be an URL it has to be
+ *   stored in the repository as an RDF literal or the RDF property must be defined in the
+ *   repository config as a non-relational one.
  * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
  *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
  *   Taken into account only if `valueMapProp` provided and not empty.
@@ -108,11 +112,15 @@ use acdhOeaw\oai\data\MetadataFormat;
  */
 class LiveCmdiMetadata implements MetadataInterface {
 
+    /**
+     * Value mapping cache
+     * @var \acdhOeaw\oai\metadata\ValueMapper
+     */
     static private $mapper;
 
     /**
      * Repository resource object
-     * @var \acdhOeaw\fedora\FedoraResource
+     * @var \acdhOeaw\acdhRepoLib\RepoResourceDb
      */
     private $res;
 
@@ -131,18 +139,18 @@ class LiveCmdiMetadata implements MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param FedoraResource $resource repository resource object
-     * @param stdClass $sparqlResultRow SPARQL search query result row 
+     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     *   resource object
+     * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
-    public function __construct(FedoraResource $resource,
-                                stdClass $sparqlResultRow,
-                                MetadataFormat $format) {
+    public function __construct(RepoResourceDb $resource,
+                                object $searchResultRow, MetadataFormat $format) {
         $this->res    = $resource;
         $this->format = $format;
 
-        $formats = $this->res->getMetadata()->all($this->format->schemaProp);
+        $formats = $this->res->getGraph()->all($this->format->schemaProp);
         foreach ($formats as $i) {
             $i    = preg_replace('|^.*(clarin.eu:[^/]+).*$|', '\\1', (string) $i);
             $path = $this->format->templateDir . '/' . $i . '.xml';
@@ -180,12 +188,14 @@ class LiveCmdiMetadata implements MetadataInterface {
      * Applies metadata format restrictions.
      * 
      * @param MetadataFormat $format
-     * @param string $resVar
-     * @return string
+     * @return \acdhOeaw\oai\QueryPart
      */
-    public static function extendSearchQuery(MetadataFormat $format,
-                                             string $resVar): string {
-        $query = '';
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        $query = new QueryPart();
         if (!empty($format->schemaEnforce)) {
             $param = [$format->schemaProp, '^' . $format->schemaEnforce . '$'];
             $query = new SimpleQuery('{' . $resVar . ' ?@ ?schemaUri . FILTER regex(str(?schemaUri), ?#)}', $param);
@@ -236,15 +246,15 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = date('Y-m-d');
             $remove          = false;
         } else if ($val === 'ID') {
-            $format = $el->getAttribute('format');
-            $format = !empty($format) ? '?format=' . urlencode($format) : '';
-            $el->textContent = $this->res->getId() . $format;
+            $format          = $el->getAttribute('format');
+            $format          = !empty($format) ? '?format=' . urlencode($format) : '';
+            $el->textContent = $this->res->getUri() . $format;
             $remove          = false;
         } else if ($val === 'URI' || $val === 'URL') {
-            $el->textContent = $this->res->getUri(true);
+            $el->textContent = $this->res->getUri();
             $remove          = false;
         } else if ($val === 'OAIURI') {
-            $id              = urlencode($this->res->getMetadata()->getResource($this->format->uriProp)->getUri());
+            $id              = urlencode($this->res->getGraph()->getResource($this->format->uriProp)->getUri());
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
@@ -253,7 +263,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             if ($inverse) {
                 $meta = $this->getInverseResources($prop);
             } else {
-                $meta = $this->res->getMetadata();
+                $meta = $this->res->getGraph();
             }
             $component = $el->getAttribute('ComponentId');
             if (!empty($component) && empty($subprop)) {
@@ -330,7 +340,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      */
     private function insertCmdiComponents(DOMElement $el, Resource $meta,
                                           string $component, string $prop) {
-        $oldMeta = $this->res->getMetadata();
+        $oldMeta = $this->res->getGraph();
 
         $format                = clone($this->format);
         $format->schemaDefault = null;
@@ -342,7 +352,13 @@ class LiveCmdiMetadata implements MetadataInterface {
 
         $resources = [];
         foreach ($meta->all($prop) as $i) {
-            $resources[] = $this->res->getFedora()->getResourceById($i);
+            if (count($i->propertyUris()) === 0) {
+                $resources[] = $this->res->getRepo()->getResourceById($i);
+            } else {
+                $resTmp      = new RepoResourceDb($i->getUri(), $this->res->getRepo());
+                $resTmp->setGraph($i);
+                $resources[] = $resTmp;
+            }
             if ($count === '1') {
                 break;
             }
@@ -350,16 +366,16 @@ class LiveCmdiMetadata implements MetadataInterface {
         if (in_array($count, ['1', '+']) && count($resources) === 0) {
             $graph       = new Graph();
             $meta        = $graph->addLiteral('https://dummy.res', $this->format->schemaProp, $component);
-            $this->res->setMetadata($graph->resource('https://dummy.res'));
+            $this->res->setGraph($graph->resource('https://dummy.res'));
             $resources[] = $this->res;
         }
 
         try {
             foreach ($resources as $res) {
-                $meta         = $res->getMetadata();
+                $meta         = $res->getGraph();
                 $meta->delete($this->format->schemaProp);
                 $meta->addLiteral($this->format->schemaProp, $component);
-                $res->setMetadata($meta);
+                $res->setGraph($meta);
                 $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
                 $componentXml = $componentObj->getXml();
                 $componentXml = $el->ownerDocument->importNode($componentXml, true);
@@ -369,7 +385,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             
         }
 
-        $this->res->setMetadata($oldMeta);
+        $this->res->setGraph($oldMeta);
     }
 
     /**
@@ -401,7 +417,11 @@ class LiveCmdiMetadata implements MetadataInterface {
         $values = [];
         foreach ($meta->all($prop) as $i) {
             if ($extUriProp !== null && $i instanceof Resource) {
-                $metaTmp = $this->res->getFedora()->getResourceById($i)->getMetadata();
+                if (count($i->propertyUris()) === 0) {
+                    $metaTmp = $this->res->getRepo()->getResourceById($i)->getGraph();
+                } else {
+                    $metaTmp = $i;
+                }
                 foreach ($metaTmp->all($extUriProp) as $j) {
                     $this->collectMetaValue($values, $j, null, $dateFormat);
                 }
@@ -503,8 +523,8 @@ class LiveCmdiMetadata implements MetadataInterface {
      */
     private function replacePropNmsp(string $prop): string {
         $nmsp = substr($prop, 0, strpos($prop, ':'));
-        if ($nmsp !== '' && isset($this->format->propNmsp[$nmsp])) {
-            $prop = str_replace($nmsp . ':', $this->format->propNmsp[$nmsp], $prop);
+        if ($nmsp !== '' && isset($this->format->propNmsp->$nmsp)) {
+            $prop = str_replace($nmsp . ':', $this->format->propNmsp->$nmsp, $prop);
         }
         return $prop;
     }
@@ -516,16 +536,20 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return \EasyRdf\Resource
      */
     private function getInverseResources(string $prop): Resource {
-        $fedora    = $this->res->getFedora();
-        $graph     = new Graph();
-        $meta      = $graph->resource('.');
-        $query     = new SimpleQuery('SELECT ?res WHERE {?res ?@ ?@.}', [$prop, $this->res->getId()]);
-        $resources = $fedora->runQuery($query);
-        foreach ($resources as $i) {
-            $res = $fedora->getResourceByUri((string) $i->res);
-            $meta->addResource($prop, $res->getId());
+        $repo    = $this->res->getRepo();
+        $baseUrl = $repo->getBaseUrl();
+        $query   = "SELECT id FROM relations WHERE property = ? AND target_id = ?";
+        $param   = [$prop, substr($this->res->getUri(), strlen($baseUrl))];
+
+        $config               = new SearchConfig();
+        $config->class        = get_class($this->res);
+        $config->metadataMode = RepoResourceInterface::META_RESOURCE;
+        $graph                = $repo->getGraphBySqlQuery($query, $param, $config);
+        $resource             = $graph->resource($this->res->getUri());
+        foreach ($graph->resourcesMatching($repo->getSchema()->searchMatch) as $i) {
+            $resource->addResource($prop, $i);
         }
-        return $meta;
+        return $resource;
     }
 
 }

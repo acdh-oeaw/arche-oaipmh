@@ -26,10 +26,12 @@
 
 namespace acdhOeaw\oai\search;
 
-use acdhOeaw\fedora\Fedora;
+use PDO;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\data\HeaderData;
+use acdhOeaw\oai\deleted\DeletedInterface;
 use acdhOeaw\oai\metadata\MetadataInterface;
+use acdhOeaw\oai\set\SetInterface;
 
 /**
  * Interface for classes implementing OAI-PMH resources search.
@@ -50,13 +52,20 @@ interface SearchInterface {
 
     /**
      * Creates a search engine object.
+     * 
      * @param MetadataFormat $format metadata format descriptor
-     * @param Fedora $fedora repository connection object
+     * @param SetInterface $sets
+     * @param DeletedInterface $deleted
+     * @param object $config configuration object
+     * @param PDO $pdo repository database connection object
      */
-    public function __construct(MetadataFormat $format, Fedora $fedora);
+    public function __construct(MetadataFormat $format, SetInterface $sets,
+                                DeletedInterface $deleted, object $config,
+                                PDO $pdo);
 
     /**
      * Performs search using given filter values.
+     * @param \PDO $pdo repository database connection object
      * @param string $id id filter value
      * @param string $from date from filter value
      * @param string $until date to filter value

@@ -26,13 +26,13 @@
 
 namespace acdhOeaw\oai;
 
-use acdhOeaw\fedora\Fedora;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\RepositoryInfo;
-use acdhOeaw\util\RepoConfig as RC;
+use acdhOeaw\oai\data\MetadataFormat;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
+use PDO;
 use RuntimeException;
 use StdClass;
 use Throwable;
@@ -79,10 +79,16 @@ TMPL;
     static private $dateRegExp = '|^[0-9]{4}-[0-1][0-9]-[0-3][0-9](T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z)?$|';
 
     /**
-     * Repository connection object
-     * @var \acdhOeaw\fedora\Fedora 
+     * Configuration options
+     * @var object
      */
-    private $fedora;
+    private $config;
+
+    /**
+     * Repository database connection object
+     * @var \PDO
+     */
+    private $pdo;
 
     /**
      * XML object used to serialize OAI-PMH response parts
@@ -91,16 +97,28 @@ TMPL;
     private $response;
 
     /**
-     * List of metadata descriptors
-     * @var array
-     */
-    private $metadataFormats = array();
-
-    /**
      * Repository info object used to serve OAI-PMH `Identify` requests
      * @var \acdhOeaw\oai\RepositoryInfo
      */
     private $info;
+
+    /**
+     * List of metadata descriptors
+     * @var \acdhOeaw\oai\data\MetadataFormat[]
+     */
+    private $metadataFormats = [];
+
+    /**
+     * Object handling sets
+     * @var \acdhOeaw\oai\set\SetInterface
+     */
+    private $sets;
+
+    /**
+     * Object handling deleted resources information
+     * @var \acdhOeaw\oai\deleted\DeletedInterface
+     */
+    private $deleted;
 
     /**
      * Cache object
@@ -111,25 +129,28 @@ TMPL;
     /**
      * Initialized the OAI-PMH server object.
      * 
-     * @param \acdhOeaw\oai\data\RepositoryInfo $info
-     * @param array $metadataFormats
-     * @param string $cacheDir path to the directory storying metadata records cache
-     *   if null, cache is not used
+     * @param object $config
      */
-    public function __construct(RepositoryInfo $info, array $metadataFormats, string $cacheDir = null) {
-        $delClass            = RC::get('oaiDeletedClass');
-        $info->deletedRecord = $delClass::getDeletedRecord();
+    public function __construct(object $config) {
+        $this->config = $config;
 
-        $this->info   = $info;
-        $this->fedora = new Fedora();
+        $this->pdo = new PDO($this->config->dbConnStr);
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        foreach ($metadataFormats as $i) {
-            $i->info = $this->info;
-            $this->metadataFormats[$i->metadataPrefix] = $i;
+        $this->info = new RepositoryInfo($this->config);
+
+        $this->deleted             = new $this->config->deletedClass($this->config);
+        $this->info->deletedRecord = $this->deleted->getDeletedRecord();
+
+        foreach ($config->formats as $i) {
+            $i->info                                   = $this->info;
+            $this->metadataFormats[$i->metadataPrefix] = new MetadataFormat($i);
         }
 
-        if (!empty($cacheDir)) {
-            $this->cache = new Cache($cacheDir);
+        $this->sets = new $this->config->setClass($this->config);
+
+        if (!empty($this->config->cacheDir)) {
+            $this->cache = new Cache($this->config->cacheDir);
         }
 
         // response initialization
@@ -144,10 +165,9 @@ TMPL;
      */
     public function handleRequest() {
         header('Content-Type: text/xml');
-
         // an ugly workaround allowing to serve raw CMDI records
         $verb = $this->getParam('verb') . '';
-	if ($verb === 'GetRecordRaw') {
+        if ($verb === 'GetRecordRaw') {
             $id = $this->getParam('identifier') . '';
             $this->oaiListRecordRaw($id);
             return;
@@ -227,7 +247,7 @@ TMPL;
         $id = $this->getParam('identifier');
 
         if ($id != '') {
-            $res  = $this->fedora->getResourcesByProperty(RC::get('oaiIdProp'), $id);
+            $res = $this->pdo->getResourcesByProperty($this->config->idProp, $id);
             if (count($res) == 0) {
                 throw new OaiException('idDoesNotExist');
             } else if (count($res) > 1) {
@@ -279,11 +299,12 @@ TMPL;
 
         if ($verb == 'GetRecord') {
             $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));
-            if($id == '') {
+            if ($id == '') {
                 throw new OaiException('badArgument');
             }
         } else {
-            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set', 'reloadCache'));
+            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set',
+                'reloadCache'));
         }
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
@@ -300,8 +321,8 @@ TMPL;
 
         $format = $this->metadataFormats[$metadataPrefix];
 
-        $search = RC::get('oaiSearchClass');
-        $search = new $search($format, $this->fedora);
+        $search = $this->config->searchClass;
+        $search = new $search($format, $this->sets, $this->deleted, $this->config, $this->pdo);
         /* @var $search \acdhOeaw\oai\search\SearchInterface */
         $search->find($id, $from, $until, $set);
         if ($search->getCount() == 0) {
@@ -311,16 +332,19 @@ TMPL;
         echo "    <" . $verb . ">\n";
         try {
             for ($i = 0; $i < $search->getCount(); $i++) {
+                $recordFlag   = $metadataFlag = false;
                 try {
                     $headerData = $search->getHeader($i);
-                    $header = $this->createHeader($headerData);
+                    $header     = $this->createHeader($headerData);
                     $this->response->documentElement->appendChild($header);
                     if ($verb === 'ListIdentifiers') {
                         echo $header->C14N() . "\n";
                     } else {
                         echo "<record>\n";
+                        $recordFlag   = true;
                         echo $header->C14N() . "\n";
                         echo "<metadata>";
+                        $metadataFlag = true;
                         if ($this->cache !== null) {
                             if ($reloadCache || !$this->cache->check($headerData, $format)) {
                                 $xml = $search->getMetadata($i)->getXml();
@@ -331,11 +355,11 @@ TMPL;
                             $xml = $search->getMetadata($i)->getXml();
                             echo $xml->C14N();
                         }
-                        echo "</metadata>\n";
-                        echo "</record>\n";
                     }
                 } catch (OaiException $e) {
                     //echo $e;
+                } finally {
+                    echo ($metadataFlag ? '</metadata>' : '') . ($recordFlag ? '</record>' : '');
                 }
             }
         } finally {
@@ -350,7 +374,7 @@ TMPL;
     public function oaiListRecordRaw(string $id = '') {
         try {
             $this->checkRequestParam(array('identifier', 'metadataPrefix'));
-            if($id == '') {
+            if ($id == '') {
                 throw new OaiException('badArgument');
             }
 
@@ -360,8 +384,8 @@ TMPL;
             }
             $format = $this->metadataFormats[$metadataPrefix];
 
-            $search = RC::get('oaiSearchClass');
-            $search = new $search($format, $this->fedora);
+            $search = $this->config->searchClass;
+            $search = new $search($format, $this->sets, $this->deleted, $this->config, $this->pdo);
             /* @var $search \acdhOeaw\oai\search\SearchInterface */
             $search->find($id, '', '', '');
             if ($search->getCount() == 0) {
@@ -383,8 +407,7 @@ TMPL;
      */
     public function oaiListSets() {
         $this->checkRequestParam(array());
-        $class = RC::get('oaiSetClass');
-        $sets  = $class::listSets($this->fedora);
+        $sets = $this->sets->listSets($this->pdo);
         echo "    <listSets>\n";
         foreach ($sets as $i) {
             /* @var $i \acdhOeaw\oai\SetInfo */
@@ -410,7 +433,7 @@ TMPL;
      * @return DOMElement
      */
     private function createHeader(HeaderData $res): DOMElement {
-        $attr = array();
+        $attr = [];
         if ($res->deleted) {
             $attr['status'] = 'deleted';
         }
@@ -456,9 +479,9 @@ TMPL;
             throw new OaiException('badResumptionToken');
         }
 
-        $seen = array();
+        $seen  = array();
         $param = filter_input(\INPUT_SERVER, 'QUERY_STRING');
-        $param = explode('&', $param ? $param : '' );
+        $param = explode('&', $param ? $param : '');
         foreach ($param as $i) {
             $i = explode('=', $i);
             if (isset($seen[$i[0]])) {
@@ -474,7 +497,6 @@ TMPL;
             }
         }
     }
-
 
     private function getParam(string $name) {
         return filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);

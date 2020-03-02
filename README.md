@@ -1,9 +1,5 @@
-# OAI-PMH service for Fedora 4 repositories
+# OAI-PMH service for ACDH repository solution
 
-* Uses metadata from the Fedora repository triplestore
-  (it means **you must have Fedora coupled with a triplestore**, e.g. using the [fcrepo-indexing-triplestore](https://github.com/fcrepo4-exts/fcrepo-camel-toolbox/tree/master/fcrepo-indexing-triplestore) Fedora plugin)
-* Depends only on the Fedora REST API and the SPARQL endpoint, therefore is not affected by internal changes in Fedora.
-* Can handle big repositories (doesn't buffer output data so memory consumption is very low).
 * Is flexible:
     * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
     * It's shipped with classes implementing OAI-PMH metadata generation by:
@@ -22,9 +18,7 @@
 * clone the repo
 * run `composer update`
     * of course make sure you have `composer` first
-* rename `config.ini.inc` to `config.ini`
-* update `config.ini` settings
-    * read the comments - information on describing metadata formats is provided there
+* TODO - describe config adjustments
 * deploy as a normal PHP website
 
 # Unsupported features

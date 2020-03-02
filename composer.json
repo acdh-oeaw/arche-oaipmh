@@ -1,15 +1,19 @@
 {
-    "name": "vendor/oai-pmh",
-    "description": "Description of project oai-pmh.",
+    "name": "acdh-oeaw/acdh-repo-oaipmh",
+    "type": "project",
+    "description": "OAI-PMH service for the ACDH repo solution",
+    "keywords": [],
+    "homepage": "https://github.com/zozlak/acdh-repo-oaipmh",
+    "license": "MIT",
     "authors": [
         {
-            "name": "zozlak",
-            "email": "zozlak@zozlak.org"
+            "name": "Mateusz Żółtak",
+            "email": "mzoltak@oeaw.ac.at"
         }
     ],
     "require": {
         "acdh-oeaw/easyrdf": "*",
-        "acdh-oeaw/acdh-repo-lib": "~0.6"
+        "acdh-oeaw/acdh-repo-lib": "~0.7"
     },
     "autoload": {
         "psr-4": {

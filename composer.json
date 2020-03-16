@@ -1,9 +1,9 @@
 {
-    "name": "acdh-oeaw/acdh-repo-oaipmh",
+    "name": "acdh-oeaw/arche-oaipmh",
     "type": "project",
     "description": "OAI-PMH service for the ACDH repo solution",
     "keywords": [],
-    "homepage": "https://github.com/zozlak/acdh-repo-oaipmh",
+    "homepage": "https://github.com/acdh-oeaw/arche-oaipmh",
     "license": "MIT",
     "authors": [
         {
@@ -13,7 +13,7 @@
     ],
     "require": {
         "acdh-oeaw/easyrdf": "*",
-        "acdh-oeaw/acdh-repo-lib": "~0.7"
+        "acdh-oeaw/arche-lib": "^1"
     },
     "autoload": {
         "psr-4": {

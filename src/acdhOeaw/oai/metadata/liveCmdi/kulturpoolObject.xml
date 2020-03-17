@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Object>
+  <url val="IIIFURL"/>
+  <!-- iiif stuff -->
+  <ConformsTo>http://iiif.io/api/image</ConformsTo>
+  <Implements>http://iiif.io/api/image/2/level1.json</Implements>
+</Object>

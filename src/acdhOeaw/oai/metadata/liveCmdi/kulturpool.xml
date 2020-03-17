@@ -13,12 +13,12 @@
   <EarliestDate val="/acdh:hasCreatedStartDate" count="*" dateFormat="Date"/>
   <LatestDate val="/acdh:hasCreatedEndDate" count="*" dateFormat="Date"/>
 
-  <Object val="/acdh:hasTitleImage" count="1" format="image/jpeg"/>
+  <Object ComponentId="kulturpoolObject" val="@acdh:hasTitleImage" count="1"/>
 
   <IsShownBy val="/acdh:isSourceOf" format="raw"/>
   <IsShownAt val="/acdh:hasUrl" count="*"/>
 
-  <ObjectType val="@acdh:hasCategory/acdh:hasPid" count="*" valueMapProp="skos:relatedMatch" valueMapKeepSrc="true"/> <!-- not used for arche collection -->
+  <ObjectType val="/acdh:hasCategory" count="*" valueMapProp="skos:relatedMatch" valueMapKeepSrc="true"/> <!-- not used for arche collection -->
   <Format val="/acdh:hasFormat" count="*"/> <!-- not used for arche collection -->
 
   <Language val="/acdh:hasLanguage" count="*"/>

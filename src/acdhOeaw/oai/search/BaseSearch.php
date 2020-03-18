@@ -27,6 +27,7 @@
 namespace acdhOeaw\oai\search;
 
 use PDO;
+use Psr\Log\AbstractLogger;
 use acdhOeaw\acdhRepoLib\QueryPart;
 use acdhOeaw\acdhRepoLib\RepoDb;
 use acdhOeaw\acdhRepoLib\RepoResourceDb;
@@ -96,9 +97,11 @@ class BaseSearch implements SearchInterface {
     private $records;
 
     /**
-     * Creates a search engine object.
      * @param MetadataFormat $format metadata format descriptor
-     * @param object $config repository connection object
+     * @param SetInterface $sets
+     * @param DeletedInterface $deleted
+     * @param object $config configuration object
+     * @param PDO $pdo repository database connection object
      */
     public function __construct(MetadataFormat $format, SetInterface $sets,
                                 DeletedInterface $deleted, object $config,
@@ -167,7 +170,7 @@ class BaseSearch implements SearchInterface {
             [$this->config->idNmsp . '%', $this->config->dateProp],
             $extDataQP->param,
             $delDataQP->param,
-            $setDataQP->param,
+            $setDataQP->param
         );
         $query         = $this->pdo->prepare($query);
         $query->execute($param);
@@ -255,6 +258,15 @@ class BaseSearch implements SearchInterface {
         $class = $this->config->setClass;
         /* @var $class \acdhOeaw\oai\set\SetInterface */
         return $class::getSetFilter($set);
+    }
+
+    /**
+     * Sets a logger for the search object
+     * @param AbstractLogger $log
+     * @return void
+     */
+    public function setLogger(AbstractLogger $log): void {
+        $this->repo->setQueryLog($log);
     }
 
 }

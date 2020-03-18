@@ -61,6 +61,7 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   in their metadata are automatically excluded from the OAI-PMH search.
  * - `schemaEnforce` if provided, only resources with a given value of the `schemaProp`
  *   are processed.
+ * - `iiifBaseUrl` used for `val="IIIFURL` (see below)
  * 
  * XML tags in the template can be annotated with following attributes:
  * - `val="valuePath"` specifies how to get the value. Possible `valuePath` variants are:
@@ -72,10 +73,13 @@ use acdhOeaw\oai\data\MetadataFormat;
  *     - `@propUri` in a tag having the `ComponentId` attribute - inject the CMDI component
  *       identified by the `ComponentId` attribute taking the resource `propUri` metadata
  *       property points to as its base resource
- *     - `NOW` - get the current time
- *     - `URL` - get the resource's repository URL
- *     - `ID` - get the resource's ACDH repo UUID
- *     - `OAIURI` - get the resource's OAI-PMH ID
+ *     - `NOW` - current time
+ *     - `URL` - resource's repository URL
+ *     - `ID` - resource's ACDH repo UUID
+ *     - `OAIURI` - resource's OAI-PMH ID
+ *     - `IIIFURL` - resource's IIIF URL which is a concatenation of the metadata format's
+ *       `iiifBaseUrl` parameter value and the path part of the repository resource ID
+ *       (this is a special corner case for ARCHE)
  * - `count="N"` (default `1`)
  *     - when "*" and metadata contain no property specified by the `val` attribute
  *       the tag is removed from the template;
@@ -89,6 +93,8 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   the language, the `xml:lang` attribute is added to the template tag
  * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
  *   as XML
+ * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitus the
+ *   XML tag itself instead of being injected as its value.
  * - `dateFormat="FORMAT"` (default native precision read from the resource metadata value)
  *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
  *   as when present it will also naivly process any string values (cutting them or appending
@@ -99,18 +105,23 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   desired one. The `asXML` attribute takes a precedense.
  *   Doesn't work for special `val` attribute values of `NOW`, `URL` and `OAIURI`.
  * - `valueMapProp="RDFpropertyURL"` causes value denoted by the `val` attribute to be
- *   mapped to another values using a given RDF property. The value must be an URL
- *   (e.g. a SKOS concept URL) which is then resolved to an RDF graph and all the values
- *   of indicated property are returned. Although the value must be an URL it has to be
- *   stored in the repository as an RDF literal or the RDF property must be defined in the
- *   repository config as a non-relational one.
+ *   mapped to another values using a given RDF property. The `val` attribute value must be 
+ *   an URL (e.g. a SKOS concept URL) which returns an RDF graph. All `valueMapProp` property
+ *   values from the fetched graph are taken as a template values.
+ *   of indicated property are returned.
  * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
  *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
  *   Taken into account only if `valueMapProp` provided and not empty.
+ * - `ComponentId` specifies a component (template) to substitue a given tag (see the `val`
+ *   attribute description). The component name should match the template file name without the
+ *   .xml extension. When the `ComponentId` is used the actual tag in the template is 
+ *   not important because it's anyway replaced by the component's root tag.
  * 
  * @author zozlak
  */
 class LiveCmdiMetadata implements MetadataInterface {
+
+    const FAKE_ROOT_TAG = 'fakeRoot';
 
     /**
      * Value mapping cache
@@ -173,13 +184,27 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Creates resource's XML metadata
-     * 
+     *
+     * If the template's root element has an `val` attribute a fake
+     * root element is introduced to the template to assure it will be a valid
+     * XML after the substitution (XML documents have to have a single root
+     * element).
+     *
      * @return DOMElement 
      */
     public function getXml(): DOMElement {
         $doc                     = new DOMDocument();
         $doc->preserveWhiteSpace = false;
         $doc->load($this->template);
+
+        // a special case when a single root element might be missing
+        $el = $doc->documentElement;
+        if ($el->getAttribute('val') !== '') {
+            $oldRoot = $doc->removeChild($el);
+            $newRoot = $doc->createElement(self::FAKE_ROOT_TAG);
+            $doc->appendChild($newRoot);
+            $newRoot->appendChild($oldRoot);
+        }
         $this->processElement($doc->documentElement);
         return $doc->documentElement;
     }
@@ -258,10 +283,14 @@ class LiveCmdiMetadata implements MetadataInterface {
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
+        } else if ($val === 'IIIFURL') {
+            $tmp             = parse_url($this->res->getId());
+            $el->textContent = $this->format->iiifBaseUrl . $tmp['path'];
+            $remove          = false;
         } else if ($val !== '') {
-            list('prop' => $prop, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
-            if ($inverse) {
-                $meta = $this->getInverseResources($prop);
+            list('prop' => $prop, 'recursive' => $recursive, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
+            if ($recursive || $inverse) {
+                $meta = $this->getResourcesByPath($prop, $recursive, $inverse);
             } else {
                 $meta = $this->res->getGraph();
             }
@@ -281,6 +310,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $el->removeAttribute('asXML');
         $el->removeAttribute('valueMapProp');
         $el->removeAttribute('valueMapKeepSrc');
+        $el->removeAttribute('replaceXMLTag');
         return $remove;
     }
 
@@ -290,6 +320,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * 
      * The components are:
      * - `prop` the metadata property to be read
+     * - `recursive` should the property be follow recursively?
      * - `subprop` the YAML object key (null if the property value should be
      *   taken as it is)
      * - `extUriProp` if `prop` value points to a resource, metadata property
@@ -302,12 +333,17 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return array
      */
     private function parseVal(string $val): array {
+        $recursive  = false;
         $inverse    = false;
         $extUriProp = null;
         $prop       = substr($val, 1);
         if (substr($val, 0, 1) === '@') {
             $tmp  = explode('/', $prop);
             $prop = $tmp[0];
+            if (substr($prop, -1) === '*') {
+                $recursive = true;
+                $prop      = substr($prop, 0, -1);
+            }
             if (count($tmp) > 1) {
                 $extUriProp = $this->replacePropNmsp($tmp[1]);
             }
@@ -325,6 +361,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         return [
             'prop'       => $prop,
+            'recursive'  => $recursive,
             'subprop'    => $subprop,
             'extUriProp' => $extUriProp,
             'inverse'    => $inverse,
@@ -378,8 +415,15 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $res->setGraph($meta);
                 $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
                 $componentXml = $componentObj->getXml();
-                $componentXml = $el->ownerDocument->importNode($componentXml, true);
-                $el->parentNode->appendChild($componentXml);
+                if ($componentXml->nodeName === self::FAKE_ROOT_TAG) {
+                    foreach ($componentXml->childNodes as $n) {
+                        $nn = $el->ownerDocument->importNode($n, true);
+                        $el->parentNode->appendChild($nn);
+                    }
+                } else {
+                    $componentXml = $el->ownerDocument->importNode($componentXml, true);
+                    $el->parentNode->appendChild($componentXml);
+                }
             }
         } catch (RuntimeException $ex) {
             
@@ -406,6 +450,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $format     = $el->getAttribute('format');
         $valueMap   = $el->getAttribute('valueMapProp');
         $keepSrc    = $el->getAttribute('valueMapKeepSrc');
+        $replaceTag = $el->getAttribute('replaceXMLTag');
         if (empty($count)) {
             $count = '1';
         }
@@ -429,20 +474,20 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
         }
-
         if ($valueMap) {
-            foreach ($values as $lang => &$i) {
-                $tmp = [];
+            $mapped = [];
+            foreach ($values as &$i) {
                 foreach ($i as $j) {
-                    $tmp = array_merge($tmp, self::$mapper->getMapping($j, $valueMap));
+                    $mapped = array_merge($mapped, self::$mapper->getMapping($j, $valueMap));
                 }
-                if ($keepSrc) {
-                    $i = array_merge($i, $tmp);
-                } else {
-                    $i = $tmp;
+                if (!$keepSrc) {
+                    $i = [];
                 }
             }
             unset($i);
+            foreach ($mapped as $i) {
+                $this->collectMetaValue($values, $i, null, $dateFormat);
+            }
         }
 
         if (count($values) === 0 && in_array($count, ['1', '+'])) {
@@ -461,24 +506,32 @@ class LiveCmdiMetadata implements MetadataInterface {
         $parent = $el->parentNode;
         foreach ($values as $language => $tmp) {
             foreach ($tmp as $value) {
-                $ch = $el->cloneNode(true);
-                $ch->removeAttribute('val');
-                $ch->removeAttribute('count');
-                $ch->removeAttribute('lang');
-                $ch->removeAttribute('getLabel');
-                $ch->removeAttribute('asXML');
-                $ch->removeAttribute('dateFormat');
-                $ch->removeAttribute('format');
-                $ch->removeAttribute('valueMapProp');
-                $ch->removeAttribute('valueMapKeepSrc');
                 if ($asXml) {
-                    $df = $ch->ownerDocument->createDocumentFragment();
+                    $df = $el->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
-                    $ch->appendChild($df);
+                    if ($replaceTag) {
+                        $ch = $df;
+                    }
                 } else {
-                    $ch->textContent = $value . (!empty($value) ? $format : '');
+                    $value = $value . (!empty($value) ? $format : '');
+                    if ($replaceTag) {
+                        $ch = $el->ownerDocument->createTextNode($value);
+                    } else {
+                        $ch              = $el->cloneNode(true);
+                        $ch->removeAttribute('val');
+                        $ch->removeAttribute('count');
+                        $ch->removeAttribute('lang');
+                        $ch->removeAttribute('getLabel');
+                        $ch->removeAttribute('asXML');
+                        $ch->removeAttribute('dateFormat');
+                        $ch->removeAttribute('format');
+                        $ch->removeAttribute('valueMapProp');
+                        $ch->removeAttribute('valueMapKeepSrc');
+                        $ch->removeAttribute('replaceXMLTag');
+                        $ch->textContent = $value;
+                    }
                 }
-                if ($lang && $language !== '') {
+                if ($lang && $language !== '' && $ch instanceof DOMElement) {
                     $ch->setAttribute('xml:lang', $language);
                 }
                 $parent->insertBefore($ch, $el);
@@ -530,16 +583,40 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     /**
-     * Prepares fake resource metadata allowing to resolve reverse properties
-     * resource links.
+     * Prepares fake resource metadata allowing to resolve inverse and/or 
+     * recursively targetted resources.
      * @param string $prop
+     * @param bool $recursive
+     * @param bool $inverse
      * @return \EasyRdf\Resource
      */
-    private function getInverseResources(string $prop): Resource {
-        $repo    = $this->res->getRepo();
-        $baseUrl = $repo->getBaseUrl();
-        $query   = "SELECT id FROM relations WHERE property = ? AND target_id = ?";
-        $param   = [$prop, substr($this->res->getUri(), strlen($baseUrl))];
+    private function getResourcesByPath(string $prop, bool $recursive,
+                                        bool $inverse): Resource {
+        $repo = $this->res->getRepo();
+        $id   = substr($this->res->getUri(), strlen($repo->getBaseUrl()));
+
+        switch (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
+            case 'ri':
+                $query = "
+                    WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
+                    SELECT id FROM t WHERE n > 0 AND n = (SELECT max(n) FROM t)
+                 ";
+                $param = [$id, $prop];
+                break;
+            case 'r':
+                $query = "
+                    WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
+                    SELECT id FROM t WHERE n < 0 AND n = (SELECT min(n) FROM t)
+                 ";
+                $param = [$id, $prop];
+                break;
+            case 'i':
+                $query = "SELECT id FROM relations WHERE property = ? AND target_id = ?";
+                $param = [$prop, $id];
+                break;
+            default:
+                throw new RuntimeException('It does not make sense for both $recursive and $inverse to be false');
+        }
 
         $config               = new SearchConfig();
         $config->class        = get_class($this->res);

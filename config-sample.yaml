@@ -5,83 +5,84 @@
 #   [res] --property--> [otherRes]
 #  it denotes the `[otherRes]` URI.
 oai:
-    ## Repository database connection data
+    info:
+        ## Information reported for `verb=Identify`
+        # (deletedRecord is provided by the deletedClass)
+        repositoryName: ARCHE
+        baseURL: https://arche.acdh.oeaw.ac.at/oai
+        earliestDatestamp: "1900-01-01T00:00:00Z"
+        adminEmail: acdh-tech@oeaw.ac.at
+        granularity: YYYY-MM-DDThh:mm:ssZ
+    # Repository database connection data
     dbConnStr: "pgsql: "
-    ## Cache dir - leave empty not to use cache
+    # Cache dir - leave empty not to use cache
     cacheDir: ""
-    ## Information reported for `verb=Identify`
-    #
-    # Properties defined by the OAI-PMH specification but missing here:
-    # - 'granularity' is fixed to "YYYY-MM-DDThh:mm:ssZ" because that's the granularity provided by the repository
-    # - 'deletedRecord' is fetched from the class providing deleted resources handling - see the section below
-    repositoryName: myRepositoryName
-    baseUrl: https://my.oai.endpoint/root
-    earliestDatestamp: 1900-01-01T00:00:00Z
-    adminEmail: oai-admin@my.domain
-    ## Class used to implement deleted records handling
-    #
-    # Class implementing deleted resources handling. There are two implementations
-    # available:
-    # - \acdhOeaw\oai\deleted\No - when the feature is not supported
-    # - \acdhOeaw\oai\deleted\Tombstone - when resources in the tombstone state
-    #   should be reported as deleted
-    # - \acdhOeaw\oai\deleted\RdfProperty - when the deleted resources have a given
-    #   RDF property values (and not deleted resources don't)
-    deletedClass: \acdhOeaw\oai\deleted\Tombstone
-    # Value to be reported for the `deletedRecord` property for the OAI-PMH 
-    # `identify` request (can be "transient" or "persistent" - 
-    # see https://www.openarchives.org/OAI/openarchivesprotocol.html#DeletedRecords).
-    # Needed only if `oaiDeletedClass` other then "acdhOeaw\oai\deleted\no".
-    deletedRecord: transient
-    # RDF property indicating a resource is deleted
-    # Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
-    deletedProp: https://vocabs.acdh.oeaw.ac.at/schema#isDeleted
-    # `deletedProp` RDF property value indicating a resource is deleted. If empty,
-    # the existence of the `deletedProp` will be reported as a deletion state
-    # Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
-    deletedPropValue: ''
-    ## OAI search facets (datestamp and identifier)
-    # RDF property storing last modification date
-    dateProp: http://fedora.info/definitions/v4/repository#lastModified
-    # Namespace of the identfier to be used as the OAI-PMH resource id
-    idNmsp: http://hdl.handle.net/
-    ## Required repository-related settings
-    idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
-    repoBaseUrl: http://127.0.0.1/rest/
-    # Class used to implement the search.
-    # There is only one implementation provided \acdhOeaw\oai\search\BaseSearch.
-    # If it doesn't fit your needs, provide your own and update this property.
-    searchClass: \acdhOeaw\oai\search\BaseSearch
-    ## Set-related config
-    #
-    # Class implementing sets. There are four implementations available:
-    # - \acdhOeaw\oai\set\NoSets - when your repository doesn't use sets
-    # - \acdhOeaw\oai\set\Simple - when the set(s) resource belongs to is denoted
-    #   by a given RDF property value(s) but there is no other iformation about
-    #   the sets (<setName> equals <setSet>, no <setDescription> in reply to ListSets OAI-PMH request)
-    # - \acdhOeaw\oai\set\Acdh - like the `\acdhOeaw\oai\set\Simple`, just also
-    #   parent resources (in ACDH resource inheritance terms) are searched for the
-    #   RDF property describing the set
-    # - \acdhOeaw\oai\set\Complex - when a given RDF property points to other
-    #   repository resource describing the set. In this case full set information
-    #   can be provided in reply to ListSets OAI-PMH request but of course corresponding
-    #   resources describing sets must exist in your repository. <setDescripiotn> is
-    #   gathered using the `\acdhOeaw\oai\metadata\DcMetadata` class created for the
-    #   resource describing a set.
-    # If none of them fits your needs, provide your own implementation and update this property.
-    setClass: \acdhOeaw\oai\set\Simple
-    # Only when class equals \acdhOeaw\oai\set\Simple, \acdhOeaw\oai\set\Acdh or 
-    # \acdhOeaw\oai\set\Complex
-    # RDF property denoting sets the resource is part of
-    setProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
-    # Only when class equals \acdhOeaw\oai\set\Complex
-    # RDF property storing OAI-PMH <setSpec> value:
-    #   [setResource] --oaiSetSpecProp--> setSpecValue
-    setSpecProp: http://www.w3.org/2000/01/rdf-schema#label
-    # Only when class equals \acdhOeaw\oai\set\Complex
-    # RDF property storing OAI-PMH <setName> value
-    #   [setResource] --oaiSetTitleProp--> setTitleValue
-    setNameProp: http://www.w3.org/2000/01/rdf-schema#label
+    # Logging settings
+    logging:
+        file: /home/www-data/log/oaipmh.log
+        level: debug
+    deleted:
+        # Class implementing deleted resources handling. There are two implementations
+        # available:
+        # - \acdhOeaw\oai\deleted\No - when the feature is not supported
+        # - \acdhOeaw\oai\deleted\Tombstone - when resources in the tombstone state
+        #   should be reported as deleted
+        # - \acdhOeaw\oai\deleted\RdfProperty - when the deleted resources have a given
+        #   RDF property values (and not deleted resources don't)
+        deletedClass: \acdhOeaw\oai\deleted\Tombstone
+        # Value to be reported for the `deletedRecord` property for the OAI-PMH 
+        # `identify` request (can be "transient" or "persistent" - 
+        # see https://www.openarchives.org/OAI/openarchivesprotocol.html#DeletedRecords).
+        # Needed only if `oaiDeletedClass` other then "acdhOeaw\oai\deleted\no".
+        deletedRecord: transient
+        # RDF property indicating a resource is deleted
+        # Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
+        deletedProp: https://vocabs.acdh.oeaw.ac.at/schema#isDeleted
+        # `deletedProp` RDF property value indicating a resource is deleted. If empty,
+        # the existence of the `deletedProp` will be reported as a deletion state
+        # Needed only if `oaiDeletedClass` equals "acdhOeaw\oai\deleted\RdfProperty".
+        deletedPropValue: ''
+    search:
+        # Class used to implement the search.
+        # There is only one implementation provided \acdhOeaw\oai\search\BaseSearch.
+        # If it doesn't fit your needs, provide your own and update this property.
+        searchClass: \acdhOeaw\oai\search\BaseSearch
+        # RDF property storing last modification date
+        dateProp: http://fedora.info/definitions/v4/repository#lastModified
+        # Namespace of the identfier to be used as the OAI-PMH resource id
+        idNmsp: http://hdl.handle.net/
+        # Required repository-related settings
+        idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
+        repoBaseUrl: http://127.0.0.1/rest/
+    sets:
+        # Class implementing sets. There are four implementations available:
+        # - \acdhOeaw\oai\set\NoSets - when your repository doesn't use sets
+        # - \acdhOeaw\oai\set\Simple - when the set(s) resource belongs to is denoted
+        #   by a given RDF property value(s) but there is no other iformation about
+        #   the sets (<setName> equals <setSet>, no <setDescription> in reply to ListSets OAI-PMH request)
+        # - \acdhOeaw\oai\set\Acdh - like the `\acdhOeaw\oai\set\Simple`, just also
+        #   parent resources (in ACDH resource inheritance terms) are searched for the
+        #   RDF property describing the set
+        # - \acdhOeaw\oai\set\Complex - when a given RDF property points to other
+        #   repository resource describing the set. In this case full set information
+        #   can be provided in reply to ListSets OAI-PMH request but of course corresponding
+        #   resources describing sets must exist in your repository. <setDescripiotn> is
+        #   gathered using the `\acdhOeaw\oai\metadata\DcMetadata` class created for the
+        #   resource describing a set.
+        # If none of them fits your needs, provide your own implementation and update this property.
+        setClass: \acdhOeaw\oai\set\Simple
+        # Only when class equals \acdhOeaw\oai\set\Simple, \acdhOeaw\oai\set\Acdh or 
+        # \acdhOeaw\oai\set\Complex
+        # RDF property denoting sets the resource is part of
+        setProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
+        # Only when class equals \acdhOeaw\oai\set\Complex
+        # RDF property storing OAI-PMH <setSpec> value:
+        #   [setResource] --oaiSetSpecProp--> setSpecValue
+        setSpecProp: http://www.w3.org/2000/01/rdf-schema#label
+        # Only when class equals \acdhOeaw\oai\set\Complex
+        # RDF property storing OAI-PMH <setName> value
+        #   [setResource] --oaiSetTitleProp--> setTitleValue
+        setNameProp: http://www.w3.org/2000/01/rdf-schema#label
     ## Metadata formats description
     # 
     # Each section describes a single metadata format:
@@ -195,8 +196,6 @@ oai:
             metadataNamespace: http://we.do.not.care
             schema: http://we.do.not.have.an.xsd
             class: \acdhOeaw\oai\metadata\LiveCmdiMetadata
-            # RDF property used as `cmd:ResourceRef` CMDI value
-            uriProp: https://vocabs.acdh.oeaw.ac.at/schema#hasPid
             # idProp and labelProp are used to fetch URI labels (e.g. fetch name of a resource creator)
             # They are tightly coupled with the metadata repository structure used by the ACDH:
             #   resIdUri <--idProp-- res --labelProp--> label

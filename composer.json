@@ -13,7 +13,8 @@
     ],
     "require": {
         "acdh-oeaw/easyrdf": "*",
-        "acdh-oeaw/arche-lib": "^1"
+        "acdh-oeaw/arche-lib": "^1",
+        "zozlak/logging": "*"
     },
     "autoload": {
         "psr-4": {

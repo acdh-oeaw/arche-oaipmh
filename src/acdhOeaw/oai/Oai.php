@@ -36,6 +36,7 @@ use PDO;
 use RuntimeException;
 use StdClass;
 use Throwable;
+use zozlak\logging\Log;
 
 /**
  * Implements controller for the OAI-PMH service:
@@ -127,6 +128,12 @@ TMPL;
     private $cache;
 
     /**
+     *
+     * @var \zozlak\logging\Log
+     */
+    private $log;
+
+    /**
      * Initialized the OAI-PMH server object.
      * 
      * @param object $config
@@ -137,9 +144,9 @@ TMPL;
         $this->pdo = new PDO($this->config->dbConnStr);
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $this->info = new RepositoryInfo($this->config);
+        $this->info = new RepositoryInfo($this->config->info);
 
-        $this->deleted             = new $this->config->deletedClass($this->config);
+        $this->deleted             = new $this->config->deleted->deletedClass($this->config->deleted);
         $this->info->deletedRecord = $this->deleted->getDeletedRecord();
 
         foreach ($config->formats as $i) {
@@ -147,11 +154,13 @@ TMPL;
             $this->metadataFormats[$i->metadataPrefix] = new MetadataFormat($i);
         }
 
-        $this->sets = new $this->config->setClass($this->config);
+        $this->sets = new $this->config->sets->setClass($this->config->sets);
 
         if (!empty($this->config->cacheDir)) {
             $this->cache = new Cache($this->config->cacheDir);
         }
+
+        $this->log = new Log($this->config->logging->file, $this->config->logging->level);
 
         // response initialization
         $this->response = new DOMDocument('1.0', 'UTF-8');
@@ -208,6 +217,7 @@ TMPL;
                     throw new OaiException('badVerb');
             }
         } catch (Throwable $e) {
+            $this->log->error($e);
             if ($e instanceof OaiException) {
                 $el = $this->createElement('error', $e->getMessage(), array('code' => $e->getMessage()));
             } else {
@@ -321,8 +331,9 @@ TMPL;
 
         $format = $this->metadataFormats[$metadataPrefix];
 
-        $search = $this->config->searchClass;
-        $search = new $search($format, $this->sets, $this->deleted, $this->config, $this->pdo);
+        $search = $this->config->search->searchClass;
+        $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
+        $search->setLogger($this->log);
         /* @var $search \acdhOeaw\oai\search\SearchInterface */
         $search->find($id, $from, $until, $set);
         if ($search->getCount() == 0) {
@@ -373,7 +384,7 @@ TMPL;
      */
     public function oaiListRecordRaw(string $id = '') {
         try {
-            $this->checkRequestParam(array('identifier', 'metadataPrefix'));
+            $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));
             if ($id == '') {
                 throw new OaiException('badArgument');
             }

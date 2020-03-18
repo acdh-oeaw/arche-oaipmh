@@ -27,6 +27,7 @@
 namespace acdhOeaw\oai\search;
 
 use PDO;
+use Psr\Log\AbstractLogger;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\deleted\DeletedInterface;
@@ -94,4 +95,11 @@ interface SearchInterface {
      * @param int $pos seach result resource index
      */
     public function getMetadata(int $pos): MetadataInterface;
+
+    /**
+     * Sets a logger for the search object
+     * @param AbstractLogger $log
+     * @return void
+     */
+    public function setLogger(AbstractLogger $log): void;
 }

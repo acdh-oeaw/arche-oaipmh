@@ -284,7 +284,10 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if ($val === 'IIIFURL') {
-            $tmp             = parse_url($this->res->getId());
+            $tmp = array_filter($this->res->getIds(), function($x) {
+                return substr($x, 0, strlen($this->format->idNmsp)) === $this->format->idNmsp;
+            });
+            $tmp             = parse_url(count($tmp) > 0 ? array_pop($tmp) : '');
             $el->textContent = $this->format->iiifBaseUrl . $tmp['path'];
             $remove          = false;
         } else if ($val !== '') {

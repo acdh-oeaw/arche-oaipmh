@@ -419,7 +419,7 @@ TMPL;
     public function oaiListSets() {
         $this->checkRequestParam(array());
         $sets = $this->sets->listSets($this->pdo);
-        echo "    <listSets>\n";
+        echo "    <ListSets>\n";
         foreach ($sets as $i) {
             /* @var $i \acdhOeaw\oai\SetInfo */
             $node = $this->createElement('set');
@@ -434,7 +434,7 @@ TMPL;
             echo $node->C14N() . "\n";
             $this->response->removeChild($node);
         }
-        echo "    </listSets>\n";
+        echo "    </ListSets>\n";
     }
 
     /**

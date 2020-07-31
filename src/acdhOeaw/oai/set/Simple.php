@@ -61,8 +61,12 @@ class Simple implements SetInterface {
                 SELECT id
                 FROM metadata
                 WHERE property = ? AND value = ?
+              UNION
+                SELECT r.id
+                FROM relations r JOIN identifiers i ON r.target_id = i.id
+                WHERE property = ? AND ids = ?
             ";
-            $query->param = [$this->config->setProp, $set];
+            $query->param = [$this->config->setProp, $set, $this->config->setProp, $this->config->setNameNamespace . $set];
         }
         return $query;
     }
@@ -73,17 +77,31 @@ class Simple implements SetInterface {
             SELECT id, value AS set
             FROM metadata
             WHERE property = ?
+          UNION
+            SELECT r.id, substring(ids, ?::int) AS set
+            FROM relations r JOIN identifiers i ON r.target_id = i.id
+            WHERE property = ? AND ids LIKE ?
         ";
-        $query->param = [$this->config->setProp];
+        $query->param = [$this->config->setProp, strlen($this->config->setNameNamespace) + 1, $this->config->setProp, $this->config->setNameNamespace . '%'];
         return $query;
     }
 
     public function listSets(PDO $pdo): array {
-        $query = "SELECT DISTINCT value AS set FROM metadata WHERE property = ?";
-        $param = [$this->config->setProp];
+        $query = "
+            SELECT DISTINCT * FROM (
+                SELECT value AS set FROM metadata WHERE property = ?
+              UNION
+                SELECT substring(ids, ?::int) AS set
+                FROM (
+                    SELECT DISTINCT ids
+                    FROM relations r JOIN identifiers i ON r.target_id = i.id 
+                    WHERE property = ? AND ids LIKE ?
+                ) t1
+            ) t2
+        ";
+        $param = [$this->config->setProp, strlen($this->config->setNameNamespace) + 1, $this->config->setProp, $this->config->setNameNamespace . '%'];
         $query = $pdo->prepare($query);
         $query->execute($param);
-
         $ret = [];
         while($i = $query->fetch(PDO::FETCH_OBJ)) {
             $ret[] = new SetInfo($i->set, $i->set, null);

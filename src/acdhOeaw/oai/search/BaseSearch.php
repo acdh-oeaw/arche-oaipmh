@@ -177,7 +177,7 @@ class BaseSearch implements SearchInterface {
         $query->setFetchMode(PDO::FETCH_CLASS, HeaderData::class);
         $this->records = $query->fetchAll();
         foreach ($this->records as $i) {
-            $i->sets = json_decode($i->sets);
+            $i->sets = array_filter(json_decode($i->sets));
         }
     }
 

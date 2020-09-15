@@ -46,11 +46,11 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   [dcRes] --cfg:eqProp--> acdhProp
  *
  * Requires metadata format configuration properties:
- * - eqProp     - RDF property denoting properties equivalence
- * - title Prop - RDF property denoting a resource title/label
- * - acdhNmsp   - ACDH properties namespace
- * - mode       - URL/title/both - how RDF properties pointing to other resources
- *                should be handled (by providing thei URLs, their titles or both)
+ * - eqProp    - RDF property denoting properties equivalence
+ * - titleProp - RDF property denoting a resource title/label
+ * - acdhNmsp  - ACDH properties namespace
+ * - mode      - URL/title/both - how RDF properties pointing to other resources
+ *               should be handled (by providing thei URLs, their titles or both)
  * 
  * @author zozlak
  */

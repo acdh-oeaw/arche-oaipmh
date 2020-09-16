@@ -279,7 +279,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = $this->res->getUri();
             $remove          = false;
         } else if ($val === 'OAIURI') {
-            $id              = urlencode($this->res->getGraph()->get($this->format->uriProp)->getUri());
+            $id              = urlencode((string) $this->res->getGraph()->get($this->format->uriProp));
             $prefix          = urlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;

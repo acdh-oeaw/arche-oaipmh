@@ -1,20 +1,20 @@
-# OAI-PMH service for ACDH repository solution
+# OAI-PMH service for arche-core
 
 [![Latest Stable Version](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/v/stable)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
 [![License](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/license)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
 
-* Is flexible:
-    * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
-    * It's shipped with classes implementing OAI-PMH metadata generation by:
-        * Serializing whole repository resource RDF metadata to XML.
-        * Using Dublin Core and Dublin Core terms contained in the repository resource RDF metadata.
-        * Serving another linked repository resource as the OAI-PMH metadata.
-            * With additional filtering based on the binary resource RDF metadata.
-        * Filling an XML template with repository resource RDF metadata.
-    * It's easy to extend
-        * implement your own metadata sources
-        * implement your own search class
-        * implement your own sets
+The main aim was to keep it flexible:
+
+* It doesn't enforce any metadata schema. RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
+* It's shipped with classes implementing various OAI-PMH metadata generation scenarios, e.g.:
+    * Using Dublin Core and Dublin Core terms contained in the repository resource RDF metadata.
+    * Serializing whole repository resource RDF metadata to XML.
+    * Serving another linked repository resource as the OAI-PMH metadata.
+    * By filling an XML template with repository resource RDF metadata.
+* It's easy to extend
+    * implement your own metadata sources
+    * implement your own search class
+    * implement your own sets
 
 # Installation
 

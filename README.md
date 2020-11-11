@@ -1,5 +1,8 @@
 # OAI-PMH service for ACDH repository solution
 
+[![Latest Stable Version](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/v/stable)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
+[![License](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/license)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
+
 * Is flexible:
     * RDF metadata to OAI-PMH facets (id, date, set) mappings are provided in a configuration file.
     * It's shipped with classes implementing OAI-PMH metadata generation by:
@@ -15,11 +18,13 @@
 
 # Installation
 
-* clone the repo
-* run `composer update`
-    * of course make sure you have `composer` first
-* TODO - describe config adjustments
-* deploy as a normal PHP website
+* Run in your webroot:
+  ```bash
+  composer require acdh-oeaw/arche-oaipmh
+  cp vendor/acdh-oeaw/arche-oaipmh/.htaccess vendor/acdh-oeaw/arche-oaipmh/index.php .
+  cp vendor/acdh-oeaw/arche-oaipmh/config-sample.yaml config.yaml
+  ```
+* Adjust `config.yaml` according to comments in the file.
 
 # Unsupported features
 

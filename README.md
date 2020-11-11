@@ -26,19 +26,17 @@ The main aim was to keep it flexible:
   ```
 * Adjust `config.yaml` according to comments in the file.
 
-# Unsupported features
+# Unsupported OAI-PMH features
 
 * *resumptionTokens*  
-  Implementing *resumptionTokens* in a right way is difficult and in my personal opinion it is better to avoid resumption queries at all.   
-  The main problem is Fedora does not provide transaction consistency and isolation - see [ACID](https://en.wikipedia.org/wiki/ACID) - and if I can not guarantee immutable repository state between following resumption queries I do not see a way to support such queries in a right way.  
-  Also the service is written in a way it can handle responses of virtually any size (it doesn't buffer the response so memory usage shouldn't be a problem) so it should not be needed to split a response into parts.
+  Implementing *resumptionTokens* in a right way is difficult (by the way it's even aknowledged by the OAI-PMH standard which doesn't require to guarantee consistent repository state between resumption requests) and to assure consistent repository state it's simply better to avoid them. This implementation of OAI-PMH is written in a way it can handle responses of virtually any size as it doesn't buffer the whole response before sending it back to the client but continuesly streams the response.
 
 # Required repository structure
 
 Much attention was paid to make the service flexible.
 To achieve that different implementations were provided for each of main components (set handling component, metadata source component).
 These implementations provide various features and put various requirements on your repository structure.
-Please read the documentation provided in the `config.ini.inc` and, if needed, the documentation of particular classes to get more information.
+Please read the documentation provided in the `config-sample.yaml` and, if needed, the documentation of particular classes to get more information.
 
 # Architecture
 

@@ -37,7 +37,7 @@ Please read the documentation provided in the `config.ini.inc` and, if needed, t
 
 # Architecture
 
-Source code documentation can be found at https://acdh-oeaw.github.io/fcrepo-oai/
+Source code documentation can be found at https://acdh-oeaw.github.io/arche-docs/arche-oaipmh/
 
 ```
     +------------------+

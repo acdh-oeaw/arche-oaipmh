@@ -11,7 +11,7 @@ jobs:
       with: 
         ssh-private-key: ${{ secrets.docsRepoToken }}
     - name: install phpdocumentator
-      run: curl -L https://github.com/phpDocumentor/phpDocumentor/releases/download/v3.0.0-rc/phpDocumentor.phar > phpdoc.phar
+      run: curl -L https://github.com/phpDocumentor/phpDocumentor/releases/download/v3.0.0/phpDocumentor.phar > phpdoc.phar
     - name: fetch docs repo
       run: git clone --depth 1 git@github.com:acdh-oeaw/arche-docs.git docsrepo
     - name: generate docs

@@ -395,8 +395,8 @@ TMPL;
             }
             $format = $this->metadataFormats[$metadataPrefix];
 
-            $search = $this->config->searchClass;
-            $search = new $search($format, $this->sets, $this->deleted, $this->config, $this->pdo);
+            $search = $this->config->search->searchClass;
+            $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
             /* @var $search \acdhOeaw\oai\search\SearchInterface */
             $search->find($id, '', '', '');
             if ($search->getCount() == 0) {

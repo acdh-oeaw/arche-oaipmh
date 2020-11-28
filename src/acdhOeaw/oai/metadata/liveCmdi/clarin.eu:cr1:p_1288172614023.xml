@@ -4,9 +4,9 @@
          xmlns:cmd="http://www.clarin.eu/cmd/1"
          xmlns:cmdp="http://www.clarin.eu/cmd/1/profiles/clarin.eu:cr1:p_1288172614023"
          xsi:schemaLocation="http://www.clarin.eu/cmd/1
-                        http://www.clarin.eu/cmd/1/xsd/cmd-envelop.xsd
+                        https://infra.clarin.eu/CMDI/1.x/xsd/cmd-envelop.xsd
                         http://www.clarin.eu/cmd/1/profiles/clarin.eu:cr1:p_1288172614023
-                        http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1288172614023/xsd">
+                        https://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/1.x/profiles/clarin.eu:cr1:p_1288172614023/xsd">
     <cmd:Header>
         <cmd:MdCreator></cmd:MdCreator>
         <cmd:MdCreationDate val="NOW"></cmd:MdCreationDate>

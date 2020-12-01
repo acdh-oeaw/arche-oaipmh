@@ -18,12 +18,14 @@
   <dc:identifier  count="*" lang="true" val="/acdh:hasIdentifier"></dc:identifier>
   <dc:source      count="*" lang="true" val="@acdh:hasSource/acdh:hasTitle"></dc:source>
   <dc:source      count="*"             val="/acdh:hasSource"></dc:source>
-  <dc:language    count="*"             val="/acdh:hasLanguage"></dc:language>
+  <dc:language    count="*"             val="@acdh:hasLanguage/acdh:hasTitle"></dc:language>
+  <dc:relation    count="*"             val="@acdh:isPartOf/acdh:hasTitle"></dc:relation>
   <dc:relation    count="*"             val="/acdh:isPartOf"></dc:relation>
   <dc:coverage    count="*" lang="true" val="/acdh:hasTemporalCoverage"></dc:coverage>
-  <dc:coverage    count="*" lang="true" val="/acdh:hasSpatialCoverage"></dc:coverage>
+  <dc:coverage    count="*"             val="/acdh:hasTemporalCoverageIdentifier"></dc:coverage>
+  <dc:coverage    count="*" lang="true" val="@acdh:hasSpatialCoverage/acdh:hasTitle"></dc:coverage>
+  <dc:coverage    count="*"             val="/acdh:hasSpatialCoverage"></dc:coverage>
   <dc:rights      count="*" lang="true" val="@acdh:hasLicense/acdh:hasTitle"></dc:rights>
   <dc:rights      count="*" lang="true" val="@acdh:hasLicensor/acdh:hasTitle"></dc:rights>
   <dc:rights      count="*"             val="/acdh:hasLicensor"></dc:rights>
 </oai_dc:dc>
-

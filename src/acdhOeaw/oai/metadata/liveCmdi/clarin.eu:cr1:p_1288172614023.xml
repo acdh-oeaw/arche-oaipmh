@@ -8,7 +8,7 @@
                         http://www.clarin.eu/cmd/1/profiles/clarin.eu:cr1:p_1288172614023
                         https://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/1.x/profiles/clarin.eu:cr1:p_1288172614023/xsd">
     <cmd:Header>
-        <cmd:MdCreator></cmd:MdCreator>
+        <cmd:MdCreator val="@acdh:hasMetadataCreator/acdh:hasTitle" count="1"></cmd:MdCreator>
         <cmd:MdCreationDate val="NOW"></cmd:MdCreationDate>
         <cmd:MdSelfLink val="/acdh:hasMetadataPid"></cmd:MdSelfLink>
         <cmd:MdProfile>clarin.eu:cr1:p_1288172614023</cmd:MdProfile>
@@ -30,85 +30,110 @@
         <cmd:IsPartOf count="*" val="@acdh:isPartOf*/acdh:hasPid"/>
     </cmd:IsPartOfList>
     <cmd:Components>
-        <cmdp:DcmiTerms ref="id1">
-            <cmdp:abstract count="*" lang="true" val=""/>
-            <cmdp:accessRights count="*" lang="true" val=""/>
-            <cmdp:accrualMethod count="*" lang="true" val=""/>
-            <cmdp:accrualPeriodicity count="*" lang="true" val=""/>
-            <cmdp:accrualPolicy count="*" lang="true" val=""/>
-            <cmdp:alternative count="*" lang="true" val=""/>
-            <cmdp:audience count="*" lang="true" val="/acdh:hasAudience"/>
-            <cmdp:available count="*" lang="true" val=""/>
+        <cmdp:DcmiTerms>
+            <!--
+            <cmdp:abstract              count="*" lang="true" val=""/>
+            <cmdp:accessRights          count="*" lang="true" val=""/>
+            <cmdp:accrualMethod         count="*" lang="true" val=""/>
+            <cmdp:accrualPeriodicity    count="*" lang="true" val=""/>
+            <cmdp:accrualPolicy         count="*" lang="true" val=""/>
+            <cmdp:alternative           count="*" lang="true" val=""/>
+            <cmdp:audience              count="*" lang="true" val=""/>
+            <cmdp:available             count="*" lang="true" val=""/>
             <cmdp:bibliographicCitation count="*" lang="true" val=""/>
-            <cmdp:conformsTo count="*" lang="true" val=""/>
-            <cmdp:contributor count="*" lang="true" val="/acdh:hasContributor" />
-            <cmdp:contributor count="*" lang="true" val="@acdh:hasContributor/acdh:hasTitle" />
-            <cmdp:coverage count="*" lang="true" val="/acdh:hasSpatialCoverage" />
-            <cmdp:coverage count="*" lang="true" val="@acdh:hasSpatialCoverage/acdh:hasTitle" />
-            <cmdp:created count="*" lang="true" val=""/>
-            <cmdp:creator count="*" lang="true" val="/acdh:hasCreator" />
-            <cmdp:creator count="*" lang="true" val="@acdh:hasCreator/acdh:hasTitle" />
-            <cmdp:date count="*" lang="true" val="/acdh:hasDate"/>
-            <cmdp:dateAccepted count="*" lang="true" val=""/>
-            <cmdp:dateCopyrighted count="*" lang="true" val=""/>
-            <cmdp:dateSubmitted count="*" lang="true" val=""/>
-            <cmdp:description count="*" lang="true" val="/acdh:hasDescription"/>
-            <cmdp:educationLevel count="*" lang="true" val=""/>
-            <cmdp:extent count="*" lang="true" val=""/>
-            <cmdp:format count="*" lang="true" val="/acdh:hasFormat"/>
-            <cmdp:hasFormat count="*" lang="true" val=""/>
-            <cmdp:hasPart count="*" lang="true" val=""/>
-            <cmdp:hasVersion count="*" lang="true" val=""/>
-            <cmdp:identifier count="*" lang="true" val="/acdhHasPid"/>
-            <cmdp:identifier count="*" lang="true" val="/acdhHasIdentifier"/>
-            <cmdp:instructionalMethod count="*" lang="true" val=""/>
-            <cmdp:isFormatOf count="*" lang="true" val=""/>
-            <cmdp:isPartOf count="*" lang="true" val=""/>
-            <cmdp:isReferencedBy count="*" lang="true" val=""/>
-            <cmdp:isReplacedBy count="*" lang="true" val=""/>
-            <cmdp:isRequiredBy count="*" lang="true" val=""/>
-            <cmdp:issued count="*" lang="true" val=""/>
-            <cmdp:isVersionOf count="*" lang="true" val=""/>
-            <cmdp:language count="*" lang="true" val="/acdh:hasLanguage"/>
-            <cmdp:license count="*" lang="true" val=""/>
-            <cmdp:mediator count="*" lang="true" val=""/>
-            <cmdp:medium count="*" lang="true" val=""/>
-            <cmdp:modified count="*" lang="true" val=""/>
-            <cmdp:provenance count="*" lang="true" val=""/>
-            <cmdp:publisher count="*" lang="true" val="/acdh:hasHosting"/>
-            <cmdp:publisher count="*" lang="true" val="@acdh:hasHosting/acdh:hasTitle" />
-            <cmdp:references count="*" lang="true" val=""/>
-            <cmdp:relation count="*" lang="true" val="/acdh:hasRelation" />
-            <cmdp:relation count="*" lang="true" val="/acdh:continues" />
-            <cmdp:relation count="*" lang="true" val="/acdh:documents" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasDerivedPublication" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasMetadata" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasPart" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasRelatedCollection" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasRelatedProject" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasSource" />
-            <cmdp:relation count="*" lang="true" val="/acdh:hasTitleImage" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isContinuedBy" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isDerivedPublicationOf" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isDocumentedBy" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isMetadataFor" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isNewVersionOf" />
-            <cmdp:relation count="*" lang="true" val="/acdh:isSourceOf" />
-            <cmdp:relation count="*" lang="true" val="/acdh:itTitleImageOf" />
-            <cmdp:replaces count="*" lang="true" val=""/>
-            <cmdp:requires count="*" lang="true" val=""/> 
-            <cmdp:rights count="*" lang="true" val="@acdh:hasLicense/acdh:hasTitle"/>
-            <cmdp:rightsHolder count="*" lang="true" val=""/>
-            <cmdp:source count="*" lang="true" val="/acdh:hasSource" />
-            <cmdp:spatial count="*" lang="true" val=""/>
-            <cmdp:subject count="*" lang="true" val="/acdh:hasSubject"/>
-            <cmdp:tableOfContents count="*" lang="true" val=""/>
-            <cmdp:temporal count="*" lang="true" val=""/>
-            <cmdp:title count="*" lang="true" val="/acdh:hasTitle"/>
-            <cmdp:type count="*" lang="true" val="@acdh:hasCategory/acdh:hasTitle"/>
-            <cmdp:type count="*" lang="true" val="@acdh:hasCategory/acdh:hasIdentifier" valueMapProp="skos:prefLabel"/>
-            <cmdp:type count="*" lang="true" val="@acdh:hasCategory/acdh:hasIdentifier" valueMapProp="skos:relatedMatch"/>
-            <cmdp:valid count="*" lang="true" val=""/>  
+            <cmdp:conformsTo            count="*" lang="true" val=""/>
+            -->
+            <cmdp:contributor           count="*"             val="/acdh:hasContributor" />
+            <cmdp:contributor           count="*" lang="true" val="@acdh:hasContributor/acdh:hasTitle" />
+            <cmdp:coverage              count="*" lang="true" val="@acdh:hasSpatialCoverage/acdh:hasTitle" />
+            <cmdp:coverage              count="*"             val="/acdh:hasSpatialCoverage" />
+            <!--
+            <cmdp:created               count="*" lang="true" val=""/>
+            -->
+            <cmdp:creator               count="*" lang="true" val="@acdh:hasCreator/acdh:hasTitle" />
+            <cmdp:creator               count="*"             val="/acdh:hasCreator" />
+            <cmdp:date                  count="*" lang="true" val="/acdh:hasAvailableDate"/>
+            <cmdp:dateAccepted          count="*" lang="true" val="/achd:hasAcceptedDate"/>
+            <!--
+            <cmdp:dateCopyrighted       count="*" lang="true" val=""/>
+            -->
+            <cmdp:dateSubmitted         count="*" lang="true" val="/acdh:hasSubmissionDate"/>
+            <cmdp:description           count="*" lang="true" val="/acdh:hasDescription"/>
+            <!--
+            <cmdp:educationLevel        count="*" lang="true" val=""/>
+            <cmdp:extent                count="*" lang="true" val=""/>
+            -->
+            <cmdp:format                count="*" lang="true" val="/acdh:hasFormat"/>
+            <!--
+            <cmdp:hasFormat             count="*" lang="true" val=""/>
+            <cmdp:hasPart               count="*" lang="true" val=""/>
+            <cmdp:hasVersion            count="*" lang="true" val=""/>
+            -->
+            <cmdp:identifier            count="*"             val="/acdh:hasIdentifier"/>
+            <!--
+            <cmdp:instructionalMethod   count="*" lang="true" val=""/>
+            <cmdp:isFormatOf            count="*" lang="true" val=""/>
+            -->
+            <cmdp:isPartOf              count="*" lang="true" val="@acdh:isPartOf/acdh:hasTitle"/>
+            <cmdp:isPartOf              count="*"             val="/acdh:isPartOf"/>
+            <!--
+            <cmdp:isReferencedBy        count="*" lang="true" val=""/>
+            <cmdp:isReplacedBy          count="*" lang="true" val=""/>
+            <cmdp:isRequiredBy          count="*" lang="true" val=""/>
+            <cmdp:issued                count="*" lang="true" val=""/>
+            <cmdp:isVersionOf           count="*" lang="true" val=""/>
+            -->
+            <cmdp:language              count="*" lang="true" val="@acdh:hasLanguage/acdh:hasTitle"/>
+            <cmdp:license               count="*" lang="true" val="@acdh:hasLicence/acdh:hasTitle"/>
+            <!--
+            <cmdp:mediator              count="*" lang="true" val=""/>
+            <cmdp:medium                count="*" lang="true" val=""/>
+            -->
+            <cmdp:modified              count="*" lang="true" val="/acdh:hasUpdatedDate"/>
+            <!--
+            <cmdp:provenance            count="*" lang="true" val=""/>
+            -->
+            <cmdp:publisher             count="*" lang="true" val="@acdh:hasHosting/acdh:hasTitle" />
+            <cmdp:publisher             count="*"             val="/acdh:hasHosting"/>
+            <!--
+            <cmdp:references            count="*" lang="true" val=""/>
+            -->
+            <cmdp:relation              count="*"             val="/acdh:hasRelation" />
+            <cmdp:relation              count="*"             val="/acdh:continues" />
+            <cmdp:relation              count="*"             val="/acdh:documents" />
+            <cmdp:relation              count="*"             val="/acdh:hasDerivedPublication" />
+            <cmdp:relation              count="*"             val="/acdh:hasRelatedCollection" />
+            <cmdp:relation              count="*"             val="/acdh:hasRelatedProject" />
+            <cmdp:relation              count="*"             val="/acdh:hasSource" />
+            <cmdp:relation              count="*"             val="/acdh:isContinuedBy" />
+            <cmdp:relation              count="*"             val="/acdh:isDerivedPublicationOf" />
+            <cmdp:relation              count="*"             val="/acdh:isMetadataFor" />
+            <cmdp:relation              count="*"             val="/acdh:isNewVersionOf" />
+            <cmdp:relation              count="*"             val="/acdh:isSourceOf" />
+            <cmdp:relation              count="*"             val="/acdh:isTitleImageOf" />
+            <!--
+            <cmdp:replaces              count="*" lang="true" val=""/>
+            <cmdp:requires              count="*" lang="true" val=""/> 
+            -->
+            <cmdp:rights                count="*" lang="true" val="@acdh:hasLicense/acdh:hasTitle"/>
+            <cmdp:rightsHolder          count="*" lang="true" val="@acdh:hasRightsHolder/acdh:hasTitle"/>
+            <cmdp:rightsHolder          count="*"             val="/acdh:hasRightsHolder"/>
+            <cmdp:source                count="*" lang="true" val="/acdh:hasSource" />
+            <cmdp:spatial               count="*" lang="true" val="@acdh:hasSpatialCoverage/acdh:hasTitle"/>
+            <cmdp:spatial               count="*"             val="/acdh:hasSpatialCoverage"/>
+            <cmdp:subject               count="*" lang="true" val="/acdh:hasSubject"/>
+            <!--
+            <cmdp:tableOfContents       count="*" lang="true" val=""/>
+            -->
+            <cmdp:temporal              count="*" lang="true" val="/acdh:hasTemporalCoverage"/>
+            <cmdp:temporal              count="*"             val="/acdh:hasTemporalCoverageIdentifier"/>
+            <cmdp:title                 count="*" lang="true" val="/acdh:hasTitle"/>
+            <cmdp:type                  count="*" lang="true" val="@acdh:hasCategory/acdh:hasTitle"/>
+            <cmdp:type                  count="*"             val="@acdh:hasCategory/acdh:hasIdentifier" valueMapProp="skos:prefLabel"/>
+            <cmdp:type                  count="*"             val="@acdh:hasCategory/acdh:hasIdentifier" valueMapProp="skos:relatedMatch"/>
+            <!--
+            <cmdp:valid                 count="*" lang="true" val=""/>  
+            -->
         </cmdp:DcmiTerms>
     </cmd:Components>
 </cmd:CMD>

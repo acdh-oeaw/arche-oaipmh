@@ -404,6 +404,7 @@ TMPL;
             }
 
             $xml = $search->getMetadata(0)->getXml();
+            echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             echo $xml->C14N() . "\n";
         } catch (OaiException $e) {
             echo '<error>' . htmlspecialchars($e->getMessage()) . '</error>';

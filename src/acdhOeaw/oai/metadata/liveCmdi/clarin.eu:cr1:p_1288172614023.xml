@@ -16,7 +16,7 @@
     </cmd:Header>
     <cmd:Resources>
         <cmd:ResourceProxyList>
-            <cmd:ResourceProxy id="1">
+            <cmd:ResourceProxy id="id1">
                 <cmd:ResourceType>Resource</cmd:ResourceType>
                 <cmd:ResourceRef val="/acdh:hasPid"></cmd:ResourceRef>
             </cmd:ResourceProxy>
@@ -30,7 +30,7 @@
         <cmd:IsPartOf count="*" val="@acdh:isPartOf*/acdh:hasPid"/>
     </cmd:IsPartOfList>
     <cmd:Components>
-        <cmdp:DcmiTerms ref="1">
+        <cmdp:DcmiTerms ref="id1">
             <cmdp:abstract count="*" lang="true" val=""/>
             <cmdp:accessRights count="*" lang="true" val=""/>
             <cmdp:accrualMethod count="*" lang="true" val=""/>

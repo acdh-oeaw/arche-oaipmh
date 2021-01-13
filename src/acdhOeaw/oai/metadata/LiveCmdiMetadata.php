@@ -116,6 +116,7 @@ use acdhOeaw\oai\data\MetadataFormat;
  *   attribute description). The component name should match the template file name without the
  *   .xml extension. When the `ComponentId` is used the actual tag in the template is 
  *   not important because it's anyway replaced by the component's root tag.
+ * - `id` if has value of '#', it is filled in with a globally unique sequence
  * 
  * @author zozlak
  */
@@ -128,6 +129,12 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @var \acdhOeaw\oai\metadata\ValueMapper
      */
     static private $mapper;
+
+    /**
+     * Sequence for id generation
+     * @var int
+     */
+    static private $idSeq = 1;
 
     /**
      * Repository resource object
@@ -240,6 +247,10 @@ class LiveCmdiMetadata implements MetadataInterface {
         $remove = false;
         if ($el->hasAttribute('val')) {
             $remove = $this->insertValue($el);
+        }
+        if ($el->getAttribute('id') === '#') {
+            $el->setAttribute('id', 'id' . self::$idSeq);
+            self::$idSeq++;
         }
 
         $chToRemove = [];

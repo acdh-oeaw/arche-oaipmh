@@ -16,7 +16,7 @@
     </cmd:Header>
     <cmd:Resources>
         <cmd:ResourceProxyList>
-            <cmd:ResourceProxy id="id1">
+            <cmd:ResourceProxy id="#">
                 <cmd:ResourceType>Resource</cmd:ResourceType>
                 <cmd:ResourceRef val="/acdh:hasPid"></cmd:ResourceRef>
             </cmd:ResourceProxy>

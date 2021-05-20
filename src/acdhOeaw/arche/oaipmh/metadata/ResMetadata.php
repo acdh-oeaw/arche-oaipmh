@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
@@ -33,8 +33,8 @@ use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\RequestException;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\OaiException;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\OaiException;
 
 /**
  * Creates &lt;metadata&gt; element by simply taking binary content of another
@@ -84,7 +84,7 @@ class ResMetadata implements MetadataInterface {
      * Creates resource's XML metadata
      * 
      * @return DOMElement 
-     * @throws \acdhOeaw\oai\OaiException
+     * @throws \acdhOeaw\arche\oaipmh\OaiException
      */
     public function getXml(): DOMElement {
         $metaRes = (string) $this->res->getGraph()->getResource($this->format->metaResProp);

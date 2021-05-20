@@ -24,12 +24,12 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\deleted;
+namespace acdhOeaw\arche\oaipmh\deleted;
 
 use zozlak\queryPart\QueryPart;
 
 /**
- * Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` 
+ * Implementation of the `acdhOeaw\arche\oaipmh\deleted\DeletedInterface` 
  * for repositories not providing data on deleted resources.
  *
  * @author zozlak

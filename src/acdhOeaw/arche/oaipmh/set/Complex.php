@@ -24,13 +24,13 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\set;
+namespace acdhOeaw\arche\oaipmh\set;
 
 use stdClass;
 use PDO;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\data\SetInfo;
-use acdhOeaw\oai\metadata\DcMetadata;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\SetInfo;
+use acdhOeaw\arche\oaipmh\metadata\DcMetadata;
 use zozlak\queryPart\QueryPart;
 
 /**

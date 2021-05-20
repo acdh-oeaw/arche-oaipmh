@@ -24,15 +24,15 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\arche\oaipmh;
 
-use acdhOeaw\oai\data\HeaderData;
-use acdhOeaw\oai\data\RepositoryInfo;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\data\SetInfo;
-use acdhOeaw\oai\set\SetInterface;
-use acdhOeaw\oai\deleted\DeletedInterface;
-use acdhOeaw\oai\search\SearchInterface;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
+use acdhOeaw\arche\oaipmh\data\RepositoryInfo;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\SetInfo;
+use acdhOeaw\arche\oaipmh\set\SetInterface;
+use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
+use acdhOeaw\arche\oaipmh\search\SearchInterface;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
@@ -47,9 +47,9 @@ use zozlak\logging\Log;
  * - checks OAI-PMH requests correctness, 
  * - handles OAI-PMH `identify` and `ListMetadataFormats` commands
  * - delegates OAI-PMH `GetRecord`, `ListIdentifiers` and `ListRecords` commands 
- *   to a chosen class implementing the `acdhOeaw\oai\search\SearchInterface`
+ *   to a chosen class implementing the `acdhOeaw\arche\oaipmh\search\SearchInterface`
  * - delegates OAI-PMH `ListSets` command to a chosen class extending the
- *   `acdhOeaw\oai\set\SetInterface` class.
+ *   `acdhOeaw\arche\oaipmh\set\SetInterface` class.
  * - generates OAI-PMH compliant output from results of above mentioned actions
  * - catches errors and generates OAI-PMH compliant error responses
  *

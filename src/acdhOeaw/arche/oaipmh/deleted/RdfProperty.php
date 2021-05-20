@@ -24,12 +24,12 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\deleted;
+namespace acdhOeaw\arche\oaipmh\deleted;
 
 use zozlak\queryPart\QueryPart;
 
 /**
- * Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` deriving
+ * Implementation of the `acdhOeaw\arche\oaipmh\deleted\DeletedInterface` deriving
  * information on a resource deletion from existence of a given RDF triple
  * in the resource metadata.
  *

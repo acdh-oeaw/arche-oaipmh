@@ -24,23 +24,27 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
+use DOMDocument;
 use DOMElement;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
-use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
- * Interface for different metadata providers.
- * 
- * OAI-PMH metadata can be generated in various ways. This interface provides
- * a common API enabling the \acdhOeaw\oai\Oai class to handle metadata no 
- * matter how they are generated.
- * 
+ * Creates OAI-PMH &lt;metadata&gt; element in as an RDF-XML serialization of
+ * a FedoraResource RDF metadata.
+ *
  * @author zozlak
  */
-interface MetadataInterface {
+class RdfXml implements MetadataInterface {
+
+    /**
+     * Repository resource object
+     * @var RepoResourceDb
+     */
+    private $res;
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -52,36 +56,41 @@ interface MetadataInterface {
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format);
+                                object $searchResultRow, MetadataFormat $format) {
+        $this->res = $resource;
+    }
 
     /**
-     * Returns resource's XML metadata
+     * Creates resource's XML metadata
+     * 
+     * @return DOMElement 
      */
-    public function getXml(): DOMElement;
+    public function getXml(): DOMElement {
+        $meta   = $this->res->getMetadata();
+        $rdfxml = $meta->getGraph()->serialise('rdfxml');
+        $doc    = new DOMDocument();
+        $doc->loadXML($rdfxml);
+        return $doc->documentElement;
+    }
 
     /**
-     * Allows to extend a search query with additional clauses specific to the
-     * given metadata source.
+     * This implementation has no need to extend the search query.
      * 
-     * Remark! PHP doesn't consider static methods as an interface part 
-     * therefore existance of this method in classes implementing this interface
-     * is not enforced.
-     * 
-     * @param MetadataFormat $format metadata format descriptor
-     * @return QueryPart 
+     * @param MetadataFormat $format
+     * @return QueryPart
      */
-    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart;
-
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+    
     /**
-     * Allows to extend a search query with additional clauses specific to the
-     * given metadata source.
+     * This implementation has no need to extend the search query.
      * 
-     * Remark! PHP doesn't consider static methods as an interface part 
-     * therefore existance of this method in classes implementing this interface
-     * is not enforced.
-     * 
-     * @param MetadataFormat $format metadata format descriptor
-     * @return QueryPart 
+     * @param MetadataFormat $format
+     * @return QueryPart
      */
-    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart;
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
 }

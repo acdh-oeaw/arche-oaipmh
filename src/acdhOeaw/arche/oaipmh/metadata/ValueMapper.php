@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;

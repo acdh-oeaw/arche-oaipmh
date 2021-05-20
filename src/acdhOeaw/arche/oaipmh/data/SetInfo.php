@@ -24,36 +24,47 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\deleted;
+namespace acdhOeaw\arche\oaipmh\data;
 
-use zozlak\queryPart\QueryPart;
+use DOMElement;
 
 /**
- * Interface for OAI-PMH deleted records implementations.
+ * Simple container for OAI-PMH set data
+ * (https://www.openarchives.org/OAI/openarchivesprotocol.html#Set)
+ *
  * @author zozlak
  */
-interface DeletedInterface {
-
-    public function __construct(object $config);
+class SetInfo {
 
     /**
-     * Returns the OAI-PMH `identify` response's `deletedRecord` value.
-     * ("no", "transient" or "persistent")
-     * 
-     * @return string
+     * Set spec - see the OAI-PMH documentation
+     * @var string
      */
-    public function getDeletedRecord(): string;
+    public $spec;
 
     /**
-     * Returns an SQL query returning a table with two columns:
-     * 
-     * - `id` [bigint] providing a repository resource id
-     * - `deleted` [bool] indication if the resource is deleted
-     * 
-     * Query may skip resources which are not deleted but it has to always return
-     * above-mentioned columns (even with no rows).
-     * 
-     * @return QueryPart
+     * Set name - see the OAI-PMH documentation
+     * @var string
      */
-    public function getDeletedData(): QueryPart;
+    public $name;
+
+    /**
+     * Set metadata to be put inside a <setDescription>
+     * @var ?DOMElement
+     */
+    public $description;
+
+    /**
+     * Creates a set descriptor object by copying provided values.
+     * @param string $spec setSpec value
+     * @param string $name setName value
+     * @param DOMElement $description XML containing setDescription
+     */
+    public function __construct(string $spec, string $name,
+                                DOMElement $description = null) {
+        $this->spec        = $spec;
+        $this->name        = $name;
+        $this->description = $description;
+    }
+
 }

@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
@@ -35,7 +35,7 @@ use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\RepoResourceInterface;
-use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
  * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from 

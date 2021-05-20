@@ -24,33 +24,46 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\deleted;
+namespace acdhOeaw\arche\oaipmh\set;
 
+use PDO;
 use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\oaipmh\data\SetInfo;
 
 /**
- * Description of Tombstone
- *
+ * Interface for OAI-PMH sets implementations.
+ * 
  * @author zozlak
  */
-class Tombstone implements DeletedInterface {
+interface SetInterface {
+
+    public function __construct(object $config);
 
     /**
-     * Configuration object
-     * @var object
+     * Returns an SQL query returning a table with an `id` column providing
+     * repository resource ids belonging to a given set.
+     * 
+     * @param string $set setSpec value to be matched
+     * @return QueryPart
      */
-    private $config;
+    public function getSetFilter(string $set): QueryPart;
 
-    public function __construct(object $config) {
-        $this->config = $config;
-    }
+    /**
+     * Returns an SQL query returning a table with two columns:
+     * 
+     * - `id` providing a repository resource id
+     * - `set` providing a name of the set a resource belongs to
+     * 
+     * If a resource belongs to many sets, many rows should be returned.
+     * 
+     * @return QueryPart
+     */
+    public function getSetData(): QueryPart;
 
-    public function getDeletedRecord(): string {
-        return $this->config->deletedRecord;
-    }
-
-    public function getDeletedData(): QueryPart {
-        return new QueryPart("SELECT id, true AS deleted FROM resources WHERE state = 'tombstone'");
-    }
-
+    /**
+     * Handles the `ListSets` OAI-PMH request.
+     * @param PDO $pdo repository database connection object
+     * @return array<SetInfo>
+     */
+    public function listSets(PDO $pdo): array;
 }

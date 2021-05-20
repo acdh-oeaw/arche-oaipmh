@@ -24,15 +24,15 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\search;
+namespace acdhOeaw\arche\oaipmh\search;
 
 use PDO;
 use Psr\Log\AbstractLogger;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\data\HeaderData;
-use acdhOeaw\oai\deleted\DeletedInterface;
-use acdhOeaw\oai\metadata\MetadataInterface;
-use acdhOeaw\oai\set\SetInterface;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
+use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
+use acdhOeaw\arche\oaipmh\metadata\MetadataInterface;
+use acdhOeaw\arche\oaipmh\set\SetInterface;
 
 /**
  * Interface for classes implementing OAI-PMH resources search.
@@ -43,7 +43,7 @@ use acdhOeaw\oai\set\SetInterface;
  * 
  * Good implementation takes into account search query extensions provided by
  * requested metadata format class. Such extension can be gathered by calling
- * the static method `extendSearchQuery()` (see the `acdhOeaw\oai\metadataMetadataInterface`)
+ * the static method `extendSearchQuery()` (see the `acdhOeaw\arche\oaipmh\metadataMetadataInterface`)
  * on the metadata class. The metadata class is provided by the `class` method
  * of the metadata format descriptor (see the `__construct()` method).
  * 

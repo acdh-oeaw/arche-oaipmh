@@ -26,7 +26,7 @@
 
 require_once 'vendor/autoload.php';
 
-use acdhOeaw\oai\Oai;
+use acdhOeaw\arche\oaipmh\Oai;
 
 $config = json_decode(json_encode(yaml_parse_file(__DIR__ . '/config.yaml')))->oai;
 $oai = new Oai($config);

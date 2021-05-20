@@ -24,47 +24,33 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\data;
+namespace acdhOeaw\arche\oaipmh\deleted;
 
-use DOMElement;
+use zozlak\queryPart\QueryPart;
 
 /**
- * Simple container for OAI-PMH set data
- * (https://www.openarchives.org/OAI/openarchivesprotocol.html#Set)
+ * Description of Tombstone
  *
  * @author zozlak
  */
-class SetInfo {
+class Tombstone implements DeletedInterface {
 
     /**
-     * Set spec - see the OAI-PMH documentation
-     * @var string
+     * Configuration object
+     * @var object
      */
-    public $spec;
+    private $config;
 
-    /**
-     * Set name - see the OAI-PMH documentation
-     * @var string
-     */
-    public $name;
+    public function __construct(object $config) {
+        $this->config = $config;
+    }
 
-    /**
-     * Set metadata to be put inside a <setDescription>
-     * @var ?DOMElement
-     */
-    public $description;
+    public function getDeletedRecord(): string {
+        return $this->config->deletedRecord;
+    }
 
-    /**
-     * Creates a set descriptor object by copying provided values.
-     * @param string $spec setSpec value
-     * @param string $name setName value
-     * @param DOMElement $description XML containing setDescription
-     */
-    public function __construct(string $spec, string $name,
-                                DOMElement $description = null) {
-        $this->spec        = $spec;
-        $this->name        = $name;
-        $this->description = $description;
+    public function getDeletedData(): QueryPart {
+        return new QueryPart("SELECT id, true AS deleted FROM resources WHERE state = 'tombstone'");
     }
 
 }

@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\data;
+namespace acdhOeaw\arche\oaipmh\data;
 
 /**
  * Container for OAI-PMH metada format data (both properties used by the OAI-PMH

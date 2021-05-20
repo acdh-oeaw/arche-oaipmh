@@ -24,54 +24,67 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\set;
-
-use PDO;
-use acdhOeaw\oai\OaiException;
-use zozlak\queryPart\QueryPart;
-use acdhOeaw\oai\data\SetInfo;
+namespace acdhOeaw\arche\oaipmh\data;
 
 /**
- * Implements proper reporting of repository without sets.
+ * Container for OAI-PMH repository information
  *
  * @author zozlak
  */
-class NoSets implements SetInterface {
-
-    private object $config;
-
-    public function __construct(object $config) {
-        $this->config = $config;
-    }
+class RepositoryInfo {
 
     /**
-     * Reports no support for sets
-     * 
-     * @param string $set
-     * @return QueryPart
-     * @throws OaiException
+     * Repository name to be reported
+     * @var string 
      */
-    public function getSetFilter(string $set): QueryPart {
-        throw new OaiException('noSetHierarchy');
-    }
+    public $repositoryName = '';
 
     /**
-     * Returns empty set name
-     * 
-     * @return QueryPart
-     * @throws OaiException
+     * OAI-PMH service location
+     * @var string 
      */
-    public function getSetData(): QueryPart {
-        return new QueryPart("SELECT id, null::text AS set FROM resources");
-    }
+    public $baseURL = '';
 
     /**
-     * Reports no support for sets
-     * 
-     * @return array<SetInfo>
-     * @throws OaiException
+     * OAI-PMH protocol version.
+     * @var string
      */
-    public function listSets(PDO $pdo): array {
-        throw new OaiException('noSetHierarchy');
+    public $protocolVersion   = '2.0';
+
+    /**
+     * List of repository admin emails
+     * @var array<string>
+     */
+    public $adminEmail        = [];
+
+    /**
+     * Earliest date which can be reported.
+     * @var string
+     */
+    public $earliestDatestamp = '1900-01-01T00:00:00Z';
+
+    /**
+     * If repository supports information on deleted records (no by default).
+     * @var string
+     */
+    public $deletedRecord     = 'no';
+
+    /**
+     * Date granularity (defaults to Fedora dates granularity)
+     * @var string
+     */
+    public $granularity       = 'YYYY-MM-DDThh:mm:ssZ';
+
+    /**
+     * Creates a RepositoryInfo object setting up provided property values.
+     * @param object $param property values
+     */
+    public function __construct(object $param) {
+        foreach ($param as $k => $v) {
+            if (isset($this->$k)) {
+                $this->$k = $v;
+            }
+        }
     }
+
 }

@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
@@ -37,7 +37,7 @@ use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\arche\lib\SearchConfig;
-use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
  * Creates &lt;metadata&gt; element by filling in an XML template with values

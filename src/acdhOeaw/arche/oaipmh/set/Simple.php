@@ -24,10 +24,10 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\set;
+namespace acdhOeaw\arche\oaipmh\set;
 
 use PDO;
-use acdhOeaw\oai\data\SetInfo;
+use acdhOeaw\arche\oaipmh\data\SetInfo;
 use zozlak\queryPart\QueryPart;
 
 /**
@@ -38,7 +38,7 @@ use zozlak\queryPart\QueryPart;
  * 
  * It allows hierarchical sets but there is no support for set names and
  * set metadata (it would require to make some assumptions on how sets are
- * described in the repository - see the `acdhOeaw\oai\set\Complex` class).
+ * described in the repository - see the `acdhOeaw\arche\oaipmh\set\Complex` class).
  *
  * @author zozlak
  */

@@ -24,10 +24,10 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata;
 
 use zozlak\queryPart\QueryPart;
-use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
  * Specialization of ResMetadata class checking if the CMDI schema matches

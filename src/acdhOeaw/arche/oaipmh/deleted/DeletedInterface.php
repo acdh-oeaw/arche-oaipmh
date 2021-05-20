@@ -24,46 +24,36 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\set;
+namespace acdhOeaw\arche\oaipmh\deleted;
 
-use PDO;
 use zozlak\queryPart\QueryPart;
-use acdhOeaw\oai\data\SetInfo;
 
 /**
- * Interface for OAI-PMH sets implementations.
- * 
+ * Interface for OAI-PMH deleted records implementations.
  * @author zozlak
  */
-interface SetInterface {
+interface DeletedInterface {
 
     public function __construct(object $config);
 
     /**
-     * Returns an SQL query returning a table with an `id` column providing
-     * repository resource ids belonging to a given set.
+     * Returns the OAI-PMH `identify` response's `deletedRecord` value.
+     * ("no", "transient" or "persistent")
      * 
-     * @param string $set setSpec value to be matched
-     * @return QueryPart
+     * @return string
      */
-    public function getSetFilter(string $set): QueryPart;
+    public function getDeletedRecord(): string;
 
     /**
      * Returns an SQL query returning a table with two columns:
      * 
-     * - `id` providing a repository resource id
-     * - `set` providing a name of the set a resource belongs to
+     * - `id` [bigint] providing a repository resource id
+     * - `deleted` [bool] indication if the resource is deleted
      * 
-     * If a resource belongs to many sets, many rows should be returned.
+     * Query may skip resources which are not deleted but it has to always return
+     * above-mentioned columns (even with no rows).
      * 
      * @return QueryPart
      */
-    public function getSetData(): QueryPart;
-
-    /**
-     * Handles the `ListSets` OAI-PMH request.
-     * @param PDO $pdo repository database connection object
-     * @return array<SetInfo>
-     */
-    public function listSets(PDO $pdo): array;
+    public function getDeletedData(): QueryPart;
 }

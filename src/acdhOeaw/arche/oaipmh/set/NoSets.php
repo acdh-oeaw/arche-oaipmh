@@ -24,67 +24,54 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\data;
+namespace acdhOeaw\arche\oaipmh\set;
+
+use PDO;
+use acdhOeaw\arche\oaipmh\OaiException;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\oaipmh\data\SetInfo;
 
 /**
- * Container for OAI-PMH repository information
+ * Implements proper reporting of repository without sets.
  *
  * @author zozlak
  */
-class RepositoryInfo {
+class NoSets implements SetInterface {
 
-    /**
-     * Repository name to be reported
-     * @var string 
-     */
-    public $repositoryName = '';
+    private object $config;
 
-    /**
-     * OAI-PMH service location
-     * @var string 
-     */
-    public $baseURL = '';
-
-    /**
-     * OAI-PMH protocol version.
-     * @var string
-     */
-    public $protocolVersion   = '2.0';
-
-    /**
-     * List of repository admin emails
-     * @var array<string>
-     */
-    public $adminEmail        = [];
-
-    /**
-     * Earliest date which can be reported.
-     * @var string
-     */
-    public $earliestDatestamp = '1900-01-01T00:00:00Z';
-
-    /**
-     * If repository supports information on deleted records (no by default).
-     * @var string
-     */
-    public $deletedRecord     = 'no';
-
-    /**
-     * Date granularity (defaults to Fedora dates granularity)
-     * @var string
-     */
-    public $granularity       = 'YYYY-MM-DDThh:mm:ssZ';
-
-    /**
-     * Creates a RepositoryInfo object setting up provided property values.
-     * @param object $param property values
-     */
-    public function __construct(object $param) {
-        foreach ($param as $k => $v) {
-            if (isset($this->$k)) {
-                $this->$k = $v;
-            }
-        }
+    public function __construct(object $config) {
+        $this->config = $config;
     }
 
+    /**
+     * Reports no support for sets
+     * 
+     * @param string $set
+     * @return QueryPart
+     * @throws OaiException
+     */
+    public function getSetFilter(string $set): QueryPart {
+        throw new OaiException('noSetHierarchy');
+    }
+
+    /**
+     * Returns empty set name
+     * 
+     * @return QueryPart
+     * @throws OaiException
+     */
+    public function getSetData(): QueryPart {
+        return new QueryPart("SELECT id, null::text AS set FROM resources");
+    }
+
+    /**
+     * Reports no support for sets
+     * 
+     * @return array<SetInfo>
+     * @throws OaiException
+     */
+    public function listSets(PDO $pdo): array {
+        throw new OaiException('noSetHierarchy');
+    }
 }

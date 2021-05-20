@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai\search;
+namespace acdhOeaw\arche\oaipmh\search;
 
 use PDO;
 use Psr\Log\AbstractLogger;
@@ -32,11 +32,11 @@ use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\Schema;
-use acdhOeaw\oai\data\HeaderData;
-use acdhOeaw\oai\data\MetadataFormat;
-use acdhOeaw\oai\deleted\DeletedInterface;
-use acdhOeaw\oai\metadata\MetadataInterface;
-use acdhOeaw\oai\set\SetInterface;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
+use acdhOeaw\arche\oaipmh\metadata\MetadataInterface;
+use acdhOeaw\arche\oaipmh\set\SetInterface;
 
 /**
  * Implements basic OAI-PMH search. It is assumed that all OAI-PMH search

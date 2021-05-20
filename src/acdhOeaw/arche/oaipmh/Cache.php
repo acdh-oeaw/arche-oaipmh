@@ -24,11 +24,11 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\oai;
+namespace acdhOeaw\arche\oaipmh;
 
 use DOMDocument;
-use acdhOeaw\oai\data\HeaderData;
-use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
+use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
  * Implements simple caching 

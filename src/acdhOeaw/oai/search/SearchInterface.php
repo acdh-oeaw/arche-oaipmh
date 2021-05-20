@@ -66,13 +66,12 @@ interface SearchInterface {
 
     /**
      * Performs search using given filter values.
-     * @param \PDO $pdo repository database connection object
      * @param string $id id filter value
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
      */
-    public function find(string $id, string $from, string $until, string $set);
+    public function find(string $id, string $from, string $until, string $set): void;
 
     /**
      * Returns number of resources matching last search (last call of the 

@@ -28,10 +28,10 @@ namespace acdhOeaw\oai\search;
 
 use PDO;
 use Psr\Log\AbstractLogger;
-use acdhOeaw\acdhRepoLib\QueryPart;
-use acdhOeaw\acdhRepoLib\RepoDb;
-use acdhOeaw\acdhRepoLib\RepoResourceDb;
-use acdhOeaw\acdhRepoLib\Schema;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\lib\RepoDb;
+use acdhOeaw\arche\lib\RepoResourceDb;
+use acdhOeaw\arche\lib\Schema;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\deleted\DeletedInterface;
@@ -56,19 +56,19 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Metadata format descriptor.
-     * @var \acdhOeaw\oai\MetadataFormat
+     * @var MetadataFormat
      */
     private $format;
 
     /**
      * Object handling sets
-     * @var \acdhOeaw\oai\set\SetInterface
+     * @var SetInterface
      */
     private $sets;
 
     /**
      * Object handling deleted resources information
-     * @var \acdhOeaw\oai\deleted\DeletedInterface
+     * @var DeletedInterface
      */
     private $deleted;
 
@@ -80,19 +80,19 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Repistory database connection object
-     * @var \PDO
+     * @var PDO
      */
     private $pdo;
 
     /**
      * High-level repository API handle object
-     * @var \acdhOeaw\acdhRepoLib\RepoDb
+     * @var RepoDb
      */
     private $repo;
 
     /**
      * Last search results
-     * @var \acdhOeaw\oai\data\HeaderData[]
+     * @var array<HeaderData>
      */
     private $records;
 
@@ -122,13 +122,12 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Performs search using given filter values.
-     * @param \PDO $pdo repository database connection object
      * @param string $id id filter value
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
      */
-    public function find(string $id, string $from, string $until, string $set) {
+    public function find(string $id, string $from, string $until, string $set): void {
         $class       = $this->format->class;
         $extFilterQP = $class::extendSearchFilterQuery($this->format);
         $extDataQP   = $class::extendSearchDataQuery($this->format);
@@ -192,7 +191,7 @@ class BaseSearch implements SearchInterface {
     /**
      * Provides the `HeaderData` object for a given search result.
      * @param int $pos seach result resource index
-     * @return \acdhOeaw\oai\data\HeaderData
+     * @return HeaderData
      */
     public function getHeader(int $pos): HeaderData {
         return $this->records[$pos];
@@ -204,7 +203,7 @@ class BaseSearch implements SearchInterface {
      * @return MetadataInterface
      */
     public function getMetadata(int $pos): MetadataInterface {
-        $resource = new RepoResourceDb($this->records[$pos]->repoid, $this->repo);
+        $resource = new RepoResourceDb((string) $this->records[$pos]->repoid, $this->repo);
         $result   = new $this->format->class($resource, $this->records[$pos], $this->format);
         return $result;
     }
@@ -212,7 +211,7 @@ class BaseSearch implements SearchInterface {
     /**
      * Creates SPARQL query clause implementing the id filter.
      * @param string $id id filter value
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     private function getIdFilter(string $id): QueryPart {
         $filter = new QueryPart();
@@ -227,7 +226,7 @@ class BaseSearch implements SearchInterface {
      * Creates SPARQL clauses implementing the date filter.
      * @param string $from date from filter value
      * @param string $until date to filter value
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     private function getDateFilter(string $from, string $until): QueryPart {
         $filter = new QueryPart();
@@ -249,14 +248,14 @@ class BaseSearch implements SearchInterface {
     /**
      * Creates SPARQL clause implementing the set filter.
      * @param string $set set filter value
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     private function getSetFilter(string $set): QueryPart {
         if (empty($set)) {
             return new QueryPart();
         }
         $class = $this->config->setClass;
-        /* @var $class \acdhOeaw\oai\set\SetInterface */
+        /* @var $class SetInterface */
         return $class::getSetFilter($set);
     }
 

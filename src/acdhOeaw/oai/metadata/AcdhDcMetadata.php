@@ -31,10 +31,10 @@ use DOMElement;
 use PDO;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
-use acdhOeaw\acdhRepoLib\QueryPart;
-use acdhOeaw\acdhRepoLib\RepoDb;
-use acdhOeaw\acdhRepoLib\RepoResourceDb;
-use acdhOeaw\acdhRepoLib\RepoResourceInterface;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\lib\RepoDb;
+use acdhOeaw\arche\lib\RepoResourceDb;
+use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -68,13 +68,13 @@ class AcdhDcMetadata implements MetadataInterface {
 
     /**
      * Stores metadata property to Dublic Core property mappings
-     * @var array
+     * @var ?array<string, string>
      */
-    static private $mappings;
+    static private $mappings = null;
 
     /**
      * Fetches mappings from the triplestore
-     * @param \acdhOeaw\acdhRepoLib\RepoDb $repo
+     * @param RepoDb $repo
      * @param MetadataFormat $format
      */
     static private function init(RepoDb $repo, MetadataFormat $format) {
@@ -104,20 +104,20 @@ class AcdhDcMetadata implements MetadataInterface {
 
     /**
      * Repository resource object
-     * @var \acdhOeaw\fedora\FedoraResource
+     * @var RepoResourceDb
      */
     private $res;
 
     /**
      * Metadata format descriptor
-     * @var \acdhOeaw\oai\data\MetadataFormat
+     * @var MetadataFormat
      */
     private $format;
 
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     * @param RepoResourceDb $resource a repository 
      *   resource object
      * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
@@ -151,14 +151,13 @@ class AcdhDcMetadata implements MetadataInterface {
         foreach ($properties as $property) {
             $propInNs = str_replace(self::$dcNmsp, 'dc:', self::$mappings[$property]);
             foreach ($meta->all($property) as $value) {
+                $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
                 if (is_a($value, Literal::class) || $this->format->mode == self::MODE_URL || $this->format->mode == self::MODE_BOTH) {
-                    $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
                     $el->appendChild($doc->createTextNode((string) $value));
                     $parent->appendChild($el);
                 }
                 if (is_a($value, Resource::class) && ($this->format->mode == self::MODE_TITLE || $this->format->mode == self::MODE_BOTH)) {
-                    /* @var $value \EasyRdf\Resource */
-                    $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
+                    /* @var $value Resource */
                     $el->appendChild($doc->createTextNode((string) $value->get($this->format->titleProp)));
                     $parent->appendChild($el);
                 }
@@ -174,7 +173,7 @@ class AcdhDcMetadata implements MetadataInterface {
      * This implementation has no need to extend the search query.
      * 
      * @param MetadataFormat $format
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
@@ -184,10 +183,9 @@ class AcdhDcMetadata implements MetadataInterface {
      * This implementation has no need to extend the search query.
      * 
      * @param MetadataFormat $format
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
-
 }

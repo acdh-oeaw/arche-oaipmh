@@ -50,7 +50,7 @@ class SetInfo {
 
     /**
      * Set metadata to be put inside a <setDescription>
-     * @var \DOMElement
+     * @var ?DOMElement
      */
     public $description;
 

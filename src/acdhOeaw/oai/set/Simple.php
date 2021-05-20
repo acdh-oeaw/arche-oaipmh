@@ -28,7 +28,7 @@ namespace acdhOeaw\oai\set;
 
 use PDO;
 use acdhOeaw\oai\data\SetInfo;
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 
 /**
  * Provides very simple and straightforward implementation of sets.
@@ -86,6 +86,11 @@ class Simple implements SetInterface {
         return $query;
     }
 
+    /**
+     * 
+     * @param PDO $pdo
+     * @return array<SetInfo>
+     */
     public function listSets(PDO $pdo): array {
         $query = "
             SELECT DISTINCT * FROM (

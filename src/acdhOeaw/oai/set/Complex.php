@@ -31,7 +31,7 @@ use PDO;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\data\SetInfo;
 use acdhOeaw\oai\metadata\DcMetadata;
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 
 /**
  * Provides full sets support.
@@ -86,6 +86,11 @@ class Complex implements SetInterface {
         return $query;
     }
 
+    /**
+     * 
+     * @param PDO $pdo
+     * @return array<SetInfo>
+     */
     public function listSets(PDO $pdo): array {
         $query = "
             SELECT 

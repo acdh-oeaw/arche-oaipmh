@@ -31,8 +31,8 @@ use DOMElement;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\RequestException;
-use acdhOeaw\acdhRepoLib\QueryPart;
-use acdhOeaw\acdhRepoLib\RepoResourceDb;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\oai\data\MetadataFormat;
 use acdhOeaw\oai\OaiException;
 
@@ -55,20 +55,20 @@ class ResMetadata implements MetadataInterface {
 
     /**
      * Repository resource object
-     * @var \acdhOeaw\acdhRepoLib\RepoResourceDb
+     * @var RepoResourceDb
      */
     private $res;
 
     /**
      *
-     * @var \acdhOeaw\oai\data\MetadataFormat
+     * @var MetadataFormat
      */
     private $format;
 
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     * @param RepoResourceDb $resource a repository 
      *   resource object
      * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
@@ -109,7 +109,7 @@ class ResMetadata implements MetadataInterface {
      * matched.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
         $query        = new QueryPart();
@@ -122,7 +122,7 @@ class ResMetadata implements MetadataInterface {
      * This implementation has no fetch additional data trough the search query.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();

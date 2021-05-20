@@ -26,7 +26,7 @@
 
 namespace acdhOeaw\oai\deleted;
 
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 
 /**
  * Interface for OAI-PMH deleted records implementations.
@@ -53,7 +53,7 @@ interface DeletedInterface {
      * Query may skip resources which are not deleted but it has to always return
      * above-mentioned columns (even with no rows).
      * 
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     public function getDeletedData(): QueryPart;
 }

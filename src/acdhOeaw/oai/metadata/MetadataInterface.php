@@ -27,8 +27,8 @@
 namespace acdhOeaw\oai\metadata;
 
 use DOMElement;
-use acdhOeaw\acdhRepoLib\QueryPart;
-use acdhOeaw\acdhRepoLib\RepoResourceDb;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -45,7 +45,7 @@ interface MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     * @param RepoResourceDb $resource a repository 
      *   resource object
      * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
@@ -68,7 +68,7 @@ interface MetadataInterface {
      * is not enforced.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart 
+     * @return QueryPart 
      */
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart;
 
@@ -81,7 +81,7 @@ interface MetadataInterface {
      * is not enforced.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart 
+     * @return QueryPart 
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart;
 }

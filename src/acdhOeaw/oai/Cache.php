@@ -37,7 +37,7 @@ use acdhOeaw\oai\data\MetadataFormat;
  */
 class Cache {
 
-    private $cacheDir;
+    private string $cacheDir;
 
     public function __construct(string $cacheDir) {
         $this->cacheDir = $cacheDir;
@@ -47,25 +47,24 @@ class Cache {
     }
 
     public function check(HeaderData $header, MetadataFormat $format): bool {
-         $path = $this->getPath($header->id, $format->metadataPrefix);
-         if (!file_exists($path)) {
-             return false;
-         }
-         $cacheDate = date('Y-m-d\TH:i:s\Z', filemtime($path));
-         return $cacheDate > $header->date;
+        $path = $this->getPath($header->id, $format->metadataPrefix);
+        if (!file_exists($path)) {
+            return false;
+        }
+        $cacheDate = date('Y-m-d\TH:i:s\Z', filemtime($path) ?: 0);
+        return $cacheDate > $header->date;
     }
 
-    public function put(HeaderData $header, MetadataFormat $format, DOMDocument $doc): void {
+    public function put(HeaderData $header, MetadataFormat $format,
+                        DOMDocument $doc): void {
         $doc->C14NFile($this->getPath($header->id, $format->metadataPrefix));
     }
 
-    public function get(HeaderData $header, MetadataFormat $format): string {
-        return file_get_contents($this->getPath($header->id, $format->metadataPrefix));
+    public function get(HeaderData $header, MetadataFormat $format): ?string {
+        return file_get_contents($this->getPath($header->id, $format->metadataPrefix)) ?: null;
     }
 
     private function getPath(string $id, string $metaPrefix): string {
         return $this->cacheDir . '/' . sha1($metaPrefix . ':' . $id);
     }
-
 }
-

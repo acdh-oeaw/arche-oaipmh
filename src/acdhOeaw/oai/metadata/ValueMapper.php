@@ -29,6 +29,7 @@ namespace acdhOeaw\oai\metadata;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use EasyRdf\Graph;
+use EasyRdf\Resource;
 
 /**
  * Provides vocabulary mappings. Assumes a value is an URL which can be resolved
@@ -40,13 +41,27 @@ use EasyRdf\Graph;
  */
 class ValueMapper {
 
+    /**
+     * 
+     * @var Client
+     */
     private $client;
+
+    /**
+     * 
+     * @var array<string, Resource>
+     */
     private $cache  = [];
+
+    /**
+     * 
+     * @var array<string, bool>
+     */
     private $failed = [];
 
     /**
      * 
-     * @param array $guzzleOptions connection options to be used while fetching
+     * @param array<string, mixed> $guzzleOptions connection options to be used while fetching
      *   the data - see http://docs.guzzlephp.org/en/stable/request-options.html
      */
     public function __construct(array $guzzleOptions = []) {
@@ -64,7 +79,7 @@ class ValueMapper {
      * 
      * @param string $value value to be mapped
      * @param string $property RDF property which value should be returned
-     * @return \EasyRdf\Resource[] mapped values
+     * @return array<Resource> mapped values
      */
     public function getMapping(string $value, string $property): array {
         if (!isset($this->cache[$value]) && !isset($this->failed[$value])) {
@@ -97,5 +112,4 @@ class ValueMapper {
             $this->failed[$value] = true;
         }
     }
-
 }

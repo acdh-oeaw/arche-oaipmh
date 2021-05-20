@@ -26,7 +26,7 @@
 
 namespace acdhOeaw\oai\metadata;
 
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -50,7 +50,7 @@ class CmdiMetadata extends ResMetadata {
      * - assuring that the linked CMDI resource has the right schema
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      * @see __construct()
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
@@ -76,7 +76,7 @@ class CmdiMetadata extends ResMetadata {
      * This implementation has no fetch additional data trough the search query.
      * 
      * @param MetadataFormat $format metadata format descriptor
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();

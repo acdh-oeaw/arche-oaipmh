@@ -27,7 +27,8 @@
 namespace acdhOeaw\oai\set;
 
 use PDO;
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\oai\data\SetInfo;
 
 /**
  * Interface for OAI-PMH sets implementations.
@@ -43,7 +44,7 @@ interface SetInterface {
      * repository resource ids belonging to a given set.
      * 
      * @param string $set setSpec value to be matched
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     public function getSetFilter(string $set): QueryPart;
 
@@ -55,14 +56,14 @@ interface SetInterface {
      * 
      * If a resource belongs to many sets, many rows should be returned.
      * 
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     public function getSetData(): QueryPart;
 
     /**
      * Handles the `ListSets` OAI-PMH request.
-     * @param \PDO $pdo repository database connection object
-     * @return \acdhOeaw\oai\data\SetInfo[]
+     * @param PDO $pdo repository database connection object
+     * @return array<SetInfo>
      */
     public function listSets(PDO $pdo): array;
 }

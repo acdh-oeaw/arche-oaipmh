@@ -27,7 +27,8 @@
 namespace acdhOeaw\oai\data;
 
 /**
- * Container for OAI-PMH metada format data
+ * Container for OAI-PMH metada format data (both properties used by the OAI-PMH
+ * protocol and by this implementation).
  *
  * @author zozlak
  */
@@ -55,13 +56,114 @@ class MetadataFormat {
     public $metadataNamespace;
 
     /**
+     * 
+     * @var ?string
+     */
+    public $class;
+
+    /**
+     * 
+     * @var array<string, string>
+     */
+    public $propNmsp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $schemaProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $uriProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $metaResProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $cmdiSchemaProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $titleProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $eqProp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $mode;
+
+    /**
+     * 
+     * @var array<string, string>
+     */
+    public $requestOptions;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $templateDir;
+
+    /**
+     * 
+     * @var RepositoryInfo
+     */
+    public $info;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $idNmsp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $acdhNmsp;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $iiifBaseUrl;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $schemaDefault;
+
+    /**
+     * 
+     * @var ?string
+     */
+    public $defaultLang;
+
+    /**
      * Creates a metadata format descriptor
      * @param object $fields values to set in the descriptor
      */
     public function __construct(object $fields = null) {
         foreach ($fields as $k => $v) {
-            $this->$k = $v; 
+            $this->$k = $v;
         }
     }
-
 }

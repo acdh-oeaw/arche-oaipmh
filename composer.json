@@ -13,12 +13,16 @@
     ],
     "require": {
         "acdh-oeaw/easyrdf": "*",
-        "acdh-oeaw/arche-lib": "^1",
-        "zozlak/logging": "*"
+        "acdh-oeaw/arche-lib": "^2.0.0-alpha",
+        "zozlak/logging": "*",
+        "zozlak/query-part": "^2.1"
     },
     "autoload": {
         "psr-4": {
             "acdhOeaw\\": "src/acdhOeaw"
         }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "*"
     }
 }

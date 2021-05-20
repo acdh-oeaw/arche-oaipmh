@@ -28,7 +28,8 @@ namespace acdhOeaw\oai\set;
 
 use PDO;
 use acdhOeaw\oai\OaiException;
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\oai\data\SetInfo;
 
 /**
  * Implements proper reporting of repository without sets.
@@ -37,11 +38,17 @@ use acdhOeaw\acdhRepoLib\QueryPart;
  */
 class NoSets implements SetInterface {
 
+    private object $config;
+
+    public function __construct(object $config) {
+        $this->config = $config;
+    }
+
     /**
      * Reports no support for sets
      * 
      * @param string $set
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      * @throws OaiException
      */
     public function getSetFilter(string $set): QueryPart {
@@ -51,8 +58,7 @@ class NoSets implements SetInterface {
     /**
      * Returns empty set name
      * 
-     * @param string $setVar
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      * @throws OaiException
      */
     public function getSetData(): QueryPart {
@@ -62,11 +68,10 @@ class NoSets implements SetInterface {
     /**
      * Reports no support for sets
      * 
-     * @return array
+     * @return array<SetInfo>
      * @throws OaiException
      */
     public function listSets(PDO $pdo): array {
         throw new OaiException('noSetHierarchy');
     }
-
 }

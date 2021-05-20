@@ -26,7 +26,7 @@
 
 namespace acdhOeaw\oai\deleted;
 
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 
 /**
  * Implementation of the `acdhOeaw\oai\deleted\DeletedInterface` 
@@ -36,8 +36,10 @@ use acdhOeaw\acdhRepoLib\QueryPart;
  */
 class No implements DeletedInterface {
 
+    private object $config;
+    
     public function __construct(object $config) {
-        
+        $this->config = $config;
     }
 
     public function getDeletedRecord(): string {
@@ -45,7 +47,7 @@ class No implements DeletedInterface {
     }
 
     public function getDeletedData(): QueryPart {
-        return QueryPart("SELECT 0::bigint AS id, false AS deleted WHERE false");
+        return new QueryPart("SELECT 0::bigint AS id, false AS deleted WHERE false");
     }
 
 }

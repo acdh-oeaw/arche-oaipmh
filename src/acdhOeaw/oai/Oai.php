@@ -29,6 +29,10 @@ namespace acdhOeaw\oai;
 use acdhOeaw\oai\data\HeaderData;
 use acdhOeaw\oai\data\RepositoryInfo;
 use acdhOeaw\oai\data\MetadataFormat;
+use acdhOeaw\oai\data\SetInfo;
+use acdhOeaw\oai\set\SetInterface;
+use acdhOeaw\oai\deleted\DeletedInterface;
+use acdhOeaw\oai\search\SearchInterface;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
@@ -87,49 +91,49 @@ TMPL;
 
     /**
      * Repository database connection object
-     * @var \PDO
+     * @var PDO
      */
     private $pdo;
 
     /**
      * XML object used to serialize OAI-PMH response parts
-     * @var \DOMDocument
+     * @var DOMDocument
      */
     private $response;
 
     /**
      * Repository info object used to serve OAI-PMH `Identify` requests
-     * @var \acdhOeaw\oai\RepositoryInfo
+     * @var RepositoryInfo
      */
     private $info;
 
     /**
      * List of metadata descriptors
-     * @var \acdhOeaw\oai\data\MetadataFormat[]
+     * @var array<MetadataFormat>
      */
     private $metadataFormats = [];
 
     /**
      * Object handling sets
-     * @var \acdhOeaw\oai\set\SetInterface
+     * @var SetInterface
      */
     private $sets;
 
     /**
      * Object handling deleted resources information
-     * @var \acdhOeaw\oai\deleted\DeletedInterface
+     * @var DeletedInterface
      */
     private $deleted;
 
     /**
      * Cache object
-     * @var \acdhOeaw\oai\Cache
+     * @var Cache
      */
     private $cache;
 
     /**
      *
-     * @var \zozlak\logging\Log
+     * @var Log
      */
     private $log;
 
@@ -172,7 +176,7 @@ TMPL;
     /**
      * Handles OAI-PMH request.
      */
-    public function handleRequest() {
+    public function handleRequest(): void {
         header('Content-Type: text/xml');
         // an ugly workaround allowing to serve raw CMDI records
         $verb = $this->getParam('verb') . '';
@@ -182,7 +186,7 @@ TMPL;
             return;
         }
 
-        $params = array();
+        $params = [];
         foreach ($_GET as $key => $value) {
             $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
         }
@@ -219,9 +223,9 @@ TMPL;
         } catch (Throwable $e) {
             $this->log->error($e);
             if ($e instanceof OaiException) {
-                $el = $this->createElement('error', $e->getMessage(), array('code' => $e->getMessage()));
+                $el = $this->createElement('error', $e->getMessage(), ['code' => $e->getMessage()]);
             } else {
-                $el = $this->createElement('error', $e->getMessage(), array('code' => 'Internal error'));
+                $el = $this->createElement('error', $e->getMessage(), ['code' => 'Internal error']);
             }
             $this->response->documentElement->appendChild($el);
             echo "    " . $el->C14N() . "\n";
@@ -233,12 +237,12 @@ TMPL;
     /**
      * Implements the Identify OAI-PMH verb
      */
-    public function oaiIdentify() {
-        $this->checkRequestParam(array());
+    public function oaiIdentify(): void {
+        $this->checkRequestParam([]);
         $parent = $this->response->createElement('Identify');
-        foreach ($this->info as $key => $value) {
+        foreach ((array) $this->info as $key => $value) {
             if (!is_array($value)) {
-                $value = array($value);
+                $value = [$value];
             }
             foreach ($value as $i) {
                 $parent->appendChild($this->createElement($key, $i));
@@ -252,28 +256,29 @@ TMPL;
      * Implements the ListMetadataFormats OAI-PMH verb
      * @throws OaiException
      */
-    public function oaiListMetadataFormats() {
-        $this->checkRequestParam(array('identifier'));
+    public function oaiListMetadataFormats(): void {
+        $this->checkRequestParam(['identifier']);
         $id = $this->getParam('identifier');
 
         if ($id != '') {
-            $res = $this->pdo->getResourcesByProperty($this->config->idProp, $id);
-            if (count($res) == 0) {
-                throw new OaiException('idDoesNotExist');
-            } else if (count($res) > 1) {
-                throw new RuntimeException('OAI id property not unique');
-            } else {
-                $meta = $res[0]->getMetadata();
-
-                $supFormats = array();
-                foreach ($this->metadataFormats as $format) {
-                    if ($format->rdfProperty == '') {
-                        $supFormats[] = $format;
-                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
-                        $supFormats[] = $format;
-                    }
-                }
-            }
+            throw new RuntimeException('Not implemented');
+//            $res = $this->pdo->getResourcesByProperty($this->config->idProp, $id);
+//            if (count($res) == 0) {
+//                throw new OaiException('idDoesNotExist');
+//            } else if (count($res) > 1) {
+//                throw new RuntimeException('OAI id property not unique');
+//            } else {
+//                $meta = $res[0]->getMetadata();
+//
+//                $supFormats = [];
+//                foreach ($this->metadataFormats as $format) {
+//                    if ($format->rdfProperty == '') {
+//                        $supFormats[] = $format;
+//                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
+//                        $supFormats[] = $format;
+//                    }
+//                }
+//            }
         } else {
             $supFormats = $this->metadataFormats;
         }
@@ -300,7 +305,7 @@ TMPL;
      * @param string $id
      * @throws OaiException
      */
-    public function oaiListRecords(string $verb, string $id = '') {
+    public function oaiListRecords(string $verb, string $id = ''): void {
         $from           = (string) $this->getParam('from') . '';
         $until          = (string) $this->getParam('until') . '';
         $set            = (string) $this->getParam('set');
@@ -308,13 +313,12 @@ TMPL;
         $reloadCache    = $this->getParam('reloadCache') !== null;
 
         if ($verb == 'GetRecord') {
-            $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));
+            $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
             if ($id == '') {
                 throw new OaiException('badArgument');
             }
         } else {
-            $this->checkRequestParam(array('from', 'until', 'metadataPrefix', 'set',
-                'reloadCache'));
+            $this->checkRequestParam(['from', 'until', 'metadataPrefix', 'set', 'reloadCache']);
         }
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
@@ -334,7 +338,7 @@ TMPL;
         $search = $this->config->search->searchClass;
         $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
         $search->setLogger($this->log);
-        /* @var $search \acdhOeaw\oai\search\SearchInterface */
+        /* @var $search SearchInterface */
         $search->find($id, $from, $until, $set);
         if ($search->getCount() == 0) {
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
@@ -382,9 +386,9 @@ TMPL;
      * Returns a single metadata record without any OAI structures
      * @param string $id
      */
-    public function oaiListRecordRaw(string $id = '') {
+    public function oaiListRecordRaw(string $id = ''): void {
         try {
-            $this->checkRequestParam(array('identifier', 'metadataPrefix', 'reloadCache'));
+            $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
             if ($id == '') {
                 throw new OaiException('badArgument');
             }
@@ -397,7 +401,7 @@ TMPL;
 
             $search = $this->config->search->searchClass;
             $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
-            /* @var $search \acdhOeaw\oai\search\SearchInterface */
+            /* @var $search SearchInterface */
             $search->find($id, '', '', '');
             if ($search->getCount() == 0) {
                 throw new OaiException('idDoesNotExist');
@@ -417,12 +421,12 @@ TMPL;
      * Fetches set description using a chosen (config:oaiSetClass) class and
      * formats its output as an OAI-PMH XML.
      */
-    public function oaiListSets() {
-        $this->checkRequestParam(array());
+    public function oaiListSets(): void {
+        $this->checkRequestParam([]);
         $sets = $this->sets->listSets($this->pdo);
         echo "    <ListSets>\n";
         foreach ($sets as $i) {
-            /* @var $i \acdhOeaw\oai\SetInfo */
+            /* @var $i SetInfo */
             $node = $this->createElement('set');
             $node->appendChild($this->createElement('setSpec', $i->spec));
             $node->appendChild($this->createElement('setName', $i->name));
@@ -441,7 +445,7 @@ TMPL;
     /**
      * Creates a resource's <header> element as defined by OAI-PMH standard.
      * 
-     * @param StdClass $res
+     * @param HeaderData $res
      * @return DOMElement
      */
     private function createHeader(HeaderData $res): DOMElement {
@@ -463,11 +467,11 @@ TMPL;
      * 
      * @param string $element
      * @param string $value
-     * @param array $attributes
+     * @param array<string, string> $attributes
      * @return DOMNode
      */
     private function createElement(string $element, string $value = '',
-                                   array $attributes = array()): DOMNode {
+                                   array $attributes = []): DOMNode {
         $node = $this->response->createElement($element);
         if ($value != '') {
             $node->appendChild($this->response->createTextNode($value));
@@ -481,17 +485,17 @@ TMPL;
     /**
      * Validates request parameters.
      *
-     * @param array $allowed allowed parameter names list
+     * @param array<string> $allowed allowed parameter names list
      * @throws OaiException
      */
-    private function checkRequestParam(array $allowed) {
+    private function checkRequestParam(array $allowed): void {
         $token = $this->getParam('resumptionToken');
         if ($token !== null) {
             // we do not implement partial responses
             throw new OaiException('badResumptionToken');
         }
 
-        $seen  = array();
+        $seen  = [];
         $param = filter_input(\INPUT_SERVER, 'QUERY_STRING');
         $param = explode('&', $param ? $param : '');
         foreach ($param as $i) {
@@ -510,8 +514,7 @@ TMPL;
         }
     }
 
-    private function getParam(string $name) {
+    private function getParam(string $name): ?string {
         return filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
     }
-
 }

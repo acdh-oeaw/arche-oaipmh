@@ -53,9 +53,9 @@ class RepositoryInfo {
 
     /**
      * List of repository admin emails
-     * @var array
+     * @var array<string>
      */
-    public $adminEmail        = array();
+    public $adminEmail        = [];
 
     /**
      * Earliest date which can be reported.

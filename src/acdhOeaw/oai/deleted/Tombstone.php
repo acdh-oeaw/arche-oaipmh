@@ -26,7 +26,7 @@
 
 namespace acdhOeaw\oai\deleted;
 
-use acdhOeaw\acdhRepoLib\QueryPart;
+use zozlak\queryPart\QueryPart;
 
 /**
  * Description of Tombstone

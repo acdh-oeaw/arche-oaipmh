@@ -25,6 +25,7 @@
  */
 
 namespace acdhOeaw\oai\data;
+use acdhOeaw\oai\data\SetInfo;
 
 /**
  * Container for data required to generate OAI-PMH resource's header.
@@ -58,8 +59,8 @@ class HeaderData {
     public $deleted = false;
 
     /**
-     * List of <setSpec> values denoting sets a resource belongs to
-     * @var array
+     * List of <SetInfo> values denoting sets a resource belongs to
+     * @var array<SetInfo>
      */
     public $sets = [];
 

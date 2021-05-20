@@ -33,10 +33,10 @@ use stdClass;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
 use EasyRdf\Graph;
-use acdhOeaw\acdhRepoLib\QueryPart;
-use acdhOeaw\acdhRepoLib\RepoResourceDb;
-use acdhOeaw\acdhRepoLib\RepoResourceInterface;
-use acdhOeaw\acdhRepoLib\SearchConfig;
+use zozlak\queryPart\QueryPart;
+use acdhOeaw\arche\lib\RepoResourceDb;
+use acdhOeaw\arche\lib\RepoResourceInterface;
+use acdhOeaw\arche\lib\SearchConfig;
 use acdhOeaw\oai\data\MetadataFormat;
 
 /**
@@ -126,7 +126,7 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Value mapping cache
-     * @var \acdhOeaw\oai\metadata\ValueMapper
+     * @var ValueMapper
      */
     static private $mapper;
 
@@ -138,13 +138,13 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Repository resource object
-     * @var \acdhOeaw\acdhRepoLib\RepoResourceDb
+     * @var RepoResourceDb
      */
     private $res;
 
     /**
      * Metadata format descriptor
-     * @var \acdhOeaw\oai\data\MetadataFormat
+     * @var MetadataFormat
      */
     private $format;
 
@@ -157,7 +157,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     /**
      * Creates a metadata object for a given repository resource.
      * 
-     * @param \acdhOeaw\acdhRepoLib\RepoResourceDb $resource a repository 
+     * @param RepoResourceDb $resource a repository 
      *   resource object
      * @param object $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
@@ -220,7 +220,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * Applies metadata format restrictions.
      * 
      * @param MetadataFormat $format
-     * @return \acdhOeaw\oai\QueryPart
+     * @return QueryPart
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
@@ -229,12 +229,9 @@ class LiveCmdiMetadata implements MetadataInterface {
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         $query = new QueryPart();
         if (!empty($format->schemaEnforce)) {
-            $param = [$format->schemaProp, '^' . $format->schemaEnforce . '$'];
-            $query = new SimpleQuery('{' . $resVar . ' ?@ ?schemaUri . FILTER regex(str(?schemaUri), ?#)}', $param);
-            $query = $query->getQuery();
+            throw new RuntimeException('Not implemented yet');
         } else if (empty($format->schemaDefault)) {
-            $query = new SimpleQuery($resVar . ' ?@ ?schemaUri .', [$format->schemaProp]);
-            $query = $query->getQuery();
+            throw new RuntimeException('Not implemented yet');
         }
         return $query;
     }
@@ -295,7 +292,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if ($val === 'IIIFURL') {
-            $tmp = array_filter($this->res->getIds(), function($x) {
+            $tmp = array_filter($this->res->getIds(), function ($x) {
                 return substr($x, 0, strlen($this->format->idNmsp)) === $this->format->idNmsp;
             });
             $tmp             = parse_url(count($tmp) > 0 ? array_pop($tmp) : '');
@@ -329,7 +326,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     /**
-     * Parses the `val` attribute into three components and returns them as 
+     * Parses the `val` attribute into components and returns them as 
      * an array.
      * 
      * The components are:
@@ -344,7 +341,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      *   to the current one (`true`)
      * 
      * @param string $val
-     * @return array
+     * @return array<string, mixed>
      */
     private function parseVal(string $val): array {
         $recursive  = false;
@@ -520,6 +517,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $parent = $el->parentNode;
         foreach ($values as $language => $tmp) {
             foreach ($tmp as $value) {
+                $ch = null;
                 if ($asXml) {
                     $df = $el->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
@@ -531,6 +529,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                     if ($replaceTag) {
                         $ch = $el->ownerDocument->createTextNode($value);
                     } else {
+                        /** @var DOMElement $ch */
                         $ch              = $el->cloneNode(true);
                         $ch->removeAttribute('val');
                         $ch->removeAttribute('count');
@@ -555,12 +554,14 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Extracts metadata value from a given EasyRdf node
-     * @param array $values
-     * @param Literal $metaVal
-     * @param type $subprop
+     * @param array<string> $values
+     * @param Literal|Resource $metaVal
+     * @param ?string $subprop
+     * @param ?string $dateFormat
      */
-    private function collectMetaValue(array &$values, $metaVal, $subprop,
-                                      $dateFormat) {
+    private function collectMetaValue(array &$values,
+                                      Literal | Resource $metaVal,
+                                      ?string $subprop, ?string $dateFormat) {
         $language = '';
         $value    = (string) $metaVal;
         if ($metaVal instanceof Literal) {
@@ -602,7 +603,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @param string $prop
      * @param bool $recursive
      * @param bool $inverse
-     * @return \EasyRdf\Resource
+     * @return Resource
      */
     private function getResourcesByPath(string $prop, bool $recursive,
                                         bool $inverse): Resource {
@@ -642,5 +643,4 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         return $resource;
     }
-
 }

@@ -115,7 +115,8 @@ class BaseSearch implements SearchInterface {
         $baseUrl    = $this->config->repoBaseUrl;
         $schema     = new Schema((object) [
                 'id'          => $this->config->idProp,
-                'searchMatch' => 'search://match'
+                'searchMatch' => 'search://match',
+                'searchCount' => 'search://count'
         ]);
         $this->repo = new RepoDb($baseUrl, $schema, $schema, $pdo, []);
     }

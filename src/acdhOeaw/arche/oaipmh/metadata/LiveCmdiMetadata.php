@@ -223,10 +223,6 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return QueryPart
      */
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
-        return new QueryPart();
-    }
-
-    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         if (!empty($format->schemaEnforce)) {
             // Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
             return new QueryPart(
@@ -234,6 +230,10 @@ class LiveCmdiMetadata implements MetadataInterface {
                 [$format->schemaProp, $format->schemaEnforce]
             );
         }
+        return new QueryPart();
+    }
+
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
 

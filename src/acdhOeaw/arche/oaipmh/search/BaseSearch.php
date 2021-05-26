@@ -119,10 +119,6 @@ class BaseSearch implements SearchInterface {
      * @param string $set set filter value
      */
     public function find(string $id, string $from, string $until, string $set): void {
-        if (!isset($this->format)) {
-            throw new RuntimeException('Metadata format not set');
-        }
-
         $extFilterQP = new QueryPart();
         $extDataQP   = new QueryPart();
         if (isset($this->format)) {

@@ -23,11 +23,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 require_once 'vendor/autoload.php';
 
 use acdhOeaw\arche\oaipmh\Oai;
 
-$config = json_decode(json_encode(yaml_parse_file(__DIR__ . '/config.yaml')))->oai;
-$oai = new Oai($config);
+$config = (json_decode((string) json_encode(yaml_parse_file(__DIR__ . '/config.yaml'))) ?: null)?->oai;
+$oai    = new Oai($config);
 $oai->handleRequest();

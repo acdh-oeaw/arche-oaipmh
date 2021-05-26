@@ -38,7 +38,6 @@ use DOMNode;
 use DOMElement;
 use PDO;
 use RuntimeException;
-use StdClass;
 use Throwable;
 use zozlak\logging\Log;
 
@@ -59,9 +58,8 @@ class Oai {
 
     /**
      * OAI-PMH response beginning template
-     * @var string
      */
-    static private $respBegin = <<<TMPL
+    static private string $respBegin = <<<TMPL
 <?xml version="1.0" encoding="UTF-8"?>
 <OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
     <responseDate>%s</responseDate>
@@ -71,9 +69,8 @@ TMPL;
 
     /**
      * OAI-PMH response ending template
-     * @var string
      */
-    static private $respEnd = <<<TMPL
+    static private string $respEnd = <<<TMPL
 </OAI-PMH>     
 TMPL;
 
@@ -85,57 +82,46 @@ TMPL;
 
     /**
      * Configuration options
-     * @var object
      */
-    private $config;
+    private object $config;
 
     /**
      * Repository database connection object
-     * @var PDO
      */
-    private $pdo;
+    private PDO $pdo;
 
     /**
      * XML object used to serialize OAI-PMH response parts
-     * @var DOMDocument
      */
-    private $response;
+    private DOMDocument $response;
 
     /**
      * Repository info object used to serve OAI-PMH `Identify` requests
-     * @var RepositoryInfo
      */
-    private $info;
+    private RepositoryInfo $info;
 
     /**
      * List of metadata descriptors
      * @var array<MetadataFormat>
      */
-    private $metadataFormats = [];
+    private array $metadataFormats = [];
 
     /**
      * Object handling sets
-     * @var SetInterface
      */
-    private $sets;
+    private SetInterface $sets;
 
     /**
      * Object handling deleted resources information
-     * @var DeletedInterface
      */
-    private $deleted;
+    private DeletedInterface $deleted;
+    private SearchInterface $search;
 
     /**
      * Cache object
-     * @var Cache
      */
-    private $cache;
-
-    /**
-     *
-     * @var Log
-     */
-    private $log;
+    private Cache $cache;
+    private Log $log;
 
     /**
      * Initialized the OAI-PMH server object.
@@ -160,11 +146,15 @@ TMPL;
 
         $this->sets = new $this->config->sets->setClass($this->config->sets);
 
+        $searchClass  = $this->config->search->searchClass;
+        $this->search = new $searchClass($this->sets, $this->deleted, $this->config->search, $this->pdo);
+
         if (!empty($this->config->cacheDir)) {
             $this->cache = new Cache($this->config->cacheDir);
         }
 
         $this->log = new Log($this->config->logging->file, $this->config->logging->level);
+        $this->search->setLogger($this->log);
 
         // response initialization
         $this->response = new DOMDocument('1.0', 'UTF-8');
@@ -261,24 +251,22 @@ TMPL;
         $id = $this->getParam('identifier');
 
         if ($id != '') {
-            throw new RuntimeException('Not implemented');
-//            $res = $this->pdo->getResourcesByProperty($this->config->idProp, $id);
-//            if (count($res) == 0) {
-//                throw new OaiException('idDoesNotExist');
-//            } else if (count($res) > 1) {
-//                throw new RuntimeException('OAI id property not unique');
-//            } else {
-//                $meta = $res[0]->getMetadata();
-//
-//                $supFormats = [];
-//                foreach ($this->metadataFormats as $format) {
-//                    if ($format->rdfProperty == '') {
-//                        $supFormats[] = $format;
-//                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
-//                        $supFormats[] = $format;
-//                    }
-//                }
-//            }
+            $this->search->find($id, '', '', '');
+            if ($this->search->getCount() === 0) {
+                throw new OaiException('idDoesNotExist');
+            } else if ($this->search->getCount() > 1) {
+                throw new RuntimeException('OAI id property not unique');
+            } else {
+                $meta = $this->search->getMetadata(0);
+                $supFormats = [];
+                foreach ($this->metadataFormats as $format) {
+                    if ($format->rdfProperty == '') {
+                        $supFormats[] = $format;
+                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
+                        $supFormats[] = $format;
+                    }
+                }
+            }
         } else {
             $supFormats = $this->metadataFormats;
         }
@@ -334,22 +322,18 @@ TMPL;
         }
 
         $format = $this->metadataFormats[$metadataPrefix];
-
-        $search = $this->config->search->searchClass;
-        $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
-        $search->setLogger($this->log);
-        /* @var $search SearchInterface */
-        $search->find($id, $from, $until, $set);
-        if ($search->getCount() == 0) {
+        $this->search->setMetadataFormat($format);
+        $this->search->find($id, $from, $until, $set);
+        if ($this->search->getCount() == 0) {
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }
 
         echo "    <" . $verb . ">\n";
         try {
-            for ($i = 0; $i < $search->getCount(); $i++) {
+            for ($i = 0; $i < $this->search->getCount(); $i++) {
                 $recordFlag   = $metadataFlag = false;
                 try {
-                    $headerData = $search->getHeader($i);
+                    $headerData = $this->search->getHeader($i);
                     $header     = $this->createHeader($headerData);
                     $this->response->documentElement->appendChild($header);
                     if ($verb === 'ListIdentifiers') {
@@ -360,14 +344,14 @@ TMPL;
                         echo $header->C14N() . "\n";
                         echo "<metadata>";
                         $metadataFlag = true;
-                        if ($this->cache !== null) {
+                        if (isset($this->cache)) {
                             if ($reloadCache || !$this->cache->check($headerData, $format)) {
-                                $xml = $search->getMetadata($i)->getXml();
+                                $xml = $this->search->getMetadata($i)->getXml();
                                 $this->cache->put($headerData, $format, $xml->ownerDocument);
                             }
                             echo $this->cache->get($headerData, $format);
                         } else {
-                            $xml = $search->getMetadata($i)->getXml();
+                            $xml = $this->search->getMetadata($i)->getXml();
                             echo $xml->C14N();
                         }
                     }
@@ -398,16 +382,13 @@ TMPL;
                 throw new OaiException('badArgument');
             }
             $format = $this->metadataFormats[$metadataPrefix];
-
-            $search = $this->config->search->searchClass;
-            $search = new $search($format, $this->sets, $this->deleted, $this->config->search, $this->pdo);
-            /* @var $search SearchInterface */
-            $search->find($id, '', '', '');
-            if ($search->getCount() == 0) {
+            $this->search->setMetadataFormat($format);
+            $this->search->find($id, '', '', '');
+            if ($this->search->getCount() == 0) {
                 throw new OaiException('idDoesNotExist');
             }
 
-            $xml = $search->getMetadata(0)->getXml();
+            $xml = $this->search->getMetadata(0)->getXml();
             echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             echo $xml->C14N() . "\n";
         } catch (OaiException $e) {

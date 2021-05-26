@@ -227,13 +227,14 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
-        $query = new QueryPart();
         if (!empty($format->schemaEnforce)) {
-            throw new RuntimeException('Not implemented yet');
-        } else if (empty($format->schemaDefault)) {
-            throw new RuntimeException('Not implemented yet');
+            // Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
+            return new QueryPart(
+                "SELECT id FROM metadata WHERE property = ? AND substring(value, 1, 1000) = ?",
+                [$format->schemaProp, $format->schemaEnforce]
+            );
         }
-        return $query;
+        return new QueryPart();
     }
 
     /**

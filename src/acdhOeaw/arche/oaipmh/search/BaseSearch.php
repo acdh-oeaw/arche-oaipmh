@@ -27,6 +27,7 @@
 namespace acdhOeaw\arche\oaipmh\search;
 
 use PDO;
+use RuntimeException;
 use Psr\Log\AbstractLogger;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
@@ -56,45 +57,39 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Metadata format descriptor.
-     * @var MetadataFormat
      */
-    private $format;
+    private MetadataFormat $format;
 
     /**
      * Object handling sets
-     * @var SetInterface
      */
-    private $sets;
+    private SetInterface $sets;
 
     /**
      * Object handling deleted resources information
-     * @var DeletedInterface
      */
-    private $deleted;
+    private DeletedInterface $deleted;
 
     /**
      * Configuration object
-     * @var object
      */
-    private $config;
+    private object $config;
 
     /**
      * Repistory database connection object
-     * @var PDO
      */
-    private $pdo;
+    private PDO $pdo;
 
     /**
      * High-level repository API handle object
-     * @var RepoDb
      */
-    private $repo;
+    private RepoDb $repo;
 
     /**
      * Last search results
      * @var array<HeaderData>
      */
-    private $records;
+    private array $records = [];
 
     /**
      * @param MetadataFormat $format metadata format descriptor
@@ -103,22 +98,17 @@ class BaseSearch implements SearchInterface {
      * @param object $config configuration object
      * @param PDO $pdo repository database connection object
      */
-    public function __construct(MetadataFormat $format, SetInterface $sets,
-                                DeletedInterface $deleted, object $config,
-                                PDO $pdo) {
-        $this->format  = $format;
+    public function __construct(SetInterface $sets, DeletedInterface $deleted,
+                                object $config, PDO $pdo) {
         $this->sets    = $sets;
         $this->deleted = $deleted;
         $this->config  = $config;
         $this->pdo     = $pdo;
 
         $baseUrl    = $this->config->repoBaseUrl;
-        $schema     = new Schema((object) [
-                'id'          => $this->config->idProp,
-                'searchMatch' => 'search://match',
-                'searchCount' => 'search://count'
-        ]);
-        $this->repo = new RepoDb($baseUrl, $schema, $schema, $pdo, []);
+        $schema     = new Schema($config);
+        $headers    = new Schema((object) []);
+        $this->repo = new RepoDb($baseUrl, $schema, $headers, $pdo, []);
     }
 
     /**
@@ -129,9 +119,17 @@ class BaseSearch implements SearchInterface {
      * @param string $set set filter value
      */
     public function find(string $id, string $from, string $until, string $set): void {
-        $class       = $this->format->class;
-        $extFilterQP = $class::extendSearchFilterQuery($this->format);
-        $extDataQP   = $class::extendSearchDataQuery($this->format);
+        if (!isset($this->format)) {
+            throw new RuntimeException('Metadata format not set');
+        }
+
+        $extFilterQP = new QueryPart();
+        $extDataQP   = new QueryPart();
+        if (isset($this->format)) {
+            $class       = $this->format->class;
+            $extFilterQP = $class::extendSearchFilterQuery($this->format);
+            $extDataQP   = $class::extendSearchDataQuery($this->format);
+        }
 
         $idFilterQP    = $this->getIdFilter($id);
         $setFilterQP   = $this->sets->getSetFilter($set);
@@ -267,5 +265,14 @@ class BaseSearch implements SearchInterface {
      */
     public function setLogger(AbstractLogger $log): void {
         $this->repo->setQueryLog($log);
+    }
+
+    /**
+     * Sets metadata format configuration
+     * @param MetadataFormat $format metadata format descriptor
+     * @return void
+     */
+    public function setMetadataFormat(MetadataFormat $format): void {
+        $this->format = $format;
     }
 }

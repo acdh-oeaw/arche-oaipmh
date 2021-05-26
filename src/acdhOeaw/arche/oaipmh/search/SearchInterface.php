@@ -54,13 +54,12 @@ interface SearchInterface {
     /**
      * Creates a search engine object.
      * 
-     * @param MetadataFormat $format metadata format descriptor
      * @param SetInterface $sets
      * @param DeletedInterface $deleted
      * @param object $config configuration object
      * @param PDO $pdo repository database connection object
      */
-    public function __construct(MetadataFormat $format, SetInterface $sets,
+    public function __construct(SetInterface $sets,
                                 DeletedInterface $deleted, object $config,
                                 PDO $pdo);
 
@@ -101,4 +100,11 @@ interface SearchInterface {
      * @return void
      */
     public function setLogger(AbstractLogger $log): void;
+    
+    /**
+     * Sets metadata format configuration
+     * @param MetadataFormat $format metadata format descriptor
+     * @return void
+     */
+    public function setMetadataFormat(MetadataFormat $format): void;
 }

@@ -103,8 +103,8 @@ interface SearchInterface {
     
     /**
      * Sets metadata format configuration
-     * @param MetadataFormat $format metadata format descriptor
+     * @param ?MetadataFormat $format metadata format descriptor
      * @return void
      */
-    public function setMetadataFormat(MetadataFormat $format): void;
+    public function setMetadataFormat(?MetadataFormat $format): void;
 }

@@ -27,7 +27,6 @@
 namespace acdhOeaw\arche\oaipmh\search;
 
 use PDO;
-use RuntimeException;
 use Psr\Log\AbstractLogger;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
@@ -58,7 +57,7 @@ class BaseSearch implements SearchInterface {
     /**
      * Metadata format descriptor.
      */
-    private MetadataFormat $format;
+    private ?MetadataFormat $format;
 
     /**
      * Object handling sets
@@ -265,10 +264,10 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Sets metadata format configuration
-     * @param MetadataFormat $format metadata format descriptor
+     * @param ?MetadataFormat $format metadata format descriptor
      * @return void
      */
-    public function setMetadataFormat(MetadataFormat $format): void {
+    public function setMetadataFormat(?MetadataFormat $format): void {
         $this->format = $format;
     }
 }

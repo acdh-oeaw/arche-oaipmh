@@ -251,20 +251,21 @@ TMPL;
         $id = $this->getParam('identifier');
 
         if ($id != '') {
-            $this->search->find($id, '', '', '');
-            if ($this->search->getCount() === 0) {
-                throw new OaiException('idDoesNotExist');
-            } else if ($this->search->getCount() > 1) {
-                throw new RuntimeException('OAI id property not unique');
-            } else {
-                $meta = $this->search->getMetadata(0);
-                $supFormats = [];
-                foreach ($this->metadataFormats as $format) {
-                    if ($format->rdfProperty == '') {
-                        $supFormats[] = $format;
-                    } elseif ($meta->getResource($format->rdfProperty) !== null) {
-                        $supFormats[] = $format;
-                    }
+            $supFormats = [];
+            foreach ($this->metadataFormats as $format) {
+                $this->search->setMetadataFormat($format);
+                $this->search->find($id, '', '', '');
+                if ($this->search->getCount() === 1) {
+                    $supFormats[] = $format;
+                }
+            }
+            if (count($supFormats) === 0) {
+                $this->search->setMetadataFormat(null);
+                $this->search->find($id, '', '', '');
+                if ($this->search->getCount() === 0) {
+                    throw new OaiException('idDoesNotExist');
+                } else {
+                    throw new OaiException('noMetadataFormats');
                 }
             }
         } else {

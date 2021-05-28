@@ -54,6 +54,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * 
  * Optional metadata format definition properties:
  * - `propNmsp[prefix]` - an array of property URLs namespaces used in the template
+ * - `idNmsp[prefix]` - an array of id URIs namespaces used in the template
  * - `schemaDefault` provides a default CMDI profile (e.g. `clarin.eu:cr1:p_1290431694580.xml`)
  *   to be used when a resource's metadata don't contain the `schemaProp` or none of its values
  *   correspond to an existing CMDI template.
@@ -69,17 +70,30 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     - `/propUri[key]` - parse given metadata property value as YAML and take the value 
  *       at the key `key`
  *     - `@propUri1/propUri2` - get another resource URL from the `propUri1` metadata
- *       property value, then use the `propUri2` metadata property value of this resource
+ *       property value, then use the `propUri2` metadata property value of this resource.
+ *       If inverse of `propoUri1` is needed, prepend it with a dash: `@^propUri1/propUri2`.
  *     - `@propUri` in a tag having the `ComponentId` attribute - inject the CMDI component
  *       identified by the `ComponentId` attribute taking the resource `propUri` metadata
- *       property points to as its base resource
+ *       property points to as its base resource.
+ *       If inverse of `propoUri1` is needed, prepend it with a dash: `@^propUri1`.
  *     - `NOW` - current time
- *     - `URL` - resource's repository URL
- *     - `ID` - resource's ACDH repo UUID
+ *     - `URL`, `URI` - resource's repository URL
+ *     - `METAURL` - resource's metadata repository URL
+ *     - `ID`, `ID@NMSP`, `ID&NMSP` - value of resource's `idProp` metadata property.
+ *       `ID@NMSP` and `ID&NMSP` allow to indicate the value namespace. They differ
+ *       in regard to the situation when a value in a given namespace doesn't exist.
+ *       In such a case `ID@NMSP` returns just any id and `ID&NMSP` returns empty value.
+ *       `NMSP` should be one of the keys provided in the `idNmsp[prefix]` metadata
+ *       format configuration property (see above).
+ *       Remark - when using the `ID&NMSP` syntax remember about proper XML entity
+ *       escaping - ``ID&amp;NMSP`.
  *     - `OAIURI` - resource's OAI-PMH ID
  *     - `IIIFURL` - resource's IIIF URL which is a concatenation of the metadata format's
- *       `iiifBaseUrl` parameter value and the path part of the repository resource ID
- *       (this is a special corner case for ARCHE)
+ *       `iiifBaseUrl` parameter value and the path part of the repository resource ID in 
+ *       the `id` namespace.
+ *       This is a special corner case for ARCHE to Kulturpool synchronization.
+ *       It requires `idNmsp[id]` ID namespace to be defined in the metadata format config
+ *       (see above).
  * - `count="N"` (default `1`)
  *     - when "*" and metadata contain no property specified by the `val` attribute
  *       the tag is removed from the template;
@@ -279,13 +293,16 @@ class LiveCmdiMetadata implements MetadataInterface {
         if ($val === 'NOW') {
             $el->textContent = date('Y-m-d');
             $remove          = false;
-        } else if ($val === 'ID') {
+        } else if ($val === 'ID' || substr($val, 0, 3) === 'ID&' || substr($val, 0, 3) === 'ID@') {
             $format          = $el->getAttribute('format');
             $format          = !empty($format) ? '?format=' . urlencode($format) : '';
-            $el->textContent = $this->res->getUri() . $format;
+            $el->textContent = $this->getResourceId(substr($val, 2, 1), substr($val, 3), $format);
             $remove          = false;
         } else if ($val === 'URI' || $val === 'URL') {
             $el->textContent = $this->res->getUri();
+            $remove          = false;
+        } else if ($val === 'METAURL') {
+            $el->textContent = $this->res->getUri() . '/metadata';
             $remove          = false;
         } else if ($val === 'OAIURI') {
             $id              = urlencode((string) $this->res->getGraph()->get($this->format->uriProp));
@@ -293,11 +310,9 @@ class LiveCmdiMetadata implements MetadataInterface {
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if ($val === 'IIIFURL') {
-            $tmp = array_filter($this->res->getIds(), function ($x) {
-                return substr($x, 0, strlen($this->format->idNmsp)) === $this->format->idNmsp;
-            });
-            $tmp             = parse_url(count($tmp) > 0 ? array_pop($tmp) : '');
-            $el->textContent = $this->format->iiifBaseUrl . $tmp['path'];
+            $tmp             = $this->getResourceId('&', 'id', '');
+            $tmp             = parse_url($tmp);
+            $el->textContent = !empty($tmp['path']) ? $this->format->iiifBaseUrl . $tmp['path'] : '';
             $remove          = false;
         } else if ($val !== '') {
             list('prop' => $prop, 'recursive' => $recursive, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
@@ -643,5 +658,41 @@ class LiveCmdiMetadata implements MetadataInterface {
             $resource->addResource($prop, $i);
         }
         return $resource;
+    }
+
+    private function getResourceId(string $method, string $namespace,
+                                   string $format): string {
+        $ids   = $this->res->getIds();
+        $match = null;
+        if (!empty($method)) {
+            if (!isset($this->format->idNmsp->$namespace)) {
+                throw new OaiException("namespace '$namespace' is not defined in the metadata format config");
+            }
+            $namespace = $this->format->idNmsp->$namespace;
+            foreach ($ids as $i) {
+                if (str_starts_with($i, $namespace)) {
+                    $otherNmsp = false;
+                    foreach ((array) $this->format->idNmsp as $j) {
+                        if ($nmsp !== $j && str_starts_with($i, $j)) {
+                            $otherNmsp = true;
+                            break;
+                        }
+                    }
+                    if (!$otherNmsp) {
+                        $match = $i;
+                        break;
+                    } else {
+                        $match = $i;
+                    }
+                }
+            }
+        }
+        if ($match === null && $method !== '&') {
+            $match = $ids[0];
+        }
+        if (!empty($match)) {
+            $match .= $format;
+        }
+        return (string) $match;
     }
 }

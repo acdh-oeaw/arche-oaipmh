@@ -65,7 +65,7 @@ class MetadataFormat {
      * 
      * @var array<string, string>
      */
-    public $propNmsp;
+    public $propNmsp = [];
 
     /**
      * 
@@ -113,7 +113,7 @@ class MetadataFormat {
      * 
      * @var array<string, string>
      */
-    public $requestOptions;
+    public $requestOptions = [];
 
     /**
      * 
@@ -129,10 +129,16 @@ class MetadataFormat {
 
     /**
      * 
+     * @var array<string, string>
+     */
+    public $idNmsp = [];
+
+    /**
+     * 
      * @var ?string
      */
-    public $idNmsp;
-
+    public $idProp;
+    
     /**
      * 
      * @var ?string

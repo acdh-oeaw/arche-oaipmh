@@ -87,7 +87,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *       format configuration property (see above).
  *       Remark - when using the `ID&NMSP` syntax remember about proper XML entity
  *       escaping - ``ID&amp;NMSP`.
- *     - `OAIURI` - resource's OAI-PMH ID
+ *     - `OAIID` - resources's OAI-PMH identifier
+ *     - `OAIURL` - URL of the OAI-PMH `GetRecord` request returning a given resource
+ *       metadata in the currently requested metadata format
  *     - `IIIFURL` - resource's IIIF URL which is a concatenation of the metadata format's
  *       `iiifBaseUrl` parameter value and the path part of the repository resource ID in 
  *       the `id` namespace.
@@ -113,10 +115,11 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
  *   as when present it will also naivly process any string values (cutting them or appending
  *   with a default time).
- * - `format="FORMAT"` forces an URL value fetched according to the `val` attribute to be
- *   extended with a `?format=FORMAT`. Allows to provide links to particular serialization
- *   of repository objects when the default one (typically the repository GUI) is not the
- *   desired one. The `asXML` attribute takes a precedense.
+ * - `format="FORMAT"` extend the URL returned according to the `val` attribute with
+ *   `?format=FORMAT` (when `val="ID"`) or `@format=FORMAT` (when `val="OAIID"`).
+ *   This allows to provide URLs redirecting to particular dissemination services.
+ *   It's worth noting that using `val="OAIID"` is faster.
+ *   The `asXML` attribute takes a precedense.
  *   Doesn't work for special `val` attribute values of `NOW`, `URL` and `OAIURI`.
  * - `valueMapProp="RDFpropertyURL"` causes value denoted by the `val` attribute to be
  *   mapped to another values using a given RDF property. The `val` attribute value must be 
@@ -304,9 +307,15 @@ class LiveCmdiMetadata implements MetadataInterface {
         } else if ($val === 'METAURL') {
             $el->textContent = $this->res->getUri() . '/metadata';
             $remove          = false;
-        } else if ($val === 'OAIURI') {
-            $id              = urlencode((string) $this->res->getGraph()->get($this->format->uriProp));
-            $prefix          = urlencode($this->format->metadataPrefix);
+        } else if ($val === 'OAIID') {
+            $id              = (string) $this->res->getGraph()->get($this->format->uriProp);
+            $format          = $el->getAttribute('format');
+            $format          = !empty($format) ? '@format=' . urlencode($format) : '';
+            $el->textContent = $id . $format;
+            $remove          = false;
+        } else if ($val === 'OAIURL') {
+            $id              = rawurlencode((string) $this->res->getGraph()->get($this->format->uriProp));
+            $prefix          = rawurlencode($this->format->metadataPrefix);
             $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
             $remove          = false;
         } else if ($val === 'IIIFURL') {

@@ -40,7 +40,7 @@ Please read the documentation provided in the `config-sample.yaml` and, if neede
 
 # Architecture
 
-Source code documentation can be found at https://acdh-oeaw.github.io/arche-docs/arche-oaipmh/
+Source code documentation can be found at https://acdh-oeaw.github.io/arche-docs/devdocs/namespaces/acdhoeaw-arche-oaipmh.html
 
 ```
     +------------------+

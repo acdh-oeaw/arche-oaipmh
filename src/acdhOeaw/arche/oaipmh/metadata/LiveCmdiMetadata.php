@@ -111,6 +111,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   as XML
  * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitus the
  *   XML tag itself instead of being injected as its value.
+ * - `asAttribute="targetAttribute"` if present, value specified with the `val` attribute is
+ *   stored as a given attribute's value. Takes precedense over `replaceXMLTag` and forces
+ *   `asXML="false"`.
  * - `dateFormat="FORMAT"` (default native precision read from the resource metadata value)
  *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
  *   as when present it will also naivly process any string values (cutting them or appending
@@ -290,39 +293,43 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return bool should `$el` DOMElement be removed from the document
      */
     private function insertValue(DOMElement $el): bool {
-        $val = $el->getAttribute('val');
+        $val    = $el->getAttribute('val');
+        $asAttr = $el->getAttribute('asAttribute');
 
         $remove = true;
         if ($val === 'NOW') {
-            $el->textContent = date('Y-m-d');
-            $remove          = false;
+            $this->insertContent($el, date('Y-m-d'), $asAttr);
+            $remove = false;
         } else if ($val === 'ID' || substr($val, 0, 3) === 'ID&' || substr($val, 0, 3) === 'ID@') {
-            $format          = $el->getAttribute('format');
-            $format          = !empty($format) ? '?format=' . urlencode($format) : '';
-            $el->textContent = $this->getResourceId(substr($val, 2, 1), substr($val, 3), $format);
-            $remove          = false;
+            $format = $el->getAttribute('format');
+            $format = !empty($format) ? '?format=' . urlencode($format) : '';
+            $value  = $this->getResourceId(substr($val, 2, 1), substr($val, 3), $format);
+            $this->insertContent($el, $value, $asAttr);
+            $remove = false;
         } else if ($val === 'URI' || $val === 'URL') {
-            $el->textContent = $this->res->getUri();
-            $remove          = false;
+            $this->insertContent($el, $this->res->getUri(), $asAttr);
+            $remove = false;
         } else if ($val === 'METAURL') {
-            $el->textContent = $this->res->getUri() . '/metadata';
-            $remove          = false;
+            $this->insertContent($el, $this->res->getUri() . '/metadata', $asAttr);
+            $remove = false;
         } else if ($val === 'OAIID') {
-            $id              = (string) $this->res->getGraph()->get($this->format->uriProp);
-            $format          = $el->getAttribute('format');
-            $format          = !empty($format) ? '@format=' . urlencode($format) : '';
-            $el->textContent = $id . $format;
-            $remove          = false;
+            $id     = (string) $this->res->getGraph()->get($this->format->uriProp);
+            $format = $el->getAttribute('format');
+            $format = !empty($format) ? '@format=' . urlencode($format) : '';
+            $this->insertContent($el, $id . $format, $asAttr);
+            $remove = false;
         } else if ($val === 'OAIURL') {
-            $id              = rawurlencode((string) $this->res->getGraph()->get($this->format->uriProp));
-            $prefix          = rawurlencode($this->format->metadataPrefix);
-            $el->textContent = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
-            $remove          = false;
+            $id     = rawurlencode((string) $this->res->getGraph()->get($this->format->uriProp));
+            $prefix = rawurlencode($this->format->metadataPrefix);
+            $value  = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
+            $this->insertContent($el, $value, $asAttr);
+            $remove = false;
         } else if ($val === 'IIIFURL') {
-            $tmp             = $this->getResourceId('&', 'id', '');
-            $tmp             = parse_url($tmp);
-            $el->textContent = !empty($tmp['path']) ? $this->format->iiifBaseUrl . $tmp['path'] : '';
-            $remove          = false;
+            $tmp    = $this->getResourceId('&', 'id', '');
+            $tmp    = parse_url($tmp);
+            $tmp    = !empty($tmp['path']) ? $this->format->iiifBaseUrl . $tmp['path'] : '';
+            $this->insertContent($el, $tmp, $asAttr);
+            $remove = false;
         } else if ($val !== '') {
             list('prop' => $prop, 'recursive' => $recursive, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
             if ($recursive || $inverse) {
@@ -338,15 +345,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
         }
 
-        $el->removeAttribute('val');
-        $el->removeAttribute('count');
-        $el->removeAttribute('lang');
-        $el->removeAttribute('format');
-        $el->removeAttribute('dateFormat');
-        $el->removeAttribute('asXML');
-        $el->removeAttribute('valueMapProp');
-        $el->removeAttribute('valueMapKeepSrc');
-        $el->removeAttribute('replaceXMLTag');
+        $this->removeTemplateAttributes($el);
         return $remove;
     }
 
@@ -479,14 +478,15 @@ class LiveCmdiMetadata implements MetadataInterface {
     private function insertMetaValues(DOMElement $el, Resource $meta,
                                       string $prop, ?string $subprop,
                                       ?string $extUriProp) {
-        $lang       = ($el->getAttribute('lang') ?? '' ) === 'true';
-        $asXml      = ($el->getAttribute('asXML') ?? '' ) === 'true';
-        $count      = $el->getAttribute('count');
-        $dateFormat = $el->getAttribute('dateFormat');
-        $format     = $el->getAttribute('format');
-        $valueMap   = $el->getAttribute('valueMapProp');
-        $keepSrc    = $el->getAttribute('valueMapKeepSrc');
-        $replaceTag = $el->getAttribute('replaceXMLTag');
+        $lang        = ($el->getAttribute('lang') ?? '' ) === 'true';
+        $asXml       = ($el->getAttribute('asXML') ?? '' ) === 'true';
+        $count       = $el->getAttribute('count');
+        $dateFormat  = $el->getAttribute('dateFormat');
+        $format      = $el->getAttribute('format');
+        $valueMap    = $el->getAttribute('valueMapProp');
+        $keepSrc     = $el->getAttribute('valueMapKeepSrc');
+        $replaceTag  = $el->getAttribute('replaceXMLTag');
+        $asAttribute = $el->getAttribute('asAttribute');
         if (empty($count)) {
             $count = '1';
         }
@@ -551,21 +551,17 @@ class LiveCmdiMetadata implements MetadataInterface {
                     }
                 } else {
                     $value = $value . (!empty($value) ? $format : '');
-                    if ($replaceTag) {
+                    if (!empty($asAttribute)) {
+                        /** @var DOMElement $ch */
+                        $ch = $el->cloneNode(true);
+                        $this->removeTemplateAttributes($ch);
+                        $this->insertAttribute($ch, $asAttribute, $value);
+                    } elseif ($replaceTag) {
                         $ch = $el->ownerDocument->createTextNode($value);
                     } else {
                         /** @var DOMElement $ch */
                         $ch              = $el->cloneNode(true);
-                        $ch->removeAttribute('val');
-                        $ch->removeAttribute('count');
-                        $ch->removeAttribute('lang');
-                        $ch->removeAttribute('getLabel');
-                        $ch->removeAttribute('asXML');
-                        $ch->removeAttribute('dateFormat');
-                        $ch->removeAttribute('format');
-                        $ch->removeAttribute('valueMapProp');
-                        $ch->removeAttribute('valueMapKeepSrc');
-                        $ch->removeAttribute('replaceXMLTag');
+                        $this->removeTemplateAttributes($ch);
                         $ch->textContent = $value;
                     }
                 }
@@ -575,6 +571,20 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $parent->insertBefore($ch, $el);
             }
         }
+    }
+
+    private function removeTemplateAttributes(DOMElement $ch): void {
+        $ch->removeAttribute('val');
+        $ch->removeAttribute('count');
+        $ch->removeAttribute('lang');
+        $ch->removeAttribute('getLabel');
+        $ch->removeAttribute('asXML');
+        $ch->removeAttribute('dateFormat');
+        $ch->removeAttribute('format');
+        $ch->removeAttribute('valueMapProp');
+        $ch->removeAttribute('valueMapKeepSrc');
+        $ch->removeAttribute('replaceXMLTag');
+        $ch->removeAttribute('asAttribute');
     }
 
     /**
@@ -697,11 +707,34 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
         }
         if ($match === null && $method !== '&') {
-            $match = $ids[0];
+            $match = $ids[0] ?? $this->res->getUri();
         }
         if (!empty($match)) {
             $match .= $format;
         }
         return (string) $match;
+    }
+
+    private function insertAttribute(DOMElement $el, string $attribute,
+                                     string $value): void {
+        $p = strpos($attribute, ':');
+        if ($p > 0) {
+            $prefix = substr($attribute, 0, $p);
+            $nmsp   = $el->lookupNamespaceUri($prefix);
+        }
+        if (!empty($prefix)) {
+            $el->setAttributeNS($nmsp, $attribute, $value);
+        } else {
+            $el->setAttribute($attribute, $value);
+        }
+    }
+
+    private function insertContent(DOMElement $el, string $value,
+                                   ?string $attribute): void {
+        if (!empty($attribute)) {
+            $this->insertAttribute($el, $attribute, $value);
+        } else {
+            $el->textContent = $value;
+        }
     }
 }

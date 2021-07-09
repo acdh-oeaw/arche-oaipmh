@@ -424,7 +424,9 @@ class LiveCmdiMetadata implements MetadataInterface {
 
         $resources = [];
         foreach ($meta->all($prop) as $i) {
-            if (count($i->propertyUris()) === 0) {
+            if ($i instanceof Literal) {
+                $resources[] = $this->res;
+            } elseif (count($i->propertyUris()) === 0) {
                 $resources[] = $this->res->getRepo()->getResourceById($i);
             } else {
                 $resTmp      = new RepoResourceDb($i->getUri(), $this->res->getRepo());

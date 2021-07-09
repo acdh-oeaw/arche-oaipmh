@@ -198,7 +198,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
         }
         if ($this->template === null && !empty($this->format->schemaDefault)) {
-            $default = preg_replace('|[^-A-Za-z0-9_]|', '_', $this->format->schemaDefault);
+            $default        = preg_replace('|[^-A-Za-z0-9_]|', '_', $this->format->schemaDefault);
             $this->template = $this->format->templateDir . '/' . $default . '.xml';
         }
         if (empty($this->template) || !file_exists($this->template)) {
@@ -545,7 +545,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $parent = $el->parentNode;
         foreach ($values as $language => $tmp) {
             foreach ($tmp as $value) {
-                $ch = null;
+                /** @var DOMElement $ch */
+                $ch = !$replaceTag ? $el->cloneNode(true) : null;
                 if ($asXml) {
                     $df = $el->ownerDocument->createDocumentFragment();
                     $df->appendXML($value);
@@ -555,15 +556,11 @@ class LiveCmdiMetadata implements MetadataInterface {
                 } else {
                     $value = $value . (!empty($value) ? $format : '');
                     if (!empty($asAttribute)) {
-                        /** @var DOMElement $ch */
-                        $ch = $el->cloneNode(true);
                         $this->removeTemplateAttributes($ch);
                         $this->insertAttribute($ch, $asAttribute, $value);
                     } elseif ($replaceTag) {
                         $ch = $el->ownerDocument->createTextNode($value);
                     } else {
-                        /** @var DOMElement $ch */
-                        $ch              = $el->cloneNode(true);
                         $this->removeTemplateAttributes($ch);
                         $ch->textContent = $value;
                     }

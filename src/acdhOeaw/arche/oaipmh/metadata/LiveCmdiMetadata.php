@@ -692,7 +692,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 if (str_starts_with($i, $namespace)) {
                     $otherNmsp = false;
                     foreach ((array) $this->format->idNmsp as $j) {
-                        if ($nmsp !== $j && str_starts_with($i, $j)) {
+                        if ($namespace !== $j && str_starts_with($i, $j)) {
                             $otherNmsp = true;
                             break;
                         }

@@ -190,7 +190,7 @@ class LiveCmdiMetadata implements MetadataInterface {
 
         $formats = $this->res->getGraph()->all($this->format->schemaProp);
         foreach ($formats as $i) {
-            $i    = preg_replace('|^.*(clarin.eu:[^/]+).*$|', '\\1', (string) $i);
+            $i    = preg_replace('|[^-A-Za-z0-9_]|', '_', (string) $i);
             $path = $this->format->templateDir . '/' . $i . '.xml';
             if (file_exists($path)) {
                 $this->template = $path;
@@ -198,9 +198,10 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
         }
         if ($this->template === null && !empty($this->format->schemaDefault)) {
-            $this->template = $this->format->templateDir . '/' . $this->format->schemaDefault . '.xml';
+            $default = preg_replace('|[^-A-Za-z0-9_]|', '_', $this->format->schemaDefault);
+            $this->template = $this->format->templateDir . '/' . $default . '.xml';
         }
-        if (empty($this->template)) {
+        if (empty($this->template) || !file_exists($this->template)) {
             throw new RuntimeException('No CMDI template matched');
         }
 

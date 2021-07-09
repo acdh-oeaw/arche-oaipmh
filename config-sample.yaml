@@ -209,7 +209,9 @@ oai:
             defaultLang: en
             # Path to the directory storing CMDI XML templates
             templateDir: src/acdhOeaw/oai/metadata/liveCmdi
-            # Metadata property prividng the CMDI schema to be used for a given resource
+            # Metadata property providng the CMDI schema to be used for a given resource
+            # The schema is converted to a template filename by replacing all characters out of [-A-Za-z0-9_]
+            # to an underscore and appending .xml at the end (e.g. http://foo.bar/baz becomes http___foo_bar_baz.xml)
             schemaProp: http://can.not.be.overwritten
             # Namespace prefixes used in template file's metadata property placeholders
             propNmsp:
@@ -218,7 +220,7 @@ oai:
             idNmsp:
                 id: https://id.acdh.oeaw.ac.at/
                 cmdiid: https://id.acdh.oeaw.ac.at/cmdi/
-            # Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property or it points to a schema without a tempalte
+            # Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property or it points to a schema without a template
             schemaDefault: kulturpool
             # Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
             schemaEnforce: ""

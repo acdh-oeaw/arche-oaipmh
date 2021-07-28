@@ -28,6 +28,7 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
+use Exception;
 use RuntimeException;
 use stdClass;
 use EasyRdf\Literal;
@@ -223,7 +224,10 @@ class LiveCmdiMetadata implements MetadataInterface {
     public function getXml(): DOMElement {
         $doc                     = new DOMDocument();
         $doc->preserveWhiteSpace = false;
-        $doc->load($this->template);
+        $res = $doc->load($this->template);
+        if ($res === false) {
+            throw new Exception("Failed to parse $this->template template");
+        }
 
         // a special case when a single root element might be missing
         $el = $doc->documentElement;

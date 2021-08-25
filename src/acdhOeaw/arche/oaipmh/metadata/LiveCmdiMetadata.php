@@ -64,6 +64,17 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `schemaEnforce` if provided, only resources with a given value of the `schemaProp`
  *   are processed.
  * - `iiifBaseUrl` used for `val="IIIFURL` (see below)
+ * - `cache` - sets up LiveCmdiMetadata internal cache (separate from the global OAI-PMH cache).
+ *   Just skip this configuration property to avoid using the internal cache.
+ *     - `perResource` (true/false) should a clean cache be used for every OAI-PMH resource?
+ *       Takes effect only for the GetRecords OAI-PMH verb. Having a shared cache is likely
+ *       to speed up the response generation but can also significantly increase memory usage.
+ *       Use with caution and probably combine with `skipClasses`/`includeClasses`.
+ *     - `skipClasses` (array of URIs) repository resources of given RDF classes will
+ *       be excluded from caching
+ *     - `includeClasses` (array of URIs) only repository resources of given RDF classes
+ *       will be cached
+ *     - `statistics` (true/false) should cache usage statistics be emmited as HTTP headers?
  * 
  * XML tags in the template can be annotated with following attributes:
  * - `val="valuePath"` specifies how to get the value. Possible `valuePath` variants are:
@@ -157,6 +168,10 @@ class LiveCmdiMetadata implements MetadataInterface {
      */
     static private $idSeq = 1;
 
+    static private $xmlCache = [];
+    static private $rdfCache = [];
+    static private $cacheHits = ['rdf'=>0, 'xml'=>0];
+
     /**
      * Repository resource object
      * @var RepoResourceDb
@@ -174,6 +189,8 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @var string
      */
     private $template;
+
+    private $depth = -1;
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -211,6 +228,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
     }
 
+
     /**
      * Creates resource's XML metadata
      *
@@ -219,14 +237,29 @@ class LiveCmdiMetadata implements MetadataInterface {
      * XML after the substitution (XML documents have to have a single root
      * element).
      *
+     * @param int $depth subtemplates insertion depth
      * @return DOMElement 
      */
-    public function getXml(): DOMElement {
+    public function getXml(int $depth = 0): DOMElement {
+        $this->depth = $depth;
+
+        $cacheId = $this->getXmlCacheId();
+        if (isset(self::$xmlCache[$cacheId])) {
+            self::$cacheHits['xml']++;
+            return self::$xmlCache[$cacheId]->documentElement;
+        }
+
         $doc                     = new DOMDocument();
         $doc->preserveWhiteSpace = false;
+        libxml_use_internal_errors(true);
+        libxml_clear_errors();
         $res = $doc->load($this->template);
-        if ($res === false) {
-            throw new Exception("Failed to parse $this->template template");
+        $warning = libxml_get_last_error();
+        if ($res === false || $warning !== false) {
+            if ($warning) {
+                $warning = " ($warning->message in file $warning->file:$warning->line)";
+            }
+            throw new Exception("Failed to parse $this->template template$warning");
         }
 
         // a special case when a single root element might be missing
@@ -238,6 +271,14 @@ class LiveCmdiMetadata implements MetadataInterface {
             $newRoot->appendChild($oldRoot);
         }
         $this->processElement($doc->documentElement);
+
+        $this->maintainXmlCache($doc);
+        if ($depth === 0 && $this->format?->cache->statistics){
+            header('X-RDF-CACHE-HITS: ' . self::$cacheHits['rdf']);
+            header('X-XML-CACHE-HITS: ' . self::$cacheHits['xml']);
+            header('X-RDF-CACHE-COUNT: ' . count(self::$rdfCache));
+            header('X-XML-CACHE-COUNT: ' . count(self::$xmlCache));
+        }
         return $doc->documentElement;
     }
 
@@ -421,6 +462,7 @@ class LiveCmdiMetadata implements MetadataInterface {
 
         $format                = clone($this->format);
         $format->schemaDefault = null;
+        $format->schemaProp    = 'https://enforced/schema';
 
         $count = $el->getAttribute('count');
         if (empty($count)) {
@@ -432,11 +474,12 @@ class LiveCmdiMetadata implements MetadataInterface {
             if ($i instanceof Literal) {
                 $resources[] = $this->res;
             } elseif (count($i->propertyUris()) === 0) {
-                $resources[] = $this->res->getRepo()->getResourceById($i);
+                $resources[] = $this->getRdfResource($i);
             } else {
                 $resTmp      = new RepoResourceDb($i->getUri(), $this->res->getRepo());
                 $resTmp->setGraph($i);
                 $resources[] = $resTmp;
+                $this->maintainRdfCache($resTmp);
             }
             if ($count === '1') {
                 break;
@@ -452,11 +495,12 @@ class LiveCmdiMetadata implements MetadataInterface {
         try {
             foreach ($resources as $res) {
                 $meta         = $res->getGraph();
-                $meta->delete($this->format->schemaProp);
-                $meta->addLiteral($this->format->schemaProp, $component);
+                $meta->delete($format->schemaProp);
+                $meta->addLiteral($format->schemaProp, $component);
                 $res->setGraph($meta);
                 $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
-                $componentXml = $componentObj->getXml();
+
+                $componentXml = $componentObj->getXml($this->depth + 1);
                 if ($componentXml->nodeName === self::FAKE_ROOT_TAG) {
                     foreach ($componentXml->childNodes as $n) {
                         $nn = $el->ownerDocument->importNode($n, true);
@@ -740,5 +784,61 @@ class LiveCmdiMetadata implements MetadataInterface {
         } else {
             $el->textContent = $value;
         }
+    }
+
+    private function getRdfResource(string $uri): RepoResourceDb {
+        if (isset(self::$rdfCache[$uri])) {
+            self::$cacheHits['rdf']++;
+            return self::$rdfCache[$uri];
+        }
+        $res = $this->res->getRepo()->getResourceById($uri);
+        $this->maintainRdfCache($res);
+        return $res;
+    }
+
+    private function maintainRdfCache(RepoResourceDb $res): void {
+        if ($this->shouldBeCached($res->getGraph())) {
+            self::$rdfCache[(string) $res->getUri()] = $res;
+        }
+    }
+
+    private function getXmlCacheId(): string {
+        return $this->template . '|' . $this->res->getUri();
+    }
+
+    private function maintainXmlCache(DOMDocument $doc): void {
+        // it makes no sense to buffer at depth 0 - records are assumed to be distinct
+        if ($this->depth === 0) {
+            $perResource = $this->format?->cache?->perResource ?? false;
+            // if the cache is per-resource, clean it up at the depth of 0
+            if ($perResource && $this->depth === 0) {
+                self::$xmlCache = [];
+                self::$rdfCache = [];
+            }
+            return;
+        }
+
+        if ($this->shouldBeCached()) {
+            self::$xmlCache[$this->getXmlCacheId()] = $doc;
+        }
+    }
+
+    private function shouldBeCached(?Resource $meta = null): bool {
+        if (!isset($this->format->cache)) {
+            return false;
+        }
+
+        $meta    ??= $this->res->getGraph();
+        $skip    = $this->format?->cache?->skipClasses ?? [];
+        $include = $this->format?->cache?->include ?? [];
+
+        $cache = count($include) > 0 ? false : true;
+        foreach ($include as $i) {
+            $cache |= $meta->isA($i);
+        }
+        foreach ($skip as $i) {
+            $cache &= !$meta->isA($i);
+        }
+        return $cache;
     }
 }

@@ -392,8 +392,13 @@ TMPL;
             $xml = $this->search->getMetadata(0)->getXml();
             echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             echo $xml->C14N() . "\n";
-        } catch (OaiException $e) {
-            echo '<error>' . htmlspecialchars($e->getMessage()) . '</error>';
+        } catch (Throwable $e) {
+            $this->log->error($e);
+            http_response_code(500);
+            $doc = new DOMDocument('1.0', 'UTF-8');
+            $el  = $doc->createElement('error', $e->getMessage());
+            $doc->appendChild($el);
+            echo $doc->saveXML();
         }
     }
 

@@ -34,6 +34,7 @@ use stdClass;
 use EasyRdf\Literal;
 use EasyRdf\Resource;
 use EasyRdf\Graph;
+use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\RepoResourceInterface;
@@ -87,10 +88,10 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     - `@propUri1/propUri2` - get another resource URL from the `propUri1` metadata
  *       property value, then use the `propUri2` metadata property value of this resource.
  *       If inverse of `propoUri1` is needed, prepend it with a dash: `@^propUri1/propUri2`.
- *     - `@propUri` in a tag having the `ComponentId` attribute - inject the CMDI component
- *       identified by the `ComponentId` attribute taking the resource `propUri` metadata
- *       property points to as its base resource.
- *       If inverse of `propoUri1` is needed, prepend it with a dash: `@^propUri1`.
+ *     - `@propUri` in a tag having the `ComponentId` attribute - inject the template
+ *       indicated by the `ComponentId` attribute taking the resource to which the `propUri` 
+ *       points to as template's base resource.
+ *       If inverse of `propoUri` is needed, prepend it with a dash: `@^propUri`.
  *     - `NOW` - current time
  *     - `URL`, `URI` - resource's repository URL
  *     - `METAURL` - resource's metadata repository URL
@@ -146,7 +147,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     a mapping
  *   - `-` use only mapped values, if original value doesn't have a mapping, discard it
  *   - `+` use only mapped values but if original value doesn't have a mapping, keep the original
-       value instead
+ *      value instead
  * - `valueMapProp="RDFpropertyURL"` maps the value indicated by the `val` attribute using
  *   an external RDF data.
  *   First, a value indicated by the `val` attribute is treated as an URL.  Its content is 
@@ -157,10 +158,14 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
  *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
  *   Taken into account only if `valueMapProp` provided and not empty.
- * - `ComponentId` specifies a component (template) to substitue a given tag (see the `val`
- *   attribute description). The component name should match the template file name without the
- *   .xml extension. When the `ComponentId` is used the actual tag in the template is 
- *   not important because it's anyway replaced by the component's root tag.
+ * - `ComponentId` specifies a template to substitue a given tag with. The template is being
+ *   processed with a base resource(s) as defined by the `val` attribute.
+ *   The attribute value should match the template file name without the .xml extension. 
+ *   If a template file `{ComponentIdValue}_{BaseResourceRdfClass}.xml` exists, it's used
+ *   instead of the `{ComponentIdValue}.xml` template. This allows for using different templates
+ *   for different target resources.
+ *   When the `ComponentId` is used the actual tag in the template is not important because it's 
+ *   anyway replaced by the component's root tag.
  * - `id` if has value of '#', it is filled in with a globally unique sequence
  * 
  * @author zozlak
@@ -183,10 +188,9 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @var int
      */
     static private $idSeq = 1;
-
-    static private $xmlCache = [];
-    static private $rdfCache = [];
-    static private $cacheHits = ['rdf'=>0, 'xml'=>0];
+    static private $xmlCache  = [];
+    static private $rdfCache  = [];
+    static private $cacheHits = ['rdf' => 0, 'xml' => 0];
 
     /**
      * Repository resource object
@@ -205,7 +209,6 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @var string
      */
     private $template;
-
     private $depth = -1;
 
     /**
@@ -223,8 +226,12 @@ class LiveCmdiMetadata implements MetadataInterface {
         $this->format = $format;
 
         $formats = $this->res->getGraph()->all($this->format->schemaProp);
+        $formats = array_map('strval', $formats);
+        $formats = array_combine($formats, array_map('strlen', $formats));
+        arsort($formats);
+        $formats = array_keys($formats);
         foreach ($formats as $i) {
-            $i    = preg_replace('|[^-A-Za-z0-9_]|', '_', (string) $i);
+            $i    = preg_replace('|[^-A-Za-z0-9_]|', '_', $i);
             $path = $this->format->templateDir . '/' . $i . '.xml';
             if (file_exists($path)) {
                 $this->template = $path;
@@ -243,7 +250,6 @@ class LiveCmdiMetadata implements MetadataInterface {
             self::$mapper = new ValueMapper();
         }
     }
-
 
     /**
      * Creates resource's XML metadata
@@ -269,8 +275,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $doc->preserveWhiteSpace = false;
         libxml_use_internal_errors(true);
         libxml_clear_errors();
-        $res = $doc->load($this->template);
-        $warning = libxml_get_last_error();
+        $res                     = $doc->load($this->template);
+        $warning                 = libxml_get_last_error();
         if ($res === false || $warning !== false) {
             if ($warning) {
                 $warning = " ($warning->message in file $warning->file:$warning->line)";
@@ -289,7 +295,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $this->processElement($doc->documentElement);
 
         $this->maintainXmlCache($doc);
-        if ($depth === 0 && $this->format?->cache->statistics){
+        if ($depth === 0 && ($this->format->cache->statistics ?? false)) {
             header('X-RDF-CACHE-HITS: ' . self::$cacheHits['rdf']);
             header('X-XML-CACHE-HITS: ' . self::$cacheHits['xml']);
             header('X-RDF-CACHE-COUNT: ' . count(self::$rdfCache));
@@ -503,19 +509,21 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         if (in_array($count, ['1', '+']) && count($resources) === 0) {
             $graph       = new Graph();
-            $meta        = $graph->addLiteral('https://dummy.res', $this->format->schemaProp, $component);
-            $this->res->setGraph($graph->resource('https://dummy.res'));
+            $meta        = $graph->addLiteral('https://dummy/res', 'https://dummy/property', 'dummy value');
+            $this->res->setGraph($graph->resource('https://dummy/res'));
             $resources[] = $this->res;
         }
 
         try {
             foreach ($resources as $res) {
-                $meta         = $res->getGraph();
+                $meta = $res->getGraph();
                 $meta->delete($format->schemaProp);
+                foreach ($res->GetGraph()->allResources(RDF::RDF_TYPE) as $i) {
+                    $meta->addLiteral($format->schemaProp, $component . '/' . $i);
+                }
                 $meta->addLiteral($format->schemaProp, $component);
                 $res->setGraph($meta);
                 $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
-
                 $componentXml = $componentObj->getXml($this->depth + 1);
                 if ($componentXml->nodeName === self::FAKE_ROOT_TAG) {
                     foreach ($componentXml->childNodes as $n) {
@@ -567,7 +575,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         foreach ($meta->all($prop) as $i) {
             if ($extUriProp !== null && $i instanceof Resource) {
                 if (count($i->propertyUris()) === 0) {
-                    $metaTmp = $this->res->getRepo()->getResourceById($i)->getGraph();
+                    $metaTmp = $this->getRdfResource($i)->getGraph();
                 } else {
                     $metaTmp = $i;
                 }
@@ -849,7 +857,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     private function maintainXmlCache(DOMDocument $doc): void {
         // it makes no sense to buffer at depth 0 - records are assumed to be distinct
         if ($this->depth === 0) {
-            $perResource = $this->format?->cache?->perResource ?? false;
+            $perResource = $this->format->cache->perResource ?? false;
             // if the cache is per-resource, clean it up at the depth of 0
             if ($perResource && $this->depth === 0) {
                 self::$xmlCache = [];
@@ -869,8 +877,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $meta    ??= $this->res->getGraph();
-        $skip    = $this->format?->cache?->skipClasses ?? [];
-        $include = $this->format?->cache?->include ?? [];
+        $skip    = $this->format->cache->skipClasses ?? [];
+        $include = $this->format->cache->include ?? [];
 
         $cache = count($include) > 0 ? false : true;
         foreach ($include as $i) {

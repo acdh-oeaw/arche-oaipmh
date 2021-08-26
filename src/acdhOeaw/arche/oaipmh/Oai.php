@@ -122,6 +122,7 @@ TMPL;
      */
     private Cache $cache;
     private Log $log;
+    private string $reqId;
 
     /**
      * Initialized the OAI-PMH server object.
@@ -167,6 +168,10 @@ TMPL;
      * Handles OAI-PMH request.
      */
     public function handleRequest(): void {
+        $t0          = microtime(true);
+        $this->reqId = sprintf('%06d', rand(0, 999999));
+        $this->log->info("$this->reqId\tHandling request: " . json_encode($_GET));
+
         header('Content-Type: text/xml');
         // an ugly workaround allowing to serve raw CMDI records
         $verb = $this->getParam('verb') . '';
@@ -211,16 +216,17 @@ TMPL;
                     throw new OaiException('badVerb');
             }
         } catch (Throwable $e) {
-            $this->log->error($e);
+            $this->log->error("$this->reqId\t$e");
             if ($e instanceof OaiException) {
                 $el = $this->createElement('error', $e->getMessage(), ['code' => $e->getMessage()]);
             } else {
                 $el = $this->createElement('error', $e->getMessage(), ['code' => 'Internal error']);
             }
             $this->response->documentElement->appendChild($el);
-            echo "    " . $el->C14N() . "\n";
+            echo $this->response->saveXML($el);
         } finally {
-            echo self::$respEnd;
+            echo "\n" . self::$respEnd;
+            $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0));
         }
     }
 
@@ -239,7 +245,7 @@ TMPL;
             }
         }
         $this->response->documentElement->appendChild($parent);
-        echo $parent->C14N() . "\n";
+        echo $this->response->saveXML($parent);
     }
 
     /**
@@ -285,7 +291,7 @@ TMPL;
             $parent->appendChild($node);
         }
         $this->response->documentElement->appendChild($parent);
-        echo $parent->C14N() . "\n";
+        echo $this->response->saveXML($parent);
     }
 
     /**
@@ -338,11 +344,11 @@ TMPL;
                     $header     = $this->createHeader($headerData);
                     $this->response->documentElement->appendChild($header);
                     if ($verb === 'ListIdentifiers') {
-                        echo $header->C14N() . "\n";
+                        echo $this->response->saveXML($header) . "\n";
                     } else {
                         echo "<record>\n";
                         $recordFlag   = true;
-                        echo $header->C14N() . "\n";
+                        echo $this->response->saveXML($header) . "\n";
                         echo "<metadata>";
                         $metadataFlag = true;
                         if (isset($this->cache)) {
@@ -353,7 +359,7 @@ TMPL;
                             echo $this->cache->get($headerData, $format);
                         } else {
                             $xml = $this->search->getMetadata($i)->getXml();
-                            echo $xml->C14N();
+                            echo $xml->ownerDocument->saveXML($xml);
                         }
                     }
                 } catch (OaiException $e) {
@@ -372,6 +378,7 @@ TMPL;
      * @param string $id
      */
     public function oaiListRecordRaw(string $id = ''): void {
+        $t0 = microtime(true);
         try {
             $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
             if ($id == '') {
@@ -390,16 +397,16 @@ TMPL;
             }
 
             $xml = $this->search->getMetadata(0)->getXml();
-            echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-            echo $xml->C14N() . "\n";
+            echo $xml->ownerDocument->saveXML();
         } catch (Throwable $e) {
-            $this->log->error($e);
+            $this->log->error("$this->reqId\t$e");
             http_response_code(500);
             $doc = new DOMDocument('1.0', 'UTF-8');
             $el  = $doc->createElement('error', $e->getMessage());
             $doc->appendChild($el);
             echo $doc->saveXML();
         }
+        $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0));
     }
 
     /**
@@ -423,7 +430,8 @@ TMPL;
                 $node->appendChild($tmp);
             }
             $this->response->appendChild($node);
-            echo $node->C14N() . "\n";
+            echo $this->response->saveXML($node);
+            echo "\n";
             $this->response->removeChild($node);
         }
         echo "    </ListSets>\n";

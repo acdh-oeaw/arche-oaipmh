@@ -64,6 +64,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `schemaEnforce` if provided, only resources with a given value of the `schemaProp`
  *   are processed.
  * - `iiifBaseUrl` used for `val="IIIFURL` (see below)
+ * - `valueMaps[mapName]` - value maps to be used with the `valueMap` template attribute.
+ *   Every map should be an object with source values being property names and target values
+ *   being property values.
  * - `cache` - sets up LiveCmdiMetadata internal cache (separate from the global OAI-PMH cache).
  *   Just skip this configuration property to avoid using the internal cache.
  *     - `perResource` (true/false) should a clean cache be used for every OAI-PMH resource?
@@ -136,11 +139,21 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   It's worth noting that using `val="OAIID"` is faster.
  *   The `asXML` attribute takes a precedense.
  *   Doesn't work for special `val` attribute values of `NOW`, `URL` and `OAIURI`.
- * - `valueMapProp="RDFpropertyURL"` causes value denoted by the `val` attribute to be
- *   mapped to another values using a given RDF property. The `val` attribute value must be 
- *   an URL (e.g. a SKOS concept URL) which returns an RDF graph. All `valueMapProp` property
- *   values from the fetched graph are taken as a template values.
- *   of indicated property are returned.
+ * - `valueMap="mapName"` - name of the value map (defined in the metadata format config) to
+ *   be applied to the value(s) denoted by the `val` attribute.
+ *   Value map name can be preceeded with a `*`, `-` (default) or `+`:
+ *   - `*` keep both original and mapped values, don't care if an original value doesn't have
+ *     a mapping
+ *   - `-` use only mapped values, if original value doesn't have a mapping, discard it
+ *   - `+` use only mapped values but if original value doesn't have a mapping, keep the original
+       value instead
+ * - `valueMapProp="RDFpropertyURL"` maps the value indicated by the `val` attribute using
+ *   an external RDF data.
+ *   First, a value indicated by the `val` attribute is treated as an URL.  Its content is 
+ *   downloaded and parsed as RDF. Then all values of the `valueMapProp` RDF property in the
+ *   parsed RDF graph are taken as actual template values.
+ *   This mechanism allows to resolve e.g. external SKOS vocabulary concepts, if only they
+ *   are published in a way allowing to download the concept definition as an RDF.
  * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
  *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
  *   Taken into account only if `valueMapProp` provided and not empty.
@@ -154,7 +167,10 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  */
 class LiveCmdiMetadata implements MetadataInterface {
 
-    const FAKE_ROOT_TAG = 'fakeRoot';
+    const FAKE_ROOT_TAG     = 'fakeRoot';
+    const VALUEMAP_ALL      = '*';
+    const VALUEMAP_FALLBACK = '+';
+    const VALUEMAP_STRICT   = '-';
 
     /**
      * Value mapping cache
@@ -534,7 +550,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $count       = $el->getAttribute('count');
         $dateFormat  = $el->getAttribute('dateFormat');
         $format      = $el->getAttribute('format');
-        $valueMap    = $el->getAttribute('valueMapProp');
+        $valueMap    = $el->getAttribute('valueMap');
+        $extValueMap = $el->getAttribute('valueMapProp');
         $keepSrc     = $el->getAttribute('valueMapKeepSrc');
         $replaceTag  = $el->getAttribute('replaceXMLTag');
         $asAttribute = $el->getAttribute('asAttribute');
@@ -544,7 +561,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         if (!empty($format)) {
             $format = '?format=' . urlencode($format);
         }
-        $valueMap = $this->replacePropNmsp($valueMap);
+        $extValueMap = $this->replacePropNmsp($extValueMap);
 
         $values = [];
         foreach ($meta->all($prop) as $i) {
@@ -562,10 +579,32 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
         }
         if ($valueMap) {
+            $mapMode = substr($valueMap, 0, 1);
+            if ($mapMode === self::VALUEMAP_ALL || $mapMode === self::VALUEMAP_STRICT || $mapMode === self::VALUEMAP_FALLBACK) {
+                $valueMap = substr($valueMap, 1);
+            } else {
+                $mapMode = self::VALUEMAP_STRICT;
+            }
+            $map = $this->format->valueMaps->$valueMap;
+
+            $mapped = [];
+            foreach ($values as $lang => $vals) {
+                foreach ($vals as $i) {
+                    $tmp = $map->$i ?? ($mapMode === self::VALUEMAP_FALLBACK ? $i : null);
+                    if ($tmp !== null) {
+                        $mapped[$lang][] = $tmp;
+                    }
+                    if ($mapMode === self::VALUEMAP_ALL) {
+                        $mapped[$lang][] = $i;
+                    }
+                }
+            }
+            $values = $mapped;
+        } elseif ($extValueMap) {
             $mapped = [];
             foreach ($values as &$i) {
                 foreach ($i as $j) {
-                    $mapped = array_merge($mapped, self::$mapper->getMapping($j, $valueMap));
+                    $mapped = array_merge($mapped, self::$mapper->getMapping($j, $extValueMap));
                 }
                 if (!$keepSrc) {
                     $i = [];
@@ -629,6 +668,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $ch->removeAttribute('asXML');
         $ch->removeAttribute('dateFormat');
         $ch->removeAttribute('format');
+        $ch->removeAttribute('valueMap');
         $ch->removeAttribute('valueMapProp');
         $ch->removeAttribute('valueMapKeepSrc');
         $ch->removeAttribute('replaceXMLTag');

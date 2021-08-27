@@ -499,7 +499,13 @@ class LiveCmdiMetadata implements MetadataInterface {
         $resources = [];
         foreach ($meta->all($prop) as $i) {
             if ($i instanceof Literal) {
-                $resources[] = $this->res;
+                // use a copy of the metadata with only a single value of the filtered property
+                $resTmp  = new RepoResourceDb($meta->getUri(), $this->res->getRepo());
+                $metaTmp = $meta->copy();
+                $metaTmp->delete($prop);
+                $metaTmp->addLiteral($prop, $i);
+                $resTmp->setGraph($metaTmp);
+                $resources[] = $resTmp;
             } elseif (count($i->propertyUris()) === 0) {
                 $resources[] = $this->getRdfResource($i);
             } else {

@@ -224,3 +224,18 @@ oai:
             schemaDefault: kulturpool
             # Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
             schemaEnforce: ""
+            # Internal cache settings
+            cache:
+                # Should statistics on cache usage be emmited as HTTP headers
+                statistics: false
+                # Should cache be pruned after processing each OAI-PMH resource?
+                # Avoiding cache pruning provides a speedup but can sevearly increase memory usage if thousands of resources are returned by a request.
+                # If you avoid cache pruning, consider specyfing `skipClasses` and/or `includeClasses` to stay on the safe side.
+                perResource: false
+                # Avoid caching resources of given RDF classes
+                skipClasses:
+                - https://vocabs.acdh.oeaw.ac.at/schema#TopCollection
+                - https://vocabs.acdh.oeaw.ac.at/schema#Collection
+                - https://vocabs.acdh.oeaw.ac.at/schema#Resource
+                # Cache only resources of given RDF classes
+                includeClasses: []

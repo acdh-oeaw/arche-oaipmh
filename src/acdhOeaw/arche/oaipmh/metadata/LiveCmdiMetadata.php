@@ -74,11 +74,18 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *       Takes effect only for the GetRecords OAI-PMH verb. Having a shared cache is likely
  *       to speed up the response generation but can also significantly increase memory usage.
  *       Use with caution and probably combine with `skipClasses`/`includeClasses`.
+ *       On the other hand per-resource only cache makes sense only for the complex template
+ *       structure where there are chances for resources and/or subtemplates to be used more
+ *       than once within a single top-level metadata record.
  *     - `skipClasses` (array of URIs) repository resources of given RDF classes will
  *       be excluded from caching
  *     - `includeClasses` (array of URIs) only repository resources of given RDF classes
  *       will be cached
- *     - `statistics` (true/false) should cache usage statistics be emmited as HTTP headers?
+ *     - `statistics` (true/false) should cache usage statistics be appended to each generated
+ *       metadata record?
+ *       This feature is useful for tuning the cache settings, especially selecting skipClasses
+ *       and includeClasses filters but it shouldn't be used on production as it alters the
+ *       output metadata schema.
  * 
  * XML tags in the template can be annotated with following attributes:
  * - `val="valuePath"` specifies how to get the value. Possible `valuePath` variants are:
@@ -173,6 +180,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 class LiveCmdiMetadata implements MetadataInterface {
 
     const FAKE_ROOT_TAG     = 'fakeRoot';
+    const STATS_TAG         = 'debugStats';
     const VALUEMAP_ALL      = '*';
     const VALUEMAP_FALLBACK = '+';
     const VALUEMAP_STRICT   = '-';
@@ -187,7 +195,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * Sequence for id generation
      * @var int
      */
-    static private $idSeq = 1;
+    static private $idSeq     = 1;
     static private $xmlCache  = [];
     static private $rdfCache  = [];
     static private $cacheHits = ['rdf' => 0, 'xml' => 0];
@@ -294,13 +302,10 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         $this->processElement($doc->documentElement);
 
-        $this->maintainXmlCache($doc);
         if ($depth === 0 && ($this->format->cache->statistics ?? false)) {
-            header('X-RDF-CACHE-HITS: ' . self::$cacheHits['rdf']);
-            header('X-XML-CACHE-HITS: ' . self::$cacheHits['xml']);
-            header('X-RDF-CACHE-COUNT: ' . count(self::$rdfCache));
-            header('X-XML-CACHE-COUNT: ' . count(self::$xmlCache));
+            $this->appendCacheStats($doc);
         }
+        $this->maintainXmlCache($doc);
         return $doc->documentElement;
     }
 
@@ -878,15 +883,36 @@ class LiveCmdiMetadata implements MetadataInterface {
 
         $meta    ??= $this->res->getGraph();
         $skip    = $this->format->cache->skipClasses ?? [];
-        $include = $this->format->cache->include ?? [];
+        $include = $this->format->cache->includeClasses ?? [];
 
         $cache = count($include) > 0 ? false : true;
-        foreach ($include as $i) {
-            $cache |= $meta->isA($i);
+        for ($i = 0; $i < count($include) && !$cache; $i++) {
+            $cache = $cache || $meta->isA($include[$i]);
         }
-        foreach ($skip as $i) {
-            $cache &= !$meta->isA($i);
+        for ($i = 0; $i < count($skip) && $cache; $i++) {
+            $cache = $cache && !$meta->isA($skip[$i]);
         }
         return $cache;
+    }
+
+    private function appendCacheStats(DOMDocument $doc): void {
+        $stats = $doc->createElement(self::STATS_TAG);
+        $stats->appendChild($doc->createElement('MemoryUsageMb', round(memory_get_usage(true) / 1024 / 1024)));
+        $stats->appendChild($doc->createElement('RdfCacheHits', self::$cacheHits['rdf']));
+        $stats->appendChild($doc->createElement('RdfCacheCount', count(self::$rdfCache)));
+        $stats->appendChild($doc->createElement('XmlCacheHits', self::$cacheHits['xml']));
+        $stats->appendChild($doc->createElement('XmlCacheCount', count(self::$xmlCache)));
+        $tmp   = [];
+        foreach (self::$rdfCache as $i) {
+            foreach ($i->getGraph()->allResources(RDF::RDF_TYPE) as $j) {
+                $tmp[(string) $j] = ($tmp[(string) $j] ?? 0) + 1;
+            }
+        }
+        foreach ($tmp as $class => $count) {
+            $el = $stats->appendChild($doc->createElement('ClassCount'));
+            $el->setAttribute('class', $class);
+            $el->setAttribute('count', $count);
+        }
+        $doc->documentElement->appendChild($stats);
     }
 }

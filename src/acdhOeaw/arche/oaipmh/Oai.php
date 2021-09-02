@@ -189,6 +189,9 @@ TMPL;
             $params[] = preg_replace('/[^a-zA-Z]/', '', $key) . '="' . htmlentities($value) . '"';
         }
         printf(self::$respBegin, gmdate('Y-m-d\TH:i:s\Z'), implode(' ', $params), htmlentities($this->info->baseURL));
+        // try to send some output so the client knows something's going on
+        ob_flush();
+        flush();
 
         try {
             $verb = $this->getParam('verb') . '';

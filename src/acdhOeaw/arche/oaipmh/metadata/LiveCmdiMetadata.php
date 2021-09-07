@@ -68,6 +68,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `valueMaps[mapName]` - value maps to be used with the `valueMap` template attribute.
  *   Every map should be an object with source values being property names and target values
  *   being property values.
+ * - `timeout` - if the template generation takes longer than the given time (in seconds)
+ *   emit bunch of whitespaces to inform the client something's going on and keep the
+ *   connectio alive
  * - `cache` - sets up LiveCmdiMetadata internal cache (separate from the global OAI-PMH cache).
  *   Just skip this configuration property to avoid using the internal cache.
  *     - `perResource` (true/false) should a clean cache be used for every OAI-PMH resource?
@@ -199,6 +202,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     static private $xmlCache  = [];
     static private $rdfCache  = [];
     static private $cacheHits = ['rdf' => 0, 'xml' => 0];
+    static private $timeout   = 0;
 
     /**
      * Repository resource object
@@ -272,6 +276,16 @@ class LiveCmdiMetadata implements MetadataInterface {
      */
     public function getXml(int $depth = 0): DOMElement {
         $this->depth = $depth;
+
+        // output something if the template generation takes to long to avoid timeouts
+        if ($depth === 0) {
+            self::$timeout = time();
+        } elseif (time() - self::$timeout > ($this->format->timeout ?? PHP_INT_MAX)) {
+            echo "                                                                ";
+            ob_flush();
+            flush();
+            self::$timeout = time();
+        }
 
         $cacheId = $this->getXmlCacheId();
         if (isset(self::$xmlCache[$cacheId])) {

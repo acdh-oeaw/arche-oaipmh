@@ -382,6 +382,7 @@ TMPL;
      */
     public function oaiListRecordRaw(string $id = ''): void {
         $t0 = microtime(true);
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         try {
             $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
             if ($id == '') {
@@ -400,14 +401,14 @@ TMPL;
             }
 
             $xml = $this->search->getMetadata(0)->getXml();
-            echo $xml->ownerDocument->saveXML();
+            echo $xml->ownerDocument->saveXML($xml);
         } catch (Throwable $e) {
             $this->log->error("$this->reqId\t$e");
             http_response_code(500);
             $doc = new DOMDocument('1.0', 'UTF-8');
             $el  = $doc->createElement('error', $e->getMessage());
             $doc->appendChild($el);
-            echo $doc->saveXML();
+            echo $doc->saveXML($el);
         }
         $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0));
     }

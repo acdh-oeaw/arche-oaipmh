@@ -112,7 +112,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *       `NMSP` should be one of the keys provided in the `idNmsp[prefix]` metadata
  *       format configuration property (see above).
  *       Remark - when using the `ID&NMSP` syntax remember about proper XML entity
- *       escaping - ``ID&amp;NMSP`.
+ *       escaping - `ID&amp;amp;NMSP`.
  *     - `OAIID` - resources's OAI-PMH identifier
  *     - `OAIURL` - URL of the OAI-PMH `GetRecord` request returning a given resource
  *       metadata in the currently requested metadata format
@@ -688,7 +688,12 @@ class LiveCmdiMetadata implements MetadataInterface {
                 if ($lang && $language !== '' && $ch instanceof DOMElement) {
                     $ch->setAttribute('xml:lang', $language);
                 }
-                $parent->insertBefore($ch, $el);
+                // append after the template node assuring content will be also processed
+                if ($el->nextSibling !== null) {
+                    $parent->insertBefore($ch, $el->nextSibling);
+                } else {
+                    $parent->appendChild($ch);
+                }
             }
         }
     }

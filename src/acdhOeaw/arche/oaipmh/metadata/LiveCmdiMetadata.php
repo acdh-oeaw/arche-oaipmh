@@ -272,9 +272,10 @@ class LiveCmdiMetadata implements MetadataInterface {
      * element).
      *
      * @param int $depth subtemplates insertion depth
+     * @param bool $cache should cache be used?
      * @return DOMElement 
      */
-    public function getXml(int $depth = 0): DOMElement {
+    public function getXml(int $depth = 0, bool $cache = true): DOMElement {
         $this->depth = $depth;
 
         // output something if the template generation takes to long to avoid timeouts
@@ -288,7 +289,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $cacheId = $this->getXmlCacheId();
-        if (isset(self::$xmlCache[$cacheId])) {
+        if ($cache && isset(self::$xmlCache[$cacheId])) {
             self::$cacheHits['xml']++;
             return self::$xmlCache[$cacheId]->documentElement;
         }
@@ -511,21 +512,25 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $resources = [];
+        $cache     = [];
         foreach ($meta->all($prop) as $i) {
-            if ($i instanceof Literal) {
+            if ($i instanceof Literal || $prop === $this->format->idProp) {
                 // use a copy of the metadata with only a single value of the filtered property
                 $resTmp      = new RepoResourceDb($meta->getUri(), $this->res->getRepo());
                 $metaTmp     = $meta->copy();
                 $metaTmp->delete($prop);
-                $metaTmp->addLiteral($prop, $i);
+                $metaTmp->addLiteral($prop, (string) $i);
                 $resTmp->setGraph($metaTmp);
                 $resources[] = $resTmp;
+                $cache[]     = false;
             } elseif (count($i->propertyUris()) === 0) {
                 $resources[] = $this->getRdfResource($i);
+                $cache[]     = true;
             } else {
                 $resTmp      = new RepoResourceDb($i->getUri(), $this->res->getRepo());
                 $resTmp->setGraph($i);
                 $resources[] = $resTmp;
+                $cache[]     = $true;
                 $this->maintainRdfCache($resTmp);
             }
             if ($count === '1') {
@@ -537,10 +542,11 @@ class LiveCmdiMetadata implements MetadataInterface {
             $meta        = $graph->addLiteral('https://dummy/res', 'https://dummy/property', 'dummy value');
             $this->res->setGraph($graph->resource('https://dummy/res'));
             $resources[] = $this->res;
+            $cache[]     = true;
         }
 
         try {
-            foreach ($resources as $res) {
+            foreach ($resources as $n => $res) {
                 $meta = $res->getGraph();
                 $meta->delete($format->schemaProp);
                 foreach ($res->GetGraph()->allResources(RDF::RDF_TYPE) as $i) {
@@ -549,7 +555,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $meta->addLiteral($format->schemaProp, $component);
                 $res->setGraph($meta);
                 $componentObj = new LiveCmdiMetadata($res, new stdClass(), $format);
-                $componentXml = $componentObj->getXml($this->depth + 1);
+                $componentXml = $componentObj->getXml($this->depth + 1, $cache[$n]);
                 if ($componentXml->nodeName === self::FAKE_ROOT_TAG) {
                     foreach ($componentXml->childNodes as $n) {
                         $nn = $el->ownerDocument->importNode($n, true);

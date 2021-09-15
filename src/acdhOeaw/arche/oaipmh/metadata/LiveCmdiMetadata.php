@@ -530,7 +530,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $resTmp      = new RepoResourceDb($i->getUri(), $this->res->getRepo());
                 $resTmp->setGraph($i);
                 $resources[] = $resTmp;
-                $cache[]     = $true;
+                $cache[]     = true;
                 $this->maintainRdfCache($resTmp);
             }
             if ($count === '1') {

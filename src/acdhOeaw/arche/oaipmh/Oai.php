@@ -404,7 +404,7 @@ TMPL;
             echo $xml->ownerDocument->saveXML($xml);
         } catch (Throwable $e) {
             $this->log->error("$this->reqId\t$e");
-            http_response_code(500);
+            http_response_code($e instanceof OaiException ? 400 : 500);
             $doc = new DOMDocument('1.0', 'UTF-8');
             $el  = $doc->createElement('error', $e->getMessage());
             $doc->appendChild($el);

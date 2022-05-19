@@ -39,6 +39,7 @@ use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\arche\lib\SearchConfig;
+use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
@@ -105,14 +106,13 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     - `NOW` - current time
  *     - `URL`, `URI` - resource's repository URL
  *     - `METAURL` - resource's metadata repository URL
- *     - `ID`, `ID@NMSP`, `ID&NMSP` - value of resource's `idProp` metadata property.
- *       `ID@NMSP` and `ID&NMSP` allow to indicate the value namespace. They differ
+ *     - `ID`, `ID@NMSP`, `ID?NMSP` - value of resource's `idProp` metadata property.
+ *       `ID@NMSP`, `ID?NMSP` allow to indicate the value namespace. They differ
  *       in regard to the situation when a value in a given namespace doesn't exist.
- *       In such a case `ID@NMSP` returns just any id and `ID&NMSP` returns empty value.
- *       `NMSP` should be one of the keys provided in the `idNmsp[prefix]` metadata
- *       format configuration property (see above).
- *       Remark - when using the `ID&NMSP` syntax remember about proper XML entity
- *       escaping - `ID&amp;amp;NMSP`.
+ *       In such a case `ID@NMSP` returns just any id while `ID?NMSP` returns no value
+ *       (depending on the `count` attribute this can lead to empty element value or to 
+ *       element being skipped). `NMSP` should be one of the keys provided in the 
+ *       `idNmsp[prefix]` metadata format configuration property (see above).
  *     - `OAIID` - resources's OAI-PMH identifier
  *     - `OAIURL` - URL of the OAI-PMH `GetRecord` request returning a given resource
  *       metadata in the currently requested metadata format
@@ -388,12 +388,13 @@ class LiveCmdiMetadata implements MetadataInterface {
         if ($val === 'NOW') {
             $this->insertContent($el, date('Y-m-d'), $asAttr);
             $remove = false;
-        } else if ($val === 'ID' || substr($val, 0, 3) === 'ID&' || substr($val, 0, 3) === 'ID@') {
+        } else if ($val === 'ID' || substr($val, 0, 3) === 'ID?' || substr($val, 0, 3) === 'ID@') {
+            $count  = $el->getAttribute('count');
             $format = $el->getAttribute('format');
             $format = !empty($format) ? '?format=' . urlencode($format) : '';
             $value  = $this->getResourceId(substr($val, 2, 1), substr($val, 3), $format);
             $this->insertContent($el, $value, $asAttr);
-            $remove = false;
+            $remove = empty($value) && ($count === '*' || $count === '?');
         } else if ($val === 'URI' || $val === 'URL') {
             $this->insertContent($el, $this->res->getUri(), $asAttr);
             $remove = false;
@@ -533,7 +534,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $cache[]     = true;
                 $this->maintainRdfCache($resTmp);
             }
-            if ($count === '1') {
+            if (in_array($count, ['1', '?'])) {
                 break;
             }
         }
@@ -616,6 +617,9 @@ class LiveCmdiMetadata implements MetadataInterface {
             } else {
                 $this->collectMetaValue($values, $i, $subprop, $dateFormat);
             }
+        }
+        if ($count === '?' && count($values) > 1) {
+            $values = array_slice($values, 0, 1);
         }
         if ($valueMap) {
             $mapMode = substr($valueMap, 0, 1);
@@ -747,6 +751,9 @@ class LiveCmdiMetadata implements MetadataInterface {
             case 'DateTime':
                 $value = $value . substr('0000-01-01T00:00:00Z', strlen($value));
                 break;
+            case 'Year':
+                $value = substr($value, 0, 4);
+                break;
         }
         $values[$language][] = $value;
     }
@@ -838,7 +845,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 }
             }
         }
-        if ($match === null && $method !== '&') {
+        if ($match === null && $method !== '?') {
             $match = $ids[0] ?? $this->res->getUri();
         }
         if (!empty($match)) {

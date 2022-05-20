@@ -26,6 +26,7 @@
 
 namespace acdhOeaw\arche\oaipmh\metadata;
 
+use DOMComment;
 use DOMDocument;
 use DOMElement;
 use Exception;
@@ -360,13 +361,17 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $chToRemove = [];
-        foreach ($el->childNodes as $ch) {
-            if ($ch instanceof DOMElement) {
-                $chRemove = $this->processElement($ch);
+        $child = $el->firstChild;
+        while ($child !== null) {
+            if ($child instanceof DOMElement) {
+                $chRemove = $this->processElement($child);
                 if ($chRemove) {
-                    $chToRemove[] = $ch;
+                    $chToRemove[] = $child;
                 }
+            } elseif ($child instanceof DOMComment) {
+                $chToRemove[] = $child;
             }
+            $child = $child->nextSibling;
         }
         foreach ($chToRemove as $i) {
             $el->removeChild($i);

@@ -91,7 +91,6 @@ class BaseSearch implements SearchInterface {
     private array $records = [];
 
     /**
-     * @param MetadataFormat $format metadata format descriptor
      * @param SetInterface $sets
      * @param DeletedInterface $deleted
      * @param object $config configuration object

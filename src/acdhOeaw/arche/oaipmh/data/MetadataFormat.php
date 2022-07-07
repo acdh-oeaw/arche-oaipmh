@@ -149,7 +149,7 @@ class MetadataFormat {
      * 
      * @var ?string
      */
-    public $iiifBaseUrl;
+    public $resolverNmsp;
 
     /**
      * 
@@ -163,6 +163,12 @@ class MetadataFormat {
      */
     public $defaultLang;
 
+    /**
+     * 
+     * @var ?array<string, string>
+     */
+    public $valueMaps;
+    
     /**
      * Creates a metadata format descriptor
      * @param object $fields values to set in the descriptor

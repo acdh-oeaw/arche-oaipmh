@@ -188,19 +188,33 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Value mapping cache
-     * @var ValueMapper
      */
-    static private $mapper;
+    static private ?ValueMapper $mapper;
 
     /**
      * Sequence for id generation
      * @var int
      */
-    static private $idSeq     = 1;
-    static private $xmlCache  = [];
-    static private $rdfCache  = [];
-    static private $cacheHits = ['rdf' => 0, 'xml' => 0];
-    static private $timeout   = 0;
+    static private int $idSeq = 1;
+
+    /**
+     * 
+     * @var array<string, DOMDocument>
+     */
+    static private array $xmlCache = [];
+
+    /**
+     * 
+     * @var array<string, RepoResourceDb>
+     */
+    static private array $rdfCache = [];
+
+    /**
+     * 
+     * @var array<string, int>
+     */
+    static private array $cacheHits = ['rdf' => 0, 'xml' => 0];
+    static private int $timeout   = 0;
 
     /**
      * Repository resource object
@@ -386,6 +400,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         $val = $el->getAttribute('val');
 
         $remove = true;
+        $values = null;
         if ($val === 'NOW') {
             $values = date(DATE_ISO8601);
         } elseif ($val === 'URI' || $val === 'URL') {
@@ -484,7 +499,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @param string $prop
      */
     private function insertCmdiComponents(DOMElement $el, Resource $meta,
-                                          string $component, string $prop) {
+                                          string $component, string $prop): void {
         $oldMeta = $this->res->getGraph();
 
         $format                = clone($this->format);
@@ -560,7 +575,7 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Extracts metadata values from a resource
-     * @returns array<string, array<int, mixed>>
+     * @return array<string, array<int, mixed>>
      */
     private function extractMetaValues(Resource $meta, string $prop,
                                        ?string $subprop, ?string $extUriProp,
@@ -583,6 +598,13 @@ class LiveCmdiMetadata implements MetadataInterface {
         return $values;
     }
 
+    /**
+     * 
+     * @param DOMElement $el
+     * @param string|array<string, array<mixed>> $values
+     * @param string $formatPrefix
+     * @return array<string, array<mixed>>
+     */
     private function processValues(DOMElement $el, string | array $values,
                                    string $formatPrefix): array {
         if (!is_array($values)) {
@@ -608,7 +630,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $aggregate = $el->getAttribute('aggregate');
         if (!empty($aggregate) && count($values) > 0) {
             $compare = $aggregate == "min" ? fn($x, $y) => $x < $y ? $x : $y : fn($x, $y) => $x > $y ? $x : $y;
-            $value   = reset(reset($values));
+            $value   = reset($values);
+            $value   = reset($value);
             foreach ($values as $vals) {
                 foreach ($vals as $v) {
                     if ($aggregate == "min" && $v < $value || $aggregate == "max" && $v > $value) {
@@ -660,7 +683,8 @@ class LiveCmdiMetadata implements MetadataInterface {
                 }
             }
             unset($i);
-            $format = $el->getAttribute('format');
+            $dateFormat = $el->getAttribute('dateFormat');
+            $format     = $el->getAttribute('format');
             foreach ($mapped as $i) {
                 $this->collectMetaValue($values, $i, null, $dateFormat, $format);
             }
@@ -675,7 +699,8 @@ class LiveCmdiMetadata implements MetadataInterface {
             } else if (isset($values[''])) {
                 $values = ['' => [reset($values[''])]];
             } else {
-                $values = ['' => [reset(reset($values))]];
+                $tmp    = reset($values);
+                $values = ['' => [reset($tmp)]];
             }
         }
 
@@ -737,7 +762,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $metaVal = $this->getRdfResource($metaVal->getUri())->getGraph();
             }
             $ids   = array_map(fn($x) => $x->getUri(), $metaVal->allResources($this->format->idProp));
-            $ids   = array_filter($ids, fn($x) => preg_match("`$this->format->resolverNmsp`", $x));
+            $ids   = array_filter($ids, fn($x) => preg_match("`" . $this->format->resolverNmsp . "`", $x));
             $value = reset($ids);
             if ($value !== null) {
                 $value .= "?format=" . rawurlencode($format);
@@ -757,7 +782,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return string
      */
     private function replacePropNmsp(string $prop): string {
-        $nmsp = substr($prop, 0, strpos($prop, ':'));
+        $nmsp = substr($prop, 0, (int) strpos($prop, ':'));
         if ($nmsp !== '' && isset($this->format->propNmsp->$nmsp)) {
             $prop = str_replace($nmsp . ':', $this->format->propNmsp->$nmsp, $prop);
         }
@@ -811,13 +836,21 @@ class LiveCmdiMetadata implements MetadataInterface {
         return $resource;
     }
 
+    /**
+     * 
+     * @param DOMElement $el
+     * @param array<string, array<mixed>> $values
+     * @return bool
+     */
     private function insertValues(DOMElement $el, array $values): bool {
         $asAttribute = $el->getAttribute('asAttribute');
         if (!empty($asAttribute)) {
             if (count($values) === 0) {
                 return false;
             }
-            $value = reset(reset($values));
+            $value = reset($values);
+            $value = reset($value);
+            $nmsp  = '';
             $p     = strpos($asAttribute, ':');
             if ($p > 0) {
                 $prefix = substr($asAttribute, 0, $p);
@@ -831,8 +864,8 @@ class LiveCmdiMetadata implements MetadataInterface {
             return false;
         }
 
-        $lang       = ($el->getAttribute('lang') ?? '' ) === 'true';
-        $asXml      = ($el->getAttribute('asXML') ?? '' ) === 'true';
+        $lang       = $el->getAttribute('lang') === 'true';
+        $asXml      = $el->getAttribute('asXML') === 'true';
         $replaceTag = $el->getAttribute('replaceXMLTag');
         $parent     = $el->parentNode;
         foreach ($values as $language => $tmp) {
@@ -846,10 +879,19 @@ class LiveCmdiMetadata implements MetadataInterface {
                         $ch = $df;
                     }
                 } else {
-                    $value = $value . (!empty($value) ? $format : '');
                     if (!empty($asAttribute)) {
                         $this->removeTemplateAttributes($ch);
-                        $this->insertAttribute($ch, $asAttribute, $value);
+                        $nmsp = '';
+                        $p    = strpos($asAttribute, ':');
+                        if ($p > 0) {
+                            $prefix = substr($asAttribute, 0, $p);
+                            $nmsp   = $ch->lookupNamespaceUri($prefix);
+                        }
+                        if (!empty($prefix)) {
+                            $ch->setAttributeNS($nmsp, $asAttribute, $value);
+                        } else {
+                            $ch->setAttribute($asAttribute, $value);
+                        }
                     } elseif ($replaceTag) {
                         $ch = $el->ownerDocument->createTextNode($value);
                     } else {
@@ -929,11 +971,11 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     private function appendCacheStats(DOMDocument $doc): void {
         $stats = $doc->createElement(self::STATS_TAG);
-        $stats->appendChild($doc->createElement('MemoryUsageMb', round(memory_get_usage(true) / 1024 / 1024)));
-        $stats->appendChild($doc->createElement('RdfCacheHits', self::$cacheHits['rdf']));
-        $stats->appendChild($doc->createElement('RdfCacheCount', count(self::$rdfCache)));
-        $stats->appendChild($doc->createElement('XmlCacheHits', self::$cacheHits['xml']));
-        $stats->appendChild($doc->createElement('XmlCacheCount', count(self::$xmlCache)));
+        $stats->appendChild($doc->createElement('MemoryUsageMb', (string) (round(memory_get_usage(true) / 1024 / 1024))));
+        $stats->appendChild($doc->createElement('RdfCacheHits', (string) self::$cacheHits['rdf']));
+        $stats->appendChild($doc->createElement('RdfCacheCount', (string) count(self::$rdfCache)));
+        $stats->appendChild($doc->createElement('XmlCacheHits', (string) self::$cacheHits['xml']));
+        $stats->appendChild($doc->createElement('XmlCacheCount', (string) count(self::$xmlCache)));
         $tmp   = [];
         foreach (self::$rdfCache as $i) {
             foreach ($i->getGraph()->allResources(RDF::RDF_TYPE) as $j) {

@@ -44,7 +44,7 @@ use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
- * Creates &lt;metadata&gt; element by filling in an XML template with values
+ * Creates <metadata> element by filling in an XML template with values
  * read from the repository resource's metadata.
  * 
  * Required metadata format definitition properties:
@@ -52,6 +52,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `idProp` - metadata property identifying a repository resource
  * - `labelProp` - metadata property storing repository resource label
  * - `schemaProp` - metadata property storing resource's CMDI profile URL
+ * - `resolverNmsp` - regular expression uniquely matching the resource's 
+ *    identifier namespace allowing the content type negotation. Required for
+ *    the `format` template attribute to generate proper URLs.
  * - `templateDir` - path to a directory storing XML templates;
  *    each template should have exactly same name as the CMDI profile id, e.g. `clarin.eu:cr1:p_1290431694580.xml`
  * - `defaultLang` - default language to be used when the template doesn't explicitly specify one
@@ -66,7 +69,6 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   in their metadata are automatically excluded from the OAI-PMH search.
  * - `schemaEnforce` if provided, only resources with a given value of the `schemaProp`
  *   are processed.
- * - `iiifBaseUrl` used for `val="IIIFURL` (see below)
  * - `valueMaps[mapName]` - value maps to be used with the `valueMap` template attribute.
  *   Every map should be an object with source values being property names and target values
  *   being property values.
@@ -107,50 +109,24 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     - `NOW` - current time
  *     - `URL`, `URI` - resource's repository URL
  *     - `METAURL` - resource's metadata repository URL
- *     - `ID`, `ID@NMSP`, `ID?NMSP` - value of resource's `idProp` metadata property.
- *       `ID@NMSP`, `ID?NMSP` allow to indicate the value namespace. They differ
- *       in regard to the situation when a value in a given namespace doesn't exist.
- *       In such a case `ID@NMSP` returns just any id while `ID?NMSP` returns no value
- *       (depending on the `count` attribute this can lead to empty element value or to 
- *       element being skipped). `NMSP` should be one of the keys provided in the 
- *       `idNmsp[prefix]` metadata format configuration property (see above).
  *     - `OAIID` - resources's OAI-PMH identifier
  *     - `OAIURL` - URL of the OAI-PMH `GetRecord` request returning a given resource
  *       metadata in the currently requested metadata format
- *     - `IIIFURL` - resource's IIIF URL which is a concatenation of the metadata format's
- *       `iiifBaseUrl` parameter value and the path part of the repository resource ID in 
- *       the `id` namespace.
- *       This is a special corner case for ARCHE to Kulturpool synchronization.
- *       It requires `idNmsp[id]` ID namespace to be defined in the metadata format config
- *       (see above).
- * - `count="N"` (default `1`)
- *     - when "*" and metadata contain no property specified by the `val` attribute
- *       the tag is removed from the template;
- *     - when "*" or "+" and metadata contain many properties specified by the `val` attribute
- *       the tag is repeated for each metadata property value
- *     - when "1" or "+" and metadata contain no property specified by the `val` attribute
- *       the tag is left empty in the template;
- *     - when "1" and metadata contain many properties specified by the `val` attribute
- *       first metadata property value is used
- * - `lang="true"` if present and a metadata property value contains information about
- *   the language, the `xml:lang` attribute is added to the template tag
- * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
- *   as XML
- * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitus the
- *   XML tag itself instead of being injected as its value.
- * - `asAttribute="targetAttribute"` if present, value specified with the `val` attribute is
- *   stored as a given attribute's value. Takes precedense over `replaceXMLTag` and forces
- *   `asXML="false"`.
- * - `dateFormat="FORMAT"` (default native precision read from the resource metadata value)
- *   can be `Date` or `DateTime` which will automatically adjust date precision.  Watch out
- *   as when present it will also naivly process any string values (cutting them or appending
- *   with a default time).
- * - `format="FORMAT"` extend the URL returned according to the `val` attribute with
- *   `?format=FORMAT` (when `val="ID"`) or `@format=FORMAT` (when `val="OAIID"`).
- *   This allows to provide URLs redirecting to particular dissemination services.
- *   It's worth noting that using `val="OAIID"` is faster.
- *   The `asXML` attribute takes a precedense.
- *   Doesn't work for special `val` attribute values of `NOW`, `URL` and `OAIURI`.
+ * - `dateFormat="FORMAT"` - when present, causes value to be interpreted as a date
+ *   and formatted according to a given format. Formatting is applied before any
+ *   further processing is done like applying `match`/`replace`/`aggregate`/`count`.
+ *   Values which can't be parsed as dates are skipped. 
+ *   `FORMAT` description can be found on the
+ *    https://www.php.net/manual/en/datetime.format.php#format
+ * - `match="regular expression"` - when present, only values matching a given
+ *   regular expression are processed. It is applied to the values list returned according
+ *   to the `val` (and, if specified, `dateFormat`) attribute and before `aggregate`
+ *   attribute is applied.
+ * - `replace="regular expression replace"` - works with the `match` attribute. Provides
+ *   a way to adjust the matched value. Match placeholders use the backslash syntax
+ *   (`\1` matches the first regex capture group, etc.)
+ * - `aggregate="min or max"` - when present out of all values passing the `match`/`replace`
+ *   step only a single value (minimum or maximum) is taken.
  * - `valueMap="mapName"` - name of the value map (defined in the metadata format config) to
  *   be applied to the value(s) denoted by the `val` attribute.
  *   Value map name can be preceeded with a `*`, `-` (default) or `+`:
@@ -169,6 +145,27 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `valueMapKeepSrc="false"` if present, removes the original value fetched according to the
  *   `val` attribute and returns only values fetched according to the `valueMapProp` attribute.
  *   Taken into account only if `valueMapProp` provided and not empty.
+ * - `count="N"` (default `1`)
+ *     - when "*" and metadata contain no property specified by the `val` attribute
+ *       the tag is removed from the template;
+ *     - when "*" or "+" and metadata contain many properties specified by the `val` attribute
+ *       the tag is repeated for each metadata property value
+ *     - when "1" or "+" and metadata contain no property specified by the `val` attribute
+ *       the tag is left empty in the template;
+ *     - when "1" and metadata contain many properties specified by the `val` attribute
+ *       first metadata property value is used
+ * - `format="FORMAT"` - for all values being RDF resources or the `OAIID` generates
+ *   an URL requesting response to be returned in a given format (e.g. `image/jpeg` or 
+ *   `text/turtle`)
+ * - `lang="true"` if present and a metadata property value contains information about
+ *   the language, the `xml:lang` attribute is added to the template tag
+ * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
+ *   as XML
+ * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitus the
+ *   XML tag itself instead of being injected as its value.
+ * - `asAttribute="targetAttribute"` if present, value specified with the `val` attribute is
+ *   stored as a given attribute's value. Takes precedense over `replaceXMLTag` and forces
+ *   `asXML="false"`.
  * - `ComponentId` specifies a template to substitue a given tag with. The template is being
  *   processed with a base resource(s) as defined by the `val` attribute.
  *   The attribute value should match the template file name without the .xml extension. 
@@ -361,7 +358,7 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $chToRemove = [];
-        $child = $el->firstChild;
+        $child      = $el->firstChild;
         while ($child !== null) {
             if ($child instanceof DOMElement) {
                 $chRemove = $this->processElement($child);
@@ -386,44 +383,21 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return bool should `$el` DOMElement be removed from the document
      */
     private function insertValue(DOMElement $el): bool {
-        $val    = $el->getAttribute('val');
-        $asAttr = $el->getAttribute('asAttribute');
+        $val = $el->getAttribute('val');
 
         $remove = true;
         if ($val === 'NOW') {
-            $this->insertContent($el, date('Y-m-d'), $asAttr);
-            $remove = false;
-        } else if ($val === 'ID' || substr($val, 0, 3) === 'ID?' || substr($val, 0, 3) === 'ID@') {
-            $count  = $el->getAttribute('count');
-            $format = $el->getAttribute('format');
-            $format = !empty($format) ? '?format=' . urlencode($format) : '';
-            $value  = $this->getResourceId(substr($val, 2, 1), substr($val, 3), $format);
-            $this->insertContent($el, $value, $asAttr);
-            $remove = empty($value) && ($count === '*' || $count === '?');
-        } else if ($val === 'URI' || $val === 'URL') {
-            $this->insertContent($el, $this->res->getUri(), $asAttr);
-            $remove = false;
-        } else if ($val === 'METAURL') {
-            $this->insertContent($el, $this->res->getUri() . '/metadata', $asAttr);
-            $remove = false;
-        } else if ($val === 'OAIID') {
-            $id     = (string) $this->res->getGraph()->get($this->format->uriProp);
-            $format = $el->getAttribute('format');
-            $format = !empty($format) ? '@format=' . urlencode($format) : '';
-            $this->insertContent($el, $id . $format, $asAttr);
-            $remove = false;
-        } else if ($val === 'OAIURL') {
+            $values = date(DATE_ISO8601);
+        } elseif ($val === 'URI' || $val === 'URL') {
+            $values = $this->res->getUri();
+        } elseif ($val === 'METAURL') {
+            $values = $this->res->getUri() . '/metadata';
+        } elseif ($val === 'OAIID') {
+            $values = $this->res->getGraph()->get($this->format->uriProp);
+        } elseif ($val === 'OAIURL') {
             $id     = rawurlencode((string) $this->res->getGraph()->get($this->format->uriProp));
             $prefix = rawurlencode($this->format->metadataPrefix);
-            $value  = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
-            $this->insertContent($el, $value, $asAttr);
-            $remove = false;
-        } else if ($val === 'IIIFURL') {
-            $tmp    = $this->getResourceId('&', 'id', '');
-            $tmp    = parse_url($tmp);
-            $tmp    = !empty($tmp['path']) ? $this->format->iiifBaseUrl . $tmp['path'] : '';
-            $this->insertContent($el, $tmp, $asAttr);
-            $remove = false;
+            $values = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
         } else if ($val !== '') {
             list('prop' => $prop, 'recursive' => $recursive, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
             if ($recursive || $inverse) {
@@ -434,9 +408,14 @@ class LiveCmdiMetadata implements MetadataInterface {
             $component = $el->getAttribute('ComponentId');
             if (!empty($component) && empty($subprop)) {
                 $this->insertCmdiComponents($el, $meta, $component, $prop);
+                $values = null;
             } else {
-                $this->insertMetaValues($el, $meta, $prop, $subprop, $extUriProp);
+                $values = $this->extractMetaValues($meta, $prop, $subprop, $extUriProp, $el->getAttribute('dateFormat'), $el->getAttribute('format'));
             }
+        }
+        if ($values !== null) {
+            $values = $this->processValues($el, $values, $val === 'OAIID' ? '@' : '');
+            $remove = $this->insertValues($el, $values);
         }
 
         $this->removeTemplateAttributes($el);
@@ -580,34 +559,12 @@ class LiveCmdiMetadata implements MetadataInterface {
     }
 
     /**
-     * Inserts a value from metadata.
-     * @param DOMElement $el
-     * @param Resource $meta
-     * @param string $prop
-     * @param string|null $subprop
-     * @param string|null $extUriProp
+     * Extracts metadata values from a resource
+     * @returns array<string, array<int, mixed>>
      */
-    private function insertMetaValues(DOMElement $el, Resource $meta,
-                                      string $prop, ?string $subprop,
-                                      ?string $extUriProp) {
-        $lang        = ($el->getAttribute('lang') ?? '' ) === 'true';
-        $asXml       = ($el->getAttribute('asXML') ?? '' ) === 'true';
-        $count       = $el->getAttribute('count');
-        $dateFormat  = $el->getAttribute('dateFormat');
-        $format      = $el->getAttribute('format');
-        $valueMap    = $el->getAttribute('valueMap');
-        $extValueMap = $el->getAttribute('valueMapProp');
-        $keepSrc     = $el->getAttribute('valueMapKeepSrc');
-        $replaceTag  = $el->getAttribute('replaceXMLTag');
-        $asAttribute = $el->getAttribute('asAttribute');
-        if (empty($count)) {
-            $count = '1';
-        }
-        if (!empty($format)) {
-            $format = '?format=' . urlencode($format);
-        }
-        $extValueMap = $this->replacePropNmsp($extValueMap);
-
+    private function extractMetaValues(Resource $meta, string $prop,
+                                       ?string $subprop, ?string $extUriProp,
+                                       ?string $dateFormat, ?string $format): array {
         $values = [];
         foreach ($meta->all($prop) as $i) {
             if ($extUriProp !== null && $i instanceof Resource) {
@@ -617,15 +574,58 @@ class LiveCmdiMetadata implements MetadataInterface {
                     $metaTmp = $i;
                 }
                 foreach ($metaTmp->all($extUriProp) as $j) {
-                    $this->collectMetaValue($values, $j, null, $dateFormat);
+                    $this->collectMetaValue($values, $j, null, $dateFormat, $format);
                 }
             } else {
-                $this->collectMetaValue($values, $i, $subprop, $dateFormat);
+                $this->collectMetaValue($values, $i, $subprop, $dateFormat, $format);
             }
         }
+        return $values;
+    }
+
+    private function processValues(DOMElement $el, string | array $values,
+                                   string $formatPrefix): array {
+        if (!is_array($values)) {
+            $values = ['' => [$values]];
+        }
+
+        $match   = $el->getAttribute('match');
+        $replace = $el->getAttribute('replace');
+        if (!empty($match)) {
+            $oldValues = $values;
+            $values    = [];
+            foreach ($oldValues as $lang => $vals) {
+                $vals = array_filter($vals, fn($x) => preg_match("`$match`", $x));
+                if (count($vals) > 0) {
+                    if (!empty($replace)) {
+                        $vals = array_map(fn($x) => preg_replace("`$match`", "$replace", $x), $vals);
+                    }
+                    $values[$lang] = $vals;
+                }
+            }
+        }
+
+        $aggregate = $el->getAttribute('aggregate');
+        if (!empty($aggregate) && count($values) > 0) {
+            $compare = $aggregate == "min" ? fn($x, $y) => $x < $y ? $x : $y : fn($x, $y) => $x > $y ? $x : $y;
+            $value   = reset(reset($values));
+            foreach ($values as $vals) {
+                foreach ($vals as $v) {
+                    if ($aggregate == "min" && $v < $value || $aggregate == "max" && $v > $value) {
+                        $value = $v;
+                    }
+                }
+            }
+            $values = ['' => [$value]];
+        }
+
+        $count = $el->getAttribute('count');
         if ($count === '?' && count($values) > 1) {
             $values = array_slice($values, 0, 1);
         }
+
+        $valueMap    = $el->getAttribute('valueMap');
+        $extValueMap = $el->getAttribute('valueMapProp');
         if ($valueMap) {
             $mapMode = substr($valueMap, 0, 1);
             if ($mapMode === self::VALUEMAP_ALL || $mapMode === self::VALUEMAP_STRICT || $mapMode === self::VALUEMAP_FALLBACK) {
@@ -649,7 +649,8 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
             $values = $mapped;
         } elseif ($extValueMap) {
-            $mapped = [];
+            $keepSrc = $el->getAttribute('valueMapKeepSrc');
+            $mapped  = [];
             foreach ($values as &$i) {
                 foreach ($i as $j) {
                     $mapped = array_merge($mapped, self::$mapper->getMapping($j, $extValueMap));
@@ -659,8 +660,9 @@ class LiveCmdiMetadata implements MetadataInterface {
                 }
             }
             unset($i);
+            $format = $el->getAttribute('format');
             foreach ($mapped as $i) {
-                $this->collectMetaValue($values, $i, null, $dateFormat);
+                $this->collectMetaValue($values, $i, null, $dateFormat, $format);
             }
         }
 
@@ -669,48 +671,20 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
         if ($count === '1') {
             if (isset($values[$this->format->defaultLang])) {
-                $values = [$this->format->defaultLang => [$values[$this->format->defaultLang][0]]];
+                $values = [$this->format->defaultLang => [reset($values[$this->format->defaultLang])]];
             } else if (isset($values[''])) {
-                $values = ['' => [$values[''][0]]];
+                $values = ['' => [reset($values[''])]];
             } else {
-                $values = ['' => [$values[array_keys($values)[0]][0]]];
+                $values = ['' => [reset(reset($values))]];
             }
         }
 
-        $parent = $el->parentNode;
-        foreach ($values as $language => $tmp) {
-            foreach ($tmp as $value) {
-                /** @var DOMElement $ch */
-                $ch = !$replaceTag ? $el->cloneNode(true) : null;
-                if ($asXml) {
-                    $df = $el->ownerDocument->createDocumentFragment();
-                    $df->appendXML($value);
-                    if ($replaceTag) {
-                        $ch = $df;
-                    }
-                } else {
-                    $value = $value . (!empty($value) ? $format : '');
-                    if (!empty($asAttribute)) {
-                        $this->removeTemplateAttributes($ch);
-                        $this->insertAttribute($ch, $asAttribute, $value);
-                    } elseif ($replaceTag) {
-                        $ch = $el->ownerDocument->createTextNode($value);
-                    } else {
-                        $this->removeTemplateAttributes($ch);
-                        $ch->textContent = $value;
-                    }
-                }
-                if ($lang && $language !== '' && $ch instanceof DOMElement) {
-                    $ch->setAttribute('xml:lang', $language);
-                }
-                // append after the template node assuring content will be also processed
-                if ($el->nextSibling !== null) {
-                    $parent->insertBefore($ch, $el->nextSibling);
-                } else {
-                    $parent->appendChild($ch);
-                }
-            }
+        $format = $el->getAttribute('format');
+        if (!empty($format) && !empty($formatPrefix) && count($values['']) > 0) {
+            $values[''] = array_map(fn($x) => $x . $formatPrefix . "format=" . rawurlencode($format), $values['']);
         }
+
+        return $values;
     }
 
     private function removeTemplateAttributes(DOMElement $ch): void {
@@ -726,39 +700,53 @@ class LiveCmdiMetadata implements MetadataInterface {
         $ch->removeAttribute('valueMapKeepSrc');
         $ch->removeAttribute('replaceXMLTag');
         $ch->removeAttribute('asAttribute');
+        $ch->removeAttribute('match');
+        $ch->removeAttribute('aggregate');
+        $ch->removeAttribute('replace');
     }
 
     /**
      * Extracts metadata value from a given EasyRdf node
      * @param array<string> $values
-     * @param Literal|Resource $metaVal
-     * @param ?string $subprop
-     * @param ?string $dateFormat
      */
     private function collectMetaValue(array &$values,
                                       Literal | Resource $metaVal,
-                                      ?string $subprop, ?string $dateFormat) {
+                                      ?string $subprop, ?string $dateFormat,
+                                      ?string $format): void {
         $language = '';
-        $value    = (string) $metaVal;
         if ($metaVal instanceof Literal) {
             $language = $metaVal->getLang();
+            $value    = $metaVal->getValue();
+            if ($subprop !== null) {
+                $tmp = yaml_parse($value);
+                if (!isset($tmp[$subprop])) {
+                    return;
+                }
+                $value = $tmp[$subprop];
+            }
+            if (!empty($dateFormat)) {
+                try {
+                    $date  = new \DateTime($value);
+                    $value = $date->format($dateFormat);
+                } catch (\Throwable $e) {
+                    return;
+                }
+            }
+        } elseif (!empty($format)) {
+            if (count($metaVal->propertyUris()) === 0) {
+                $metaVal = $this->getRdfResource($metaVal->getUri())->getGraph();
+            }
+            $ids   = array_map(fn($x) => $x->getUri(), $metaVal->allResources($this->format->idProp));
+            $ids   = array_filter($ids, fn($x) => preg_match("`$this->format->resolverNmsp`", $x));
+            $value = reset($ids);
+            if ($value !== null) {
+                $value .= "?format=" . rawurlencode($format);
+            }
+        } else {
+            $value = $metaVal->getUri();
         }
         if (!isset($values[$language])) {
             $values[$language] = [];
-        }
-        if ($subprop !== null) {
-            $value = yaml_parse($value)[$subprop];
-        }
-        switch ($dateFormat) {
-            case 'Date':
-                $value = substr($value, 0, 10);
-                break;
-            case 'DateTime':
-                $value = $value . substr('0000-01-01T00:00:00Z', strlen($value));
-                break;
-            case 'Year':
-                $value = substr($value, 0, 4);
-                break;
         }
         $values[$language][] = $value;
     }
@@ -823,63 +811,64 @@ class LiveCmdiMetadata implements MetadataInterface {
         return $resource;
     }
 
-    private function getResourceId(string $method, string $namespace,
-                                   string $format): string {
-        $ids   = $this->res->getIds();
-        $match = null;
-        if (!empty($method)) {
-            if (!isset($this->format->idNmsp->$namespace)) {
-                throw new OaiException("namespace '$namespace' is not defined in the metadata format config");
+    private function insertValues(DOMElement $el, array $values): bool {
+        $asAttribute = $el->getAttribute('asAttribute');
+        if (!empty($asAttribute)) {
+            if (count($values) === 0) {
+                return false;
             }
-            $namespace = $this->format->idNmsp->$namespace;
-            foreach ($ids as $i) {
-                if (str_starts_with($i, $namespace)) {
-                    $otherNmsp = false;
-                    foreach ((array) $this->format->idNmsp as $j) {
-                        if ($namespace !== $j && str_starts_with($i, $j)) {
-                            $otherNmsp = true;
-                            break;
-                        }
+            $value = reset(reset($values));
+            $p     = strpos($asAttribute, ':');
+            if ($p > 0) {
+                $prefix = substr($asAttribute, 0, $p);
+                $nmsp   = $el->lookupNamespaceUri($prefix);
+            }
+            if (!empty($prefix)) {
+                $el->setAttributeNS($nmsp, $asAttribute, $value);
+            } else {
+                $el->setAttribute($asAttribute, $value);
+            }
+            return false;
+        }
+
+        $lang       = ($el->getAttribute('lang') ?? '' ) === 'true';
+        $asXml      = ($el->getAttribute('asXML') ?? '' ) === 'true';
+        $replaceTag = $el->getAttribute('replaceXMLTag');
+        $parent     = $el->parentNode;
+        foreach ($values as $language => $tmp) {
+            foreach ($tmp as $value) {
+                /** @var DOMElement $ch */
+                $ch = !$replaceTag ? $el->cloneNode(true) : null;
+                if ($asXml) {
+                    $df = $el->ownerDocument->createDocumentFragment();
+                    $df->appendXML($value);
+                    if ($replaceTag) {
+                        $ch = $df;
                     }
-                    if (!$otherNmsp) {
-                        $match = $i;
-                        break;
+                } else {
+                    $value = $value . (!empty($value) ? $format : '');
+                    if (!empty($asAttribute)) {
+                        $this->removeTemplateAttributes($ch);
+                        $this->insertAttribute($ch, $asAttribute, $value);
+                    } elseif ($replaceTag) {
+                        $ch = $el->ownerDocument->createTextNode($value);
                     } else {
-                        $match = $i;
+                        $this->removeTemplateAttributes($ch);
+                        $ch->textContent = $value;
                     }
+                }
+                if ($lang && $language !== '' && $ch instanceof DOMElement) {
+                    $ch->setAttribute('xml:lang', $language);
+                }
+                // append after the template node assuring content will be also processed
+                if ($el->nextSibling !== null) {
+                    $parent->insertBefore($ch, $el->nextSibling);
+                } else {
+                    $parent->appendChild($ch);
                 }
             }
         }
-        if ($match === null && $method !== '?') {
-            $match = $ids[0] ?? $this->res->getUri();
-        }
-        if (!empty($match)) {
-            $match .= $format;
-        }
-        return (string) $match;
-    }
-
-    private function insertAttribute(DOMElement $el, string $attribute,
-                                     string $value): void {
-        $p = strpos($attribute, ':');
-        if ($p > 0) {
-            $prefix = substr($attribute, 0, $p);
-            $nmsp   = $el->lookupNamespaceUri($prefix);
-        }
-        if (!empty($prefix)) {
-            $el->setAttributeNS($nmsp, $attribute, $value);
-        } else {
-            $el->setAttribute($attribute, $value);
-        }
-    }
-
-    private function insertContent(DOMElement $el, string $value,
-                                   ?string $attribute): void {
-        if (!empty($attribute)) {
-            $this->insertAttribute($el, $attribute, $value);
-        } else {
-            $el->textContent = $value;
-        }
+        return true;
     }
 
     private function getRdfResource(string $uri): RepoResourceDb {

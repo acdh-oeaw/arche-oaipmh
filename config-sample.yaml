@@ -180,6 +180,7 @@ oai:
             #   resIdUri <--idProp-- res --labelProp--> label
             idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
             labelProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
+            resolverNmsp: ^https://id.acdh.oeaw.ac.at/(?!cmdi/)
             # Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
             defaultLang: en
             # Path to the directory storing CMDI XML templates
@@ -204,7 +205,7 @@ oai:
             #   resIdUri <--idProp-- res --labelProp--> label
             idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
             labelProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
-            iiifBaseUrl: 'https://loris.acdh.oeaw.ac.at/uuid:'
+            resolverNmsp: ^https://id.acdh.oeaw.ac.at/(?!cmdi/)
             # Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
             defaultLang: en
             # Path to the directory storing CMDI XML templates
@@ -217,9 +218,6 @@ oai:
             propNmsp:
                 acdh: https://vocabs.acdh.oeaw.ac.at/schema#
                 skos: http://www.w3.org/2004/02/skos/core#
-            idNmsp:
-                id: https://id.acdh.oeaw.ac.at/
-                cmdiid: https://id.acdh.oeaw.ac.at/cmdi/
             # Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property or it points to a schema without a template
             schemaDefault: kulturpool
             # Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.

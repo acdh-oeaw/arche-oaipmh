@@ -165,7 +165,7 @@ class MetadataFormat {
 
     /**
      * 
-     * @var ?array<string, string>
+     * @var array<string, string>
      */
     public $valueMaps;
     

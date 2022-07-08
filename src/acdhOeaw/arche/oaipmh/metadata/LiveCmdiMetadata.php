@@ -270,7 +270,7 @@ class LiveCmdiMetadata implements MetadataInterface {
             throw new RuntimeException('No CMDI template matched');
         }
 
-        if (self::$mapper === null) {
+        if (!isset(self::$mapper)) {
             self::$mapper = new ValueMapper();
         }
     }

@@ -218,22 +218,19 @@ class LiveCmdiMetadata implements MetadataInterface {
 
     /**
      * Repository resource object
-     * @var RepoResourceDb
      */
-    private $res;
+    private RepoResourceDb $res;
 
     /**
      * Metadata format descriptor
-     * @var MetadataFormat
      */
-    private $format;
+    private MetadataFormat $format;
 
     /**
      * Path to the XML template file
-     * @var string
      */
-    private $template;
-    private $depth = -1;
+    private string $template = '';
+    private int $depth = -1;
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -262,7 +259,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 break;
             }
         }
-        if ($this->template === null && !empty($this->format->schemaDefault)) {
+        if (empty($this->template) && !empty($this->format->schemaDefault)) {
             $default        = preg_replace('|[^-A-Za-z0-9_]|', '_', $this->format->schemaDefault);
             $this->template = $this->format->templateDir . '/' . $default . '.xml';
         }
@@ -402,7 +399,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $remove = true;
         $values = null;
         if ($val === 'NOW') {
-            $values = date(DATE_ISO8601);
+            $dateFormat = $el->getAttribute('dateFormat');
+            $values     = date(empty($dateFormat) ? DATE_ISO8601 : $dateFormat);
         } elseif ($val === 'URI' || $val === 'URL') {
             $values = $this->res->getUri();
         } elseif ($val === 'METAURL') {
@@ -643,6 +641,9 @@ class LiveCmdiMetadata implements MetadataInterface {
         }
 
         $count = $el->getAttribute('count');
+        if (empty($count)) {
+            $count = '1';
+        }
         if ($count === '?' && count($values) > 1) {
             $values = array_slice($values, 0, 1);
         }
@@ -843,31 +844,20 @@ class LiveCmdiMetadata implements MetadataInterface {
      * @return bool
      */
     private function insertValues(DOMElement $el, array $values): bool {
+        $lang        = $el->getAttribute('lang') === 'true';
+        $asXml       = $el->getAttribute('asXML') === 'true';
+        $replaceTag  = $el->getAttribute('replaceXMLTag');
         $asAttribute = $el->getAttribute('asAttribute');
+        $attrNmsp    = $attrPrefix  = '';
         if (!empty($asAttribute)) {
-            if (count($values) === 0) {
-                return false;
-            }
-            $value = reset($values);
-            $value = reset($value);
-            $nmsp  = '';
-            $p     = strpos($asAttribute, ':');
+            $p = strpos($asAttribute, ':');
             if ($p > 0) {
-                $prefix = substr($asAttribute, 0, $p);
-                $nmsp   = $el->lookupNamespaceUri($prefix);
+                $attrPrefix = substr($asAttribute, 0, $p);
+                $attrNmsp   = $el->lookupNamespaceUri($attrPrefix);
             }
-            if (!empty($prefix)) {
-                $el->setAttributeNS($nmsp, $asAttribute, $value);
-            } else {
-                $el->setAttribute($asAttribute, $value);
-            }
-            return false;
         }
 
-        $lang       = $el->getAttribute('lang') === 'true';
-        $asXml      = $el->getAttribute('asXML') === 'true';
-        $replaceTag = $el->getAttribute('replaceXMLTag');
-        $parent     = $el->parentNode;
+        $parent = $el->parentNode;
         foreach ($values as $language => $tmp) {
             foreach ($tmp as $value) {
                 /** @var DOMElement $ch */
@@ -881,14 +871,8 @@ class LiveCmdiMetadata implements MetadataInterface {
                 } else {
                     if (!empty($asAttribute)) {
                         $this->removeTemplateAttributes($ch);
-                        $nmsp = '';
-                        $p    = strpos($asAttribute, ':');
-                        if ($p > 0) {
-                            $prefix = substr($asAttribute, 0, $p);
-                            $nmsp   = $ch->lookupNamespaceUri($prefix);
-                        }
-                        if (!empty($prefix)) {
-                            $ch->setAttributeNS($nmsp, $asAttribute, $value);
+                        if (!empty($attrPrefix)) {
+                            $ch->setAttributeNS($attrNmsp, $asAttribute, $value);
                         } else {
                             $ch->setAttribute($asAttribute, $value);
                         }

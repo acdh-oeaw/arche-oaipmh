@@ -30,6 +30,7 @@ use PDO;
 use Psr\Log\AbstractLogger;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 use acdhOeaw\arche\oaipmh\data\HeaderData;
+use acdhOeaw\arche\oaipmh\data\ResumptionTokenData;
 use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
 use acdhOeaw\arche\oaipmh\metadata\MetadataInterface;
 use acdhOeaw\arche\oaipmh\set\SetInterface;
@@ -59,9 +60,8 @@ interface SearchInterface {
      * @param object $config configuration object
      * @param PDO $pdo repository database connection object
      */
-    public function __construct(SetInterface $sets,
-                                DeletedInterface $deleted, object $config,
-                                PDO $pdo);
+    public function __construct(SetInterface $sets, DeletedInterface $deleted,
+                                object $config, PDO $pdo);
 
     /**
      * Performs search using given filter values.
@@ -69,8 +69,11 @@ interface SearchInterface {
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
+     * @param ?string $resumptionToken resumption token - when present the search
+     *   should be restored based on the token
      */
-    public function find(string $id, string $from, string $until, string $set): void;
+    public function find(string $id, string $from, string $until, string $set,
+                         ?string $resumptionToken = null): void;
 
     /**
      * Returns number of resources matching last search (last call of the 
@@ -100,11 +103,25 @@ interface SearchInterface {
      * @return void
      */
     public function setLogger(AbstractLogger $log): void;
-    
+
     /**
      * Sets metadata format configuration
      * @param ?MetadataFormat $format metadata format descriptor
      * @return void
      */
     public function setMetadataFormat(?MetadataFormat $format): void;
+
+    /**
+     * Checks if the timeout for resumption token generation has been reached.
+     * If it is reached, returns true.
+     */
+    public function checkResumptionTimeout(): bool;
+
+    /**
+     * Saves the current search in a way it can be recreated from the
+     * resumption token and returns the resumption token data.
+     * @param int $pos index of last read resource
+     * @return ResumptionTokenData
+     */
+    public function getResumptionToken(int $pos): ResumptionTokenData;
 }

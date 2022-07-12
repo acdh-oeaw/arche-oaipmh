@@ -26,11 +26,6 @@ The main aim was to keep it flexible:
   ```
 * Adjust `config.yaml` according to comments in the file.
 
-# Unsupported OAI-PMH features
-
-* *resumptionTokens*  
-  Implementing *resumptionTokens* in a right way is difficult (by the way it's even aknowledged by the OAI-PMH standard which doesn't require to guarantee consistent repository state between resumption requests) and to assure consistent repository state it's simply better to avoid them. This implementation of OAI-PMH is written in a way it can handle responses of virtually any size as it doesn't buffer the whole response before sending it back to the client but continuesly streams the response.
-
 # Required repository structure
 
 Much attention was paid to make the service flexible.

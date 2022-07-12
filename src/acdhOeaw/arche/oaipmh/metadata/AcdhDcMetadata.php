@@ -77,7 +77,7 @@ class AcdhDcMetadata implements MetadataInterface {
      * @param RepoDb $repo
      * @param MetadataFormat $format
      */
-    static private function init(RepoDb $repo, MetadataFormat $format) {
+    static private function init(RepoDb $repo, MetadataFormat $format): void {
         if (is_array(self::$mappings)) {
             return;
         }

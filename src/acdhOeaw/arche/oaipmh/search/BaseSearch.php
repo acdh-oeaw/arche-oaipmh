@@ -26,14 +26,17 @@
 
 namespace acdhOeaw\arche\oaipmh\search;
 
+use DateTime;
 use PDO;
 use Psr\Log\AbstractLogger;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\Schema;
+use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\HeaderData;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\ResumptionTokenData;
 use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
 use acdhOeaw\arche\oaipmh\metadata\MetadataInterface;
 use acdhOeaw\arche\oaipmh\set\SetInterface;
@@ -91,6 +94,30 @@ class BaseSearch implements SearchInterface {
     private array $records = [];
 
     /**
+     * Resumption token value used
+     * @var ?string
+     */
+    private ?string $resumptionToken;
+
+    /**
+     * Value of the resumptionCursor attribute read from the resumption dump file
+     * @var int
+     */
+    private int $resumptionCursor = 0;
+
+    /**
+     * Total number of resources of the original search read from the resumption dump file
+     * @var int
+     */
+    private int $resumptionCount;
+
+    /**
+     * Object creation timestamp. Used to determine resumption timeout.
+     * @var int
+     */
+    private int $t0;
+
+    /**
      * @param SetInterface $sets
      * @param DeletedInterface $deleted
      * @param object $config configuration object
@@ -102,6 +129,7 @@ class BaseSearch implements SearchInterface {
         $this->deleted = $deleted;
         $this->config  = $config;
         $this->pdo     = $pdo;
+        $this->t0      = time();     
 
         $baseUrl    = $this->config->repoBaseUrl;
         $schema     = new Schema($config);
@@ -115,8 +143,96 @@ class BaseSearch implements SearchInterface {
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
+     * @param ?string $resumptionToken resumption token
      */
-    public function find(string $id, string $from, string $until, string $set): void {
+    public function find(string $id, string $from, string $until, string $set,
+                         ?string $resumptionToken = null): void {
+        if (!empty($resumptionToken)) {
+            $this->findResumptionToken($resumptionToken);
+        } else {
+            $this->findQuery($id, $from, $until, $set);
+        }
+    }
+
+    /**
+     * Returns number of resources matching last search (last call of the 
+     * `find()` method).
+     */
+    public function getCount(): int {
+        return count($this->records);
+    }
+
+    /**
+     * Provides the `HeaderData` object for a given search result.
+     * @param int $pos seach result resource index
+     * @return HeaderData
+     */
+    public function getHeader(int $pos): HeaderData {
+        return $this->records[$pos];
+    }
+
+    /**
+     * Provides the `MetadataInterface` object for a given search result.
+     * @param int $pos seach result resource index
+     * @return MetadataInterface
+     */
+    public function getMetadata(int $pos): MetadataInterface {
+        $resource = new RepoResourceDb((string) $this->records[$pos]->repoid, $this->repo);
+        $result   = new $this->format->class($resource, $this->records[$pos], $this->format);
+        return $result;
+    }
+
+    public function checkResumptionTimeout(): bool {
+        return microtime(true) - $this->t0 >= $this->config->resumptionTimeout;
+    }
+
+    public function getResumptionToken(int $pos): ResumptionTokenData {
+        $token          = $this->resumptionToken ?? bin2hex(random_bytes(4)) . bin2hex((string) time());
+        $data           = [
+            'count'   => $this->resumptionCount ?? count($this->records),
+            'cursor'  => isset($this->resumptionCount) ? $this->resumptionCount - count($this->records) : 0,
+            'records' => array_slice($this->records, $pos + 1),
+        ];
+        $expiresAt      = date('Y-m-d\TH:i:s\Z', time() + $this->config->resumptionKeepAlive);
+        if (!file_exists($this->config->resumptionDir)) {
+            mkdir($this->config->resumptionDir, 0750, true);
+        }
+        $file = $this->config->resumptionDir . "/" . $token;
+        if (count($data['records']) > 0) {
+            file_put_contents($file, json_encode($data, JSON_UNESCAPED_SLASHES));
+        } elseif (file_exists($file)) {
+            unlink($file);
+        }
+        return new ResumptionTokenData($token, $expiresAt, $data['count'], $data['cursor']);
+    }
+
+    private function findResumptionToken(?string $token): void {
+        // cleanup resumptioDir
+        $dir = $this->config->resumptionDir;
+        $t   = time() - $this->config->resumptionKeepAlive;
+        foreach (scandir($dir) as $i) {
+            if (filemtime("$dir/$i") < $t) {
+                unlink("$dir/$i");
+            }
+        }
+
+        $token = $token ?? '';
+        if (!file_exists("$dir/$token")) {
+            throw new OaiException('badResumptionToken');
+        }
+
+        $this->resumptionToken  = $token;
+        $this->records          = [];
+        $data                   = json_decode(file_get_contents("$dir/$token"));
+        $this->resumptionCursor = $data->cursor;
+        $this->resumptionCount  = $data->count;
+        foreach ($data->records as $i) {
+            $this->records[] = new HeaderData($i);
+        }
+    }
+
+    private function findQuery(string $id, string $from, string $until,
+                               string $set): void {
         $extFilterQP = new QueryPart();
         $extDataQP   = new QueryPart();
         if (isset($this->format)) {
@@ -171,34 +287,6 @@ class BaseSearch implements SearchInterface {
         foreach ($this->records as $i) {
             $i->sets = array_filter(json_decode($i->sets));
         }
-    }
-
-    /**
-     * Returns number of resources matching last search (last call of the 
-     * `find()` method).
-     */
-    public function getCount(): int {
-        return count($this->records);
-    }
-
-    /**
-     * Provides the `HeaderData` object for a given search result.
-     * @param int $pos seach result resource index
-     * @return HeaderData
-     */
-    public function getHeader(int $pos): HeaderData {
-        return $this->records[$pos];
-    }
-
-    /**
-     * Provides the `MetadataInterface` object for a given search result.
-     * @param int $pos seach result resource index
-     * @return MetadataInterface
-     */
-    public function getMetadata(int $pos): MetadataInterface {
-        $resource = new RepoResourceDb((string) $this->records[$pos]->repoid, $this->repo);
-        $result   = new $this->format->class($resource, $this->records[$pos], $this->format);
-        return $result;
     }
 
     /**

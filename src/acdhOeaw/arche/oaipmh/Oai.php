@@ -304,10 +304,11 @@ TMPL;
      * @throws OaiException
      */
     public function oaiListRecords(string $verb, string $id = ''): void {
-        $from           = (string) $this->getParam('from') . '';
-        $until          = (string) $this->getParam('until') . '';
+        $from           = (string) $this->getParam('from');
+        $until          = (string) $this->getParam('until');
         $set            = (string) $this->getParam('set');
-        $metadataPrefix = (string) $this->getParam('metadataPrefix') . '';
+        $metadataPrefix = (string) $this->getParam('metadataPrefix');
+        $token          = (string) $this->getParam('resumptionToken');
         $reloadCache    = $this->getParam('reloadCache') !== null;
 
         if ($verb == 'GetRecord') {
@@ -316,7 +317,8 @@ TMPL;
                 throw new OaiException('badArgument');
             }
         } else {
-            $this->checkRequestParam(['from', 'until', 'metadataPrefix', 'set', 'reloadCache']);
+            $this->checkRequestParam(['from', 'until', 'metadataPrefix', 'set', 'reloadCache',
+                'resumptionToken']);
         }
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
@@ -333,11 +335,12 @@ TMPL;
 
         $format = $this->metadataFormats[$metadataPrefix];
         $this->search->setMetadataFormat($format);
-        $this->search->find($id, $from, $until, $set);
+        $this->search->find($id, $from, $until, $set, $token);
         if ($this->search->getCount() == 0) {
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }
 
+        $tokenData = null;
         echo "    <" . $verb . ">\n";
         try {
             for ($i = 0; $i < $this->search->getCount(); $i++) {
@@ -370,6 +373,16 @@ TMPL;
                 } finally {
                     echo ($metadataFlag ? '</metadata>' : '') . ($recordFlag ? '</record>' : '');
                 }
+                if ($this->search->checkResumptionTimeout()) {
+                    $tokenData = $this->search->getResumptionToken($i);
+                    break;
+                }
+            }
+            if ($tokenData !== null) {
+                echo "\n" . $tokenData->asXml() . "\n";
+            } elseif (!empty($token)) {
+                // sanitize the token data
+                $this->search->getResumptionToken($this->search->getCount());
             }
         } finally {
             echo "    </" . $verb . ">\n";
@@ -488,12 +501,6 @@ TMPL;
      * @throws OaiException
      */
     private function checkRequestParam(array $allowed): void {
-        $token = $this->getParam('resumptionToken');
-        if ($token !== null) {
-            // we do not implement partial responses
-            throw new OaiException('badResumptionToken');
-        }
-
         $seen  = [];
         $param = filter_input(\INPUT_SERVER, 'QUERY_STRING');
         $param = explode('&', $param ? $param : '');

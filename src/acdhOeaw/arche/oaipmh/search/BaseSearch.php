@@ -129,7 +129,7 @@ class BaseSearch implements SearchInterface {
         $this->deleted = $deleted;
         $this->config  = $config;
         $this->pdo     = $pdo;
-        $this->t0      = time();     
+        $this->t0      = time();
 
         $baseUrl    = $this->config->repoBaseUrl;
         $schema     = new Schema($config);
@@ -187,13 +187,13 @@ class BaseSearch implements SearchInterface {
     }
 
     public function getResumptionToken(int $pos): ResumptionTokenData {
-        $token          = $this->resumptionToken ?? bin2hex(random_bytes(4)) . bin2hex((string) time());
-        $data           = [
+        $token     = $this->resumptionToken ?? bin2hex(random_bytes(4)) . bin2hex((string) time());
+        $data      = [
             'count'   => $this->resumptionCount ?? count($this->records),
             'cursor'  => isset($this->resumptionCount) ? $this->resumptionCount - count($this->records) : 0,
             'records' => array_slice($this->records, $pos + 1),
         ];
-        $expiresAt      = date('Y-m-d\TH:i:s\Z', time() + $this->config->resumptionKeepAlive);
+        $expiresAt = date('Y-m-d\TH:i:s\Z', time() + $this->config->resumptionKeepAlive);
         if (!file_exists($this->config->resumptionDir)) {
             mkdir($this->config->resumptionDir, 0750, true);
         }

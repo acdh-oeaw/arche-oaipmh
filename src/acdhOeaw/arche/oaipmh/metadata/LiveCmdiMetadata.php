@@ -517,7 +517,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                 $resTmp      = new RepoResourceDb($meta->getUri(), $this->res->getRepo());
                 $metaTmp     = $meta->copy();
                 $metaTmp->delete($prop);
-                $metaTmp->addLiteral($prop, (string) $i);
+                $metaTmp->addLiteral($prop, $i instanceof Literal ? $i : (string) $i);
                 $resTmp->setGraph($metaTmp);
                 $resources[] = $resTmp;
                 $cache[]     = false;

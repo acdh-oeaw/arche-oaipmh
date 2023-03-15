@@ -112,6 +112,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *     - `OAIID` - resources's OAI-PMH identifier
  *     - `OAIURL` - URL of the OAI-PMH `GetRecord` request returning a given resource
  *       metadata in the currently requested metadata format
+ *     - `RANDOM` - a random number from 0 to 2^31
  * - `dateFormat="FORMAT"` - when present, causes value to be interpreted as a date
  *   and formatted according to a given format. Formatting is applied before any
  *   further processing is done like applying `match`/`replace`/`aggregate`/`count`.
@@ -411,7 +412,9 @@ class LiveCmdiMetadata implements MetadataInterface {
             $id     = rawurlencode((string) $this->res->getGraph()->get($this->format->uriProp));
             $prefix = rawurlencode($this->format->metadataPrefix);
             $values = $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . $prefix . '&identifier=' . $id;
-        } else if ($val !== '') {
+        } elseif ($val === 'RANDOM') {
+            $values = rand();
+        } elseif ($val !== '') {
             list('prop' => $prop, 'recursive' => $recursive, 'subprop' => $subprop, 'extUriProp' => $extUriProp, 'inverse' => $inverse) = $this->parseVal($val);
             if ($recursive || $inverse) {
                 $meta = $this->getResourcesByPath($prop, $recursive, $inverse);

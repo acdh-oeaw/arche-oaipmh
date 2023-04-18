@@ -127,7 +127,8 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   a way to adjust the matched value. Match placeholders use the backslash syntax
  *   (`\1` matches the first regex capture group, etc.)
  * - `aggregate="min or max"` - when present out of all values passing the `match`/`replace`
- *   step only a single value (minimum or maximum) is taken.
+ *   step only a single value (minimum or maximum) is taken. `match` and `replace` are applied
+ *   to values before aggregating them.
  * - `valueMap="mapName"` - name of the value map (defined in the metadata format config) to
  *   be applied to the value(s) denoted by the `val` attribute.
  *   Value map name can be preceeded with a `*`, `-` (default) or `+`:
@@ -158,11 +159,13 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  * - `format="FORMAT"` - for all values being RDF resources or the `OAIID` generates
  *   an URL requesting response to be returned in a given format (e.g. `image/jpeg` or 
  *   `text/turtle`)
+ * - `URLEncode="prefix"` - when present, the final value after all transformations defined by
+ *   other attributes is URL-encoded and appended to a given prefix..
  * - `lang="true"` if present and a metadata property value contains information about
  *   the language, the `xml:lang` attribute is added to the template tag
  * - `asXML="true"` if present, value specified with the `val` attribute is parsed and added
  *   as XML
- * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitus the
+ * - `replaceXMLTag="true"` if present, value specified with the `val` attribute substitutes the
  *   XML tag itself instead of being injected as its value.
  * - `asAttribute="targetAttribute"` if present, value specified with the `val` attribute is
  *   stored as a given attribute's value. Takes precedense over `replaceXMLTag` and forces
@@ -175,6 +178,9 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
  *   for different target resources.
  *   When the `ComponentId` is used the actual tag in the template is not important because it's 
  *   anyway replaced by the component's root tag.
+ *   When `ComponentId` is used with the `asAttribute` and without `val` the component template
+ *   selected as described above is evaluated in the context of the current resource and then
+ *   the final XML text value is being put as an attribute value.
  * - `id` if has value of '#', it is filled in with a globally unique sequence
  * 
  * @author zozlak
@@ -231,7 +237,7 @@ class LiveCmdiMetadata implements MetadataInterface {
      * Path to the XML template file
      */
     private string $template = '';
-    private int $depth = -1;
+    private int $depth    = -1;
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -363,6 +369,8 @@ class LiveCmdiMetadata implements MetadataInterface {
         $remove = false;
         if ($el->hasAttribute('val')) {
             $remove = $this->insertValue($el);
+        } elseif ($el->hasAttribute('ComponentId') && $el->hasAttribute('asAttribute')) {
+            $remove = $this->cmdiComponentAsAttribute($el);
         }
         if ($el->getAttribute('id') === '#') {
             $el->setAttribute('id', 'id' . self::$idSeq);
@@ -490,6 +498,25 @@ class LiveCmdiMetadata implements MetadataInterface {
             'extUriProp' => $extUriProp,
             'inverse'    => $inverse,
         ];
+    }
+
+    /**
+     * Handles situation where a component's text value should be made
+     * template node's attribute value
+     */
+    private function cmdiComponentAsAttribute(DOMElement $el): bool {
+        $format                = clone($this->format);
+        $format->schemaDefault = $el->getAttribute('ComponentId');
+        $format->schemaProp    = 'https://enforced/schema';
+        try {
+            $componentObj = new LiveCmdiMetadata($this->res, new stdClass(), $format);
+            $componentXml = $componentObj->getXml($this->depth + 1);
+            $values       = $this->processValues($el, $componentXml->textContent, '');
+        } catch (RuntimeException $ex) {
+            $values = ['' => [$ex->getMessage()]];
+        }
+        $remove = $this->insertValues($el, $values);
+        return $remove;
     }
 
     /**
@@ -713,6 +740,14 @@ class LiveCmdiMetadata implements MetadataInterface {
             $values[''] = array_map(fn($x) => $x . $formatPrefix . "format=" . rawurlencode($format), $values['']);
         }
 
+        if ($el->hasAttribute('URLEncode')) {
+            $prefix = $el->getAttribute('URLEncode');
+            foreach ($values as &$i) {
+                $i = array_map(fn($x) => $prefix . rawurlencode($x), $i);
+            }
+            unset($i);
+        }
+
         return $values;
     }
 
@@ -729,9 +764,11 @@ class LiveCmdiMetadata implements MetadataInterface {
         $ch->removeAttribute('valueMapKeepSrc');
         $ch->removeAttribute('replaceXMLTag');
         $ch->removeAttribute('asAttribute');
+        $ch->removeAttribute('URLEncode');
         $ch->removeAttribute('match');
         $ch->removeAttribute('aggregate');
         $ch->removeAttribute('replace');
+        $ch->removeAttribute('ComponentId');
     }
 
     /**

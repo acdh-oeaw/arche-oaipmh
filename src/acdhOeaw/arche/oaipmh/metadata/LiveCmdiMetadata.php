@@ -792,6 +792,10 @@ class LiveCmdiMetadata implements MetadataInterface {
             }
             if (!empty($dateFormat)) {
                 try {
+                    // DateTime requires dates to have at least 4-digits year 
+                    $value = explode('-', $value);
+                    $yearIdx = $value[0] === '' ? 1 : 0;
+                    $value[$yearIdx] = sprintf('%04d', $value[$yearIdx]);
                     $date  = new \DateTime($value);
                     $value = $date->format($dateFormat);
                 } catch (\Throwable $e) {

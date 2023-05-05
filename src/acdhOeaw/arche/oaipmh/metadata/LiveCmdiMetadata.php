@@ -796,7 +796,7 @@ class LiveCmdiMetadata implements MetadataInterface {
                     $value = explode('-', $value);
                     $yearIdx = $value[0] === '' ? 1 : 0;
                     $value[$yearIdx] = sprintf('%04d', $value[$yearIdx]);
-                    $date  = new \DateTime($value);
+                    $date  = new \DateTime(implode('-', $value));
                     $value = $date->format($dateFormat);
                 } catch (\Throwable $e) {
                     return;

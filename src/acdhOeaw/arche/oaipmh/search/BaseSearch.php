@@ -26,7 +26,6 @@
 
 namespace acdhOeaw\arche\oaipmh\search;
 
-use DateTime;
 use PDO;
 use Psr\Log\AbstractLogger;
 use zozlak\queryPart\QueryPart;
@@ -247,7 +246,7 @@ class BaseSearch implements SearchInterface {
         $delDataQP     = $this->deleted->getDeletedData();
         $setDataQP     = $this->sets->getSetData();
         $query         = "
-            WITH valid AS (
+            WITH valid AS MATERIALIZED (
                 SELECT id
                 FROM
                     resources

@@ -52,7 +52,10 @@ class NoSets implements SetInterface {
      * @throws OaiException
      */
     public function getSetFilter(string $set): QueryPart {
-        throw new OaiException('noSetHierarchy');
+        if (!empty($set)) {
+            throw new OaiException('noSetHierarchy');
+        }
+        return new QueryPart('', []);
     }
 
     /**

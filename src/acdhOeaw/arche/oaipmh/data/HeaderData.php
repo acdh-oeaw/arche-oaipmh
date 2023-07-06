@@ -78,13 +78,16 @@ class HeaderData {
         if ($src === null) {
             return;
         }
+        if (isset($src->repoid)) {
+            $this->repoid = (int) $src->repoid;
+        }
         if (isset($src->id)) {
             $this->id = (string) $src->id;
         }
         if (isset($src->date)) {
             $this->date = (string) $src->date;
         }
-        if (isset($src->deleted)) {
+        if (($src->deleted ?? false) !== false) {
             $this->deleted = true;
         }
         if (isset($src->sets)) {

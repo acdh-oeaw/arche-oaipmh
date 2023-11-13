@@ -137,23 +137,6 @@ class BaseSearch implements SearchInterface {
     }
 
     /**
-     * Performs search using given filter values.
-     * @param string $id id filter value
-     * @param string $from date from filter value
-     * @param string $until date to filter value
-     * @param string $set set filter value
-     * @param ?string $resumptionToken resumption token
-     */
-    public function find(string $id, string $from, string $until, string $set,
-                         ?string $resumptionToken = null): void {
-        if (!empty($resumptionToken)) {
-            $this->findResumptionToken($resumptionToken);
-        } else {
-            $this->findQuery($id, $from, $until, $set);
-        }
-    }
-
-    /**
      * Returns number of resources matching last search (last call of the 
      * `find()` method).
      */
@@ -188,9 +171,10 @@ class BaseSearch implements SearchInterface {
     public function getResumptionToken(int $pos): ResumptionTokenData {
         $token     = $this->resumptionToken ?? bin2hex(random_bytes(4)) . bin2hex((string) time());
         $data      = [
-            'count'   => $this->resumptionCount ?? count($this->records),
-            'cursor'  => isset($this->resumptionCount) ? $this->resumptionCount - count($this->records) : 0,
-            'records' => array_slice($this->records, $pos + 1),
+            'metadataPrefix' => $this->format->metadataPrefix,
+            'count'          => $this->resumptionCount ?? count($this->records),
+            'cursor'         => isset($this->resumptionCount) ? $this->resumptionCount - count($this->records) : 0,
+            'records'        => array_slice($this->records, $pos + 1),
         ];
         $expiresAt = date('Y-m-d\TH:i:s\Z', time() + $this->config->resumptionKeepAlive);
         if (!file_exists($this->config->resumptionDir)) {
@@ -205,8 +189,8 @@ class BaseSearch implements SearchInterface {
         return new ResumptionTokenData($token, $expiresAt, $data['count'], $data['cursor']);
     }
 
-    private function findResumptionToken(?string $token): void {
-        // cleanup resumptioDir
+    public function findResumptionToken(string $token): string {
+        // cleanup resumptionDir
         $dir = $this->config->resumptionDir;
         $t   = time() - $this->config->resumptionKeepAlive;
         foreach (scandir($dir) as $i) {
@@ -215,7 +199,6 @@ class BaseSearch implements SearchInterface {
             }
         }
 
-        $token = $token ?? '';
         if (!file_exists("$dir/$token")) {
             throw new OaiException('badResumptionToken');
         }
@@ -228,10 +211,10 @@ class BaseSearch implements SearchInterface {
         foreach ($data->records as $i) {
             $this->records[] = new HeaderData($i);
         }
+        return $data->metadataPrefix;
     }
 
-    private function findQuery(string $id, string $from, string $until,
-                               string $set): void {
+    public function find(string $id, string $from, string $until, string $set): void {
         $extFilterQP = new QueryPart();
         $extDataQP   = new QueryPart();
         if (isset($this->format)) {

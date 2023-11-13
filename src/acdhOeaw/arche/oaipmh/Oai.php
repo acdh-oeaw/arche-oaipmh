@@ -316,26 +316,28 @@ TMPL;
             if ($id == '') {
                 throw new OaiException('badArgument');
             }
+        } elseif (!empty($token)) {
+            $this->checkRequestParam(['resumptionToken']);
+            $metadataPrefix = $this->search->findResumptionToken($token);
         } else {
-            $this->checkRequestParam(['from', 'until', 'metadataPrefix', 'set', 'reloadCache',
-                'resumptionToken']);
+            $this->checkRequestParam(['from', 'until', 'metadataPrefix', 'set', 'reloadCache']);
+            if ($from && !preg_match(self::$dateRegExp, $from)) {
+                throw new OaiException('badArgument');
+            }
+            if ($until && !preg_match(self::$dateRegExp, $until)) {
+                throw new OaiException('badArgument');
+            }
+            if ($from && $until && strlen($from) !== strlen($until)) {
+                throw new OaiException('badArgument');
+            }
         }
+
         if (!isset($this->metadataFormats[$metadataPrefix])) {
             throw new OaiException('badArgument');
         }
-        if ($from && !preg_match(self::$dateRegExp, $from)) {
-            throw new OaiException('badArgument');
-        }
-        if ($until && !preg_match(self::$dateRegExp, $until)) {
-            throw new OaiException('badArgument');
-        }
-        if ($from && $until && strlen($from) !== strlen($until)) {
-            throw new OaiException('badArgument');
-        }
-
         $format = $this->metadataFormats[$metadataPrefix];
         $this->search->setMetadataFormat($format);
-        $this->search->find($id, $from, $until, $set, $token);
+        $this->search->find($id, $from, $until, $set);
         if ($this->search->getCount() == 0) {
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }

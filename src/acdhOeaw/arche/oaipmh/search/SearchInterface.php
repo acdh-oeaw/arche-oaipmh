@@ -69,11 +69,13 @@ interface SearchInterface {
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @param string $set set filter value
-     * @param ?string $resumptionToken resumption token - when present the search
-     *   should be restored based on the token
      */
-    public function find(string $id, string $from, string $until, string $set,
-                         ?string $resumptionToken = null): void;
+    public function find(string $id, string $from, string $until, string $set): void;
+
+    /**
+     * Reads search results based on the resumption token.
+     */
+    public function findResumptionToken(string $token): string;
 
     /**
      * Returns number of resources matching last search (last call of the 

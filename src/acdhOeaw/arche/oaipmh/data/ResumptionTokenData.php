@@ -34,14 +34,18 @@ namespace acdhOeaw\arche\oaipmh\data;
 class ResumptionTokenData {
 
     public string $token;
+    public string $metadataPrefix;
     public string $expirationDate;
     public ?int $completeListSize;
     public ?int $cursor;
 
-    public function __construct(string $token, string $expirationDate = '',
+    public function __construct(string $token, 
+                                string $metadataPrefix,
+                                string $expirationDate = '',
                                 ?int $completeListSize = null,
                                 ?int $cursor = null) {
         $this->token            = $token;
+        $this->metadataPrefix   = $metadataPrefix;
         $this->expirationDate   = $expirationDate;
         $this->completeListSize = $completeListSize;
         $this->cursor           = $cursor;

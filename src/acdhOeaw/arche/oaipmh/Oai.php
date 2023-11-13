@@ -308,7 +308,7 @@ TMPL;
         $until          = (string) $this->getParam('until');
         $set            = (string) $this->getParam('set');
         $metadataPrefix = (string) $this->getParam('metadataPrefix');
-        $token          = (string) $this->getParam('resumptionToken');
+        $token          = $this->getParam('resumptionToken');
         $reloadCache    = $this->getParam('reloadCache') !== null;
 
         if ($verb == 'GetRecord') {
@@ -316,7 +316,7 @@ TMPL;
             if ($id == '') {
                 throw new OaiException('badArgument');
             }
-        } elseif (!empty($token)) {
+        } elseif ($token !== null) {
             $this->checkRequestParam(['resumptionToken']);
             $metadataPrefix = $this->search->findResumptionToken($token);
         } else {

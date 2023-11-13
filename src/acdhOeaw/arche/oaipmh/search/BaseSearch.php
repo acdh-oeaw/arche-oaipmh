@@ -186,7 +186,7 @@ class BaseSearch implements SearchInterface {
         } elseif (file_exists($file)) {
             unlink($file);
         }
-        return new ResumptionTokenData($token, $expiresAt, $data['count'], $data['cursor']);
+        return new ResumptionTokenData($token, $this->format->metadataPrefix, $expiresAt, $data['count'], $data['cursor']);
     }
 
     public function findResumptionToken(string $token): string {

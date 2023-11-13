@@ -337,7 +337,9 @@ TMPL;
         }
         $format = $this->metadataFormats[$metadataPrefix];
         $this->search->setMetadataFormat($format);
-        $this->search->find($id, $from, $until, $set);
+        if ($token === null) {
+            $this->search->find($id, $from, $until, $set);
+        }
         if ($this->search->getCount() == 0) {
             throw new OaiException($verb == 'GetRecord' ? 'idDoesNotExist' : 'noRecordsMatch');
         }

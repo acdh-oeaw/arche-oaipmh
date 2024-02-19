@@ -28,6 +28,7 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
+use quickRdfIo\Util as QuickRdfIoUtil;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
@@ -67,7 +68,7 @@ class RdfXml implements MetadataInterface {
      */
     public function getXml(): DOMElement {
         $meta   = $this->res->getMetadata();
-        $rdfxml = $meta->getGraph()->serialise('rdfxml');
+        $rdfxml = QuickRdfIoUtil::serialize($meta->getGraph(), 'application/rdf+xml');
         $doc    = new DOMDocument();
         $doc->loadXML($rdfxml);
         return $doc->documentElement;

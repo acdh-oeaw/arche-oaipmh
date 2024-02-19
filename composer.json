@@ -12,8 +12,7 @@
         }
     ],
     "require": {
-        "acdh-oeaw/easyrdf": "*",
-        "acdh-oeaw/arche-lib": ">=2 <6",
+        "acdh-oeaw/arche-lib": "^6",
         "zozlak/logging": "^1",
         "zozlak/query-part": "^2.1"
     },
@@ -23,6 +22,6 @@
         }
     },
     "require-dev": {
-        "phpstan/phpstan": "*"
+        "phpstan/phpstan": "^1"
     }
 }

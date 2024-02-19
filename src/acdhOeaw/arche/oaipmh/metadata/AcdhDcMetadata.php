@@ -29,8 +29,9 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 use DOMDocument;
 use DOMElement;
 use PDO;
-use EasyRdf\Literal;
-use EasyRdf\Resource;
+use rdfInterface\LiteralInterface;
+use rdfInterface\NamedNodeInterface;
+use termTemplates\QuadTemplate as QT;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoDb;
 use acdhOeaw\arche\lib\RepoResourceDb;
@@ -38,10 +39,9 @@ use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
- * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from 
- * a FedoraResource RDF metadata.
+ * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format.
  * 
- * It reads the metadata property mappings from the ontology being part of the
+ * Reads the metadata property mappings from the ontology being part of the
  * repository by searching for:
  *   [dcRes] --cfg:eqProp--> acdhProp
  *
@@ -136,6 +136,7 @@ class AcdhDcMetadata implements MetadataInterface {
      */
     public function getXml(): DOMElement {
         self::init($this->res->getRepo(), $this->format);
+        $titleTmpl = new QT(null, $this->format->titleProp);
 
         $doc    = new DOMDocument();
         $parent = $doc->createElementNS('http://www.openarchives.org/OAI/2.0/oai_dc/', 'oai_dc:dc');
@@ -146,22 +147,25 @@ class AcdhDcMetadata implements MetadataInterface {
         if ($titleOrBoth) {
             $this->res->loadMetadata(true, RepoResourceInterface::META_NEIGHBORS);
         }
-        $meta       = $this->res->getGraph();
-        $properties = array_intersect($meta->propertyUris(), array_keys(self::$mappings));
+        $sbj        = $this->res->getUri();
+        $dataset    = $this->res->getGraph()->getDataset();
+        $properties = $dataset->listPredicates(new QT($sbj))->getValues();
+        $properties = array_intersect($properties, array_keys(self::$mappings));
         foreach ($properties as $property) {
             $propInNs = str_replace(self::$dcNmsp, 'dc:', self::$mappings[$property]);
-            foreach ($meta->all($property) as $value) {
-                $el = $doc->createElementNS(self::$dcNmsp, $propInNs);
-                if (is_a($value, Literal::class) || $this->format->mode == self::MODE_URL || $this->format->mode == self::MODE_BOTH) {
+            foreach ($dataset->getIterator(new QT($sbj, $property)) as $triple) {
+                $value = $triple->getObject();
+                $el    = $doc->createElementNS(self::$dcNmsp, $propInNs);
+                if ($value instanceof LiteralInterface || $this->format->mode == self::MODE_URL || $this->format->mode == self::MODE_BOTH) {
                     $el->appendChild($doc->createTextNode((string) $value));
                     $parent->appendChild($el);
                 }
-                if (is_a($value, Resource::class) && ($this->format->mode == self::MODE_TITLE || $this->format->mode == self::MODE_BOTH)) {
+                if ($value instanceof NamedNodeInterface && ($this->format->mode == self::MODE_TITLE || $this->format->mode == self::MODE_BOTH)) {
                     /* @var $value Resource */
-                    $el->appendChild($doc->createTextNode((string) $value->get($this->format->titleProp)));
+                    $el->appendChild($doc->createTextNode((string) $dataset->getObject($titleTmpl->withSubject($value))));
                     $parent->appendChild($el);
                 }
-                if (is_a($value, Literal::class) && !empty($value->getLang())) {
+                if ($value instanceof LiteralInterface && !empty($value->getLang())) {
                     $el->setAttribute('xml:lang', $value->getLang());
                 }
             }

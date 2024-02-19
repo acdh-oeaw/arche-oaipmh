@@ -28,7 +28,8 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 
 use DOMDocument;
 use DOMElement;
-use EasyRdf\Literal;
+use rdfInterface\LiteralInterface;
+use termTemplates\QuadTemplate as QT;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
@@ -99,25 +100,27 @@ class DcMetadata implements MetadataInterface {
         $parent->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/oai_dc/http://www.openarchives.org/OAI/2.0/oai_dc.xsd');
         $doc->appendChild($parent);
 
-        $meta = $this->res->getMetadata();
-        foreach ($meta->propertyUris() as $property) {
-            $propUri  = $property;
-            $property = preg_replace('|^' . self::$dcNmsp . '|', '', $property);
+        $sbj        = $this->res->getUri();
+        $dataset    = $this->res->getGraph()->getDataset();
+        $properties = $dataset->listPredicates(new QT($sbj));
+        foreach ($properties as $property) {
+            $propUri  = (string) $property;
+            $property = preg_replace('|^' . self::$dcNmsp . '|', '', (string) $property);
             $property = preg_replace('|^' . self::$dctNmsp . '|', '', $property);
             if (!in_array($property, self::$properties)) {
                 continue;
             }
 
-            foreach ($meta->all($propUri) as $value) {
-                $el = $doc->createElementNS(self::$dcNmsp, 'dc:' . $property);
-                $el->appendChild($doc->createTextNode($value));
-                if (is_a($value, Literal::class) && !empty($value->getLang())) {
+            foreach ($meta->getIterator(new QT($sbj, $propUri))as $triple) {
+                $value = $triple->getObject();
+                $el    = $doc->createElementNS(self::$dcNmsp, 'dc:' . $property);
+                $el->appendChild($doc->createTextNode((string) $value));
+                if ($value instanceof LiteralInterface && !empty($value->getLang())) {
                     $el->setAttribute('xml:lang', $value->getLang());
                 }
                 $parent->appendChild($el);
             }
         }
-        $parent->appendChild($doc->createElementNS(self::$dcNmsp, 'dc:date', $meta->get('http://fedora.info/definitions/v4/repository#lastModified')));
 
         return $parent;
     }

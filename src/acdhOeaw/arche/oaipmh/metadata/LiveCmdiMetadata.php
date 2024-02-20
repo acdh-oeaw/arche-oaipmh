@@ -294,7 +294,7 @@ class LiveCmdiMetadata implements MetadataInterface {
     public function getXml(int $depth = 0, bool $cache = true): DOMElement {
         $this->depth = $depth;
 
-        // output something if the template generation takes to long to avoid timeouts
+        // output something if the template generation takes too long too avoid timeouts
         if ($depth === 0) {
             self::$timeout = time();
         } elseif (time() - self::$timeout > ($this->format->timeout ?? PHP_INT_MAX)) {

@@ -28,8 +28,6 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
-use EasyRdf\Graph;
-use EasyRdf\Resource;
 
 /**
  * Provides vocabulary mappings. Assumes a value is an URL which can be resolved
@@ -69,7 +67,7 @@ class ValueMapper {
             'verify'          => false,
             'http_errors'     => false,
             'allow_redirects' => true,
-            'headers'         => ['Accept' => ['text/turtle']],
+            'headers'         => ['Accept' => ['application/n-triples, application/rdf+xml;q=0.8, text/turtle;q=0.6']],
         ];
         $this->client = new Client(array_merge($options, $guzzleOptions));
     }

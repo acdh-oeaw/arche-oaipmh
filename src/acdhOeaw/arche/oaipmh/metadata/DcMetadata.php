@@ -35,13 +35,10 @@ use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
- * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from 
- * a FedoraResource RDF metadata.
+ * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from an RDF metadata.
  * 
  * Simply takes all Dublin Core elements and their Dublin Core Terms
  * counterparts and skips all other metadata properties.
- * The only exception is http://fedora.info/definitions/v4/repository#lastModified
- * which is turned into dc:date.
  *
  * @author zozlak
  */

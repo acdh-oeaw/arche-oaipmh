@@ -35,7 +35,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 
 /**
  * Creates OAI-PMH &lt;metadata&gt; element in as an RDF-XML serialization of
- * a FedoraResource RDF metadata.
+ * an RDF metadata.
  *
  * @author zozlak
  */

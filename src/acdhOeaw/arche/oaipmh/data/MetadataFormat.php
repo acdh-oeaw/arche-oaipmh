@@ -36,139 +36,150 @@ class MetadataFormat {
 
     /**
      * OAI-PMH metadataPrefix
-     * @var string
+     * 
+     * Required by: core
+     * 
      * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
-    public $metadataPrefix;
+    public string $metadataPrefix;
 
     /**
      * OAI-PMH metadata schema
-     * @var string
+     * 
+     * Required by: core
+     * 
      * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
-    public $schema;
+    public string $schema;
 
     /**
      * OAI-PMH metadataNamespace
-     * @var string
+     * 
+     * Required by: core
+     * 
      * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
-    public $metadataNamespace;
+    public string $metadataNamespace;
 
     /**
+     * Class implementing a given metadata format
      * 
-     * @var ?string
+     * Required by: core
      */
-    public $class;
+    public string $class;
 
     /**
+     * Set by core
+     */
+    public RepositoryInfo $info;
+
+    /**
+     * Used by: ResMetadata
+     */
+    public string $metaResProp;
+
+    /**
+     * Used by: ResMetadata
      * 
      * @var array<string, string>
      */
-    public $propNmsp = [];
+    public array $requestOptions = [];
 
     /**
-     * 
-     * @var ?string
+     * Used by: ResMetadata
      */
-    public $schemaProp;
+    public string $acdhNmsp;
 
     /**
-     * 
-     * @var ?string
+     * Used by: ResMetadata
      */
-    public $uriProp;
+    public string $eqProp;
 
     /**
-     * 
-     * @var ?string
+     * Used by: ResMetadata
      */
-    public $metaResProp;
+    public string $mode;
 
     /**
-     * 
-     * @var ?string
+     * Used by: ResMetadata
      */
-    public $cmdiSchemaProp;
+    public string $titleProp;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $titleProp;
+    public string $templatePath;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $eqProp;
+    public bool $keepComments;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $mode;
+    public bool $xmlErrors;
 
     /**
+     * Used by: TemplateMetadata
      * 
      * @var array<string, string>
      */
-    public $requestOptions = [];
-
+    public array $rdfNamespaces = [];
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $templateDir;
+    //public string $schemaProp;
 
     /**
-     * 
-     * @var RepositoryInfo
+     * Used by: TemplateMetadata
      */
-    public $info;
+    //public string $uriProp;
 
     /**
+     * Used by: TemplateMetadata
+     */
+    //public string $cmdiSchemaProp;
+
+    /**
+     * Used by: TemplateMetadata
+     */
+    //public string $templateDir;
+
+    /**
+     * Used by: TemplateMetadata
      * 
      * @var array<string, string>
      */
-    public $idNmsp = [];
+    //public array $idNmsp = [];
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $idProp;
-    
-    /**
-     * 
-     * @var ?string
-     */
-    public $acdhNmsp;
+    //public string $idProp;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $resolverNmsp;
+    //public string $resolverNmsp;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $schemaDefault;
+    //public string $schemaDefault;
 
     /**
-     * 
-     * @var ?string
+     * Used by: TemplateMetadata
      */
-    public $defaultLang;
+    //public string $defaultLang;
 
     /**
+     * Used by: TemplateMetadata
      * 
      * @var array<string, string>
      */
-    public $valueMaps;
-    
+    //public array $valueMaps;
+
     /**
      * Creates a metadata format descriptor
      * @param object $fields values to set in the descriptor

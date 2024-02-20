@@ -1,0 +1,5 @@
+<https://foo> <https://id> <https://foo> ,
+                           <https://bar> ;
+              <https://label> "foo"@en ,
+                              "bar" ;
+.

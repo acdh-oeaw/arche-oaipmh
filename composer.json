@@ -18,10 +18,12 @@
     },
     "autoload": {
         "psr-4": {
-            "acdhOeaw\\": "src/acdhOeaw"
+            "acdhOeaw\\": "src/acdhOeaw",
+            "acdhOeaw\\arche\\oaipmh\\tests\\": "tests"
         }
     },
     "require-dev": {
-        "phpstan/phpstan": "^1"
+        "phpstan/phpstan": "^1",
+        "phpunit/phpunit": "^11.0"
     }
 }

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE doc [
+  <!ENTITY otherFile SYSTEM "foo2.xml">
+]>
+<root>
+    <!-- comment -->
+    &quot;
+    <foo/>
+    <b if="any(base:id == 'https://foo')">
+        <bar/>
+    </b>
+    <c if="any(base:id == 'https://foo')" remove="remove">
+        <baz/>
+    </c>
+    <!--
+    <a if="any(base:id)">
+        <bar/>
+    </a>
+    <c if="any(base:id regex base:)">
+        <bar/>
+    </c>
+    <x foreach="base:id" val="base:id">
+        &otherFile;    
+    </x>
+    <sep/>
+    <y foreach="base:id" val="base:id">
+        <bar val="base:title"/>
+    </y>
+    <sep/>
+    <z foreach="base:id" val="base:id">
+        &otherFile;    
+    </z>
+    -->
+</root>

@@ -1,6 +1,6 @@
-config.ini
 /nbproject
 /vendor
 /composer.lock
 /cache
 /config.yaml
+/.phpunit.cache

@@ -1,0 +1,9 @@
+metadataPrefix: ""
+metadataNamespace: ""
+schema: ""
+class: ""
+templatePath: ""
+keepComments: true
+xmlErrors: true
+rdfNamespaces:
+    base: https://

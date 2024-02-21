@@ -42,15 +42,80 @@ use acdhOeaw\arche\oaipmh\metadata\TemplateMetadata;
  */
 class TemplateMetadataTest extends \PHPUnit\Framework\TestCase {
 
+    const TMPDIR   = '/tmp';
     const RES_URI  = 'https://foo';
     const BASE_URL = 'http://127.0.0.1/oaipmh';
 
-    public function testSimple(): void {
-        $tmpl     = $this->getTemplateObject('foo');
+    static public function setUpBeforeClass(): void {
+        parent::setUpBeforeClass();
+        mkdir(__DIR__ . self::TMPDIR);
+    }
+
+    static public function tearDownAfterClass(): void {
+        parent::tearDownAfterClass();
+        system("rm -fR '" . __DIR__ . self::TMPDIR . "'");
+    }
+
+    public function testCommentsWhitespaces(): void {
+        $in       = file_get_contents(__DIR__ . '/data/templateMetadata/keepComments.xml');
+        $tmpl     = $this->getTemplateObject('common', $in);
         $xml      = $this->asString($tmpl->getXml());
-        echo "\n$xml\n";
-        $expected = "<root/>";
-        $this->assertEquals($expected, $xml);
+        $expected = <<<OUT
+<root>
+<foo/>
+<baz/>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+
+        $tmpl     = $this->getTemplateObject('keepComments', $in);
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<!-- some comment -->
+<foo><!-- yet more comment --></foo>
+<baz/>
+<!-- multiline
+         comment -->
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testIf(): void {
+        $tmpl     = $this->getTemplateObject('common', 'if');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<bb/>
+<c><cc/></c>
+<d><dd/></d>
+<e><ee/></e>
+<f><ff/></f>
+<g><gg/></g>
+<h><hh/></h>
+<i><ii/></i>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testForEach(): void {
+        $tmpl     = $this->getTemplateObject('common', 'foreach');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a><included/></a>
+<a><included/></a>
+<b><bb/></b>
+<b><bb/></b>
+<b><bb/></b>
+<c><included/></c>
+<dd/>
+<dd/>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
     }
 
     private function getTemplateObject(string $caseName,
@@ -62,11 +127,13 @@ class TemplateMetadataTest extends \PHPUnit\Framework\TestCase {
         $repoRes->method('getMetadata')->willReturn($resMeta);
 
         $oaiFormat = new MetadataFormat((object) yaml_parse_file(__DIR__ . '/data/templateMetadata/' . $caseName . '.yml'));
-        if (!empty($template)) {
-            $oaiFormat->templatePath = tempnam(__DIR__ . '/tmp');
-            file_put_contents($oaiFormat->templatePath, $template);
-        } else {
+        if (empty($template)) {
             $oaiFormat->templatePath = __DIR__ . '/data/templateMetadata/' . $caseName . '.xml';
+        } elseif (file_exists(__DIR__ . '/data/templateMetadata/' . $template . '.xml')) {
+            $oaiFormat->templatePath = __DIR__ . '/data/templateMetadata/' . $template . '.xml';
+        } else {
+            $oaiFormat->templatePath = tempnam(__DIR__ . self::TMPDIR, '');
+            file_put_contents($oaiFormat->templatePath, $template);
         }
         $oaiFormat->info = new RepositoryInfo((object) ['baseURL' => self::BASE_URL]);
 
@@ -74,6 +141,10 @@ class TemplateMetadataTest extends \PHPUnit\Framework\TestCase {
     }
 
     private function asString(DOMElement $el): string {
-        return $el->ownerDocument->saveXML($el);
+        return $this->std($el->ownerDocument->saveXML($el));
+    }
+
+    private function std(string $str): string {
+        return str_replace('><', ">\n<", $str);
     }
 }

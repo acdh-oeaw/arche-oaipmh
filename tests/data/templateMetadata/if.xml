@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <!-- false so no content but tag stays -->
+    <a if="every(base:id == 'https://foo')">
+        <aa/>
+    </a>
+    <!-- true with node removal -->
+    <b if="any(base:id)" remove="remove">
+        <bb/>
+    </b>
+    <!-- various simple conditions evaluating to true -->
+    <c if="any(base:id == 'https://foo')">
+        <cc/>
+    </c>
+    <d if="any(base:id starts base:)">
+        <dd/>
+    </d>
+    <e if='every(base:single == "single&apos;s")'>
+        <ee/>
+    </e>
+    <f if="none(base:noSuchProperty)">
+        <ff/>
+    </f>
+    <g if="any(base:id regex 'foo')">
+        <gg/>
+    </g>
+    <h if="every(base:number &lt; 10)">
+        <hh/>
+    </h>
+    <!-- complex condition evaluating to true -->
+    <!--   TRUE         AND (FALSE           OR TRUE                AND ((FALSE             OR TRUE        )) -->
+    <!--   TRUE              FALSE              NOT FALSE                 NOT TRUE             TRUE           -->
+    <i if="any(base:id) AND (any(base:false) OR NOT any(base:false) AND ((NOT any(base:id)) OR any(base:id)))">
+        <ii/>
+    </i>
+    <!-- complex condition evaluating to false -->
+    <!--   TRUE         AND (FALSE           OR TRUE                AND ((FALSE             OR FALSE        )) -->
+    <!--   TRUE              FALSE              NOT FALSE                 NOT TRUE             FALSE           -->
+    <j if="any(base:id) AND (any(base:false) OR NOT any(base:false) AND ((NOT any(base:id)) OR any(base:no)))">
+        <jj/>
+    </j>
+</root>

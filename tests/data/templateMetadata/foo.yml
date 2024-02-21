@@ -1,9 +1,0 @@
-metadataPrefix: kulturpool
-metadataNamespace: http://we.do.not.care
-schema: http://we.do.not.have.an.xsd
-class: \acdhOeaw\arche\oaipmh\metadata\LiveCmdiMetadata
-templatePath: ""
-keepComments: false
-xmlErrors: true
-rdfNamespaces:
-    base: https://

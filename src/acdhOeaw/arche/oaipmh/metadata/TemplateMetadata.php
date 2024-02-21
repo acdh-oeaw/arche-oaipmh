@@ -29,24 +29,17 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 use DOMComment;
 use DOMDocument;
 use DOMElement;
-use DOMException;
 use Exception;
 use RuntimeException;
-use SplObjectStorage;
-use SplStack;
-use stdClass;
 use Throwable;
 use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
-use rdfInterface\TermInterface;
 use rdfInterface\NamedNodeInterface;
-use rdfInterface\DatasetInterface;
 use quickRdf\DataFactory as DF;
 use termTemplates\QuadTemplate as QT;
-use termTemplates\PredicateTemplate as PT;
 use termTemplates\ValueTemplate;
+use termTemplates\NumericTemplate;
 use acdhOeaw\arche\lib\RepoResourceDb;
-use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\arche\lib\SearchConfig;
 use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
@@ -69,8 +62,8 @@ use acdhOeaw\arche\oaipmh\metadata\util\ParseTreeNode;
 class TemplateMetadata implements MetadataInterface {
 
     const PREDICATE_REGEX  = '[-_a-zA-Z0-9]+:[^ )]*';
-    const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|(' . self::PREDICATE_REGEX . '))';
-    const IF_PART_REGEX    = '`^ *(any|all|none)[(](' . self::PREDICATE_REGEX . ')(?: +' . self::IF_VALUE_REGEX . ')?[)]`u';
+    const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|([0-9]+[.]?[0-9]*)|(' . self::PREDICATE_REGEX . '))';
+    const IF_PART_REGEX    = '`^ *(any|every|none)[(](' . self::PREDICATE_REGEX . ')(?: +' . self::IF_VALUE_REGEX . ')?[)]`u';
     const IF_LOGICAL_REGEX = '`^ *(OR|AND|NOT) *`';
 
     /**
@@ -172,13 +165,8 @@ class TemplateMetadata implements MetadataInterface {
             return;
         }
         $el->removeAttribute('if');
-        if (!empty($el->getAttribute('remove'))) {
-            $child = $el->lastChild;
-            while($child) {
-                $el->after($child);
-                $child = $child->previousSibling;
-            }
-            $el->parentNode->removeChild($el);
+        if (!empty($if) && !empty($el->getAttribute('remove'))) {
+            $this->removePreservingChildren($el);
         }
 
         $foreach = $el->getAttribute('foreach');
@@ -192,6 +180,7 @@ class TemplateMetadata implements MetadataInterface {
                 $child = $nextChild;
             }
         } else {
+            $remove = $el->getAttribute('remove');
             $el->removeAttribute('foreach');
             $meta = end($this->metaStack);
             $tmpl = new QT($meta->getNode(), $this->expand($foreach));
@@ -201,6 +190,9 @@ class TemplateMetadata implements MetadataInterface {
                 $this->processElement($localEl);
                 array_pop($this->metaStack);
                 $el->after($localEl);
+                if (!empty($remove)) {
+                    $this->removePreservingChildren($localEl);
+                }
             }
             $el->parentNode->removeChild($el);
         }
@@ -241,14 +233,15 @@ class TemplateMetadata implements MetadataInterface {
         $result  = ParseTreeNode::fromOperator('AND', ParseTreeNode::fromValue(true));
         $current = $result;
         $matches = null;
+        // parse using an implicit state-machine
         while (!empty($if)) {
-            // righ-side operators: NOT and (
+            // STATE 1: righ-side operators: NOT and (
             while (preg_match('`^ *([(]|NOT) *`', $if, $matches)) {
                 $current = $current->push(ParseTreeNode::fromOperator(trim($matches[1]), null));
                 $if      = substr($if, strlen($matches[0]));
             }
 
-            // logical term
+            // STATE 2: logical term
             $valid = preg_match(self::IF_PART_REGEX, $if, $matches);
             if (!$valid) {
                 throw new OaiException("Invalid if attribute value: '$if'");
@@ -256,21 +249,25 @@ class TemplateMetadata implements MetadataInterface {
             $func  = $matches[1];
             $value = null;
             if (!empty($matches[3])) {
-                $value = !empty($matches[6]) ? $this->expand($matches[6]) : $matches[4] . $matches[5];
-                $value = new ValueTemplate($value, $matches[3]);
+                $value = !empty($matches[7]) ? $this->expand($matches[7]) : $matches[4] . ($matches[5] ?? '') . ($matches[6] ?? '');
+                if ($matches[3] === ValueTemplate::REGEX) {
+                    $value = "`$value`u";
+                }
+                $value = empty($matches[6]) ? new ValueTemplate($value, $matches[3]) : new NumericTemplate((float) $value, $matches[3]);
             }
             $meta    = end($this->metaStack);
-            $tmpl    = new QT($meta->getNode(), $this->expand($matches[2]), $value);
-            $current = $current->push(ParseTreeNode::fromValue($meta->getDataset()->$func($tmpl), $matches[0]));
+            $tmpl    = new QT($meta->getNode(), $this->expand($matches[2]));
+            $value   = $meta->getDataset()->copy($tmpl)->$func(new QT(object: $value));
+            $current = $current->push(ParseTreeNode::fromValue($value, $matches[0]));
             $if      = substr($if, strlen($matches[0]));
 
-            // closing parenthesis
+            // STATE 3: closing parenthesis
             while (preg_match('`^ *[)]`', $if, $matches)) {
                 $if      = substr($if, strlen($matches[0]));
                 $current = $current->matchParenthesis();
             }
 
-            // double-sided operators: AND and OR
+            // STATE 4: double-sided operators: AND and OR
             if (preg_match(self::IF_LOGICAL_REGEX, $if, $matches)) {
                 $current = ParseTreeNode::fromOperator($matches[1], $current);
                 if (empty($current->parent)) {
@@ -281,6 +278,15 @@ class TemplateMetadata implements MetadataInterface {
         }
         $result = $result->evaluate();
         return $result;
+    }
+
+    private function removePreservingChildren(DOMElement $el): void {
+        $child = $el->lastChild;
+        while ($child) {
+            $el->after($child);
+            $child = $child->previousSibling;
+        }
+        $el->parentNode->removeChild($el);
     }
 
     private function expand(string $prefixed): NamedNodeInterface {

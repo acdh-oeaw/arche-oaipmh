@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE doc [
+  <!ENTITY otherFile SYSTEM "foreachInclude.xml">
+]>
+<root>
+    <a foreach="base:id">
+        &otherFile;    
+    </a>
+    <b foreach="base:author">
+        <bb/>
+    </b>
+    <c foreach="base:number">
+        &otherFile;    
+    </c>
+    <d foreach="base:label" remove="remove">
+        <dd/>
+    </d>
+</root>

@@ -48,10 +48,10 @@ class ParseTreeNode {
         self::OP_AND         => 4,
     ];
 
-    static public function fromValue(bool $value, string $debug = ''): self {
+    static public function fromValue(bool $value, string $info = ''): self {
         $x        = new ParseTreeNode();
         $x->value = $value;
-        $x->debug = $debug;
+        $x->info = $info;
         return $x;
     }
 
@@ -85,7 +85,7 @@ class ParseTreeNode {
     public self $first;
     public self $second;
     public self $parent;
-    public string $debug;
+    public string $info;
 
     public function push(self $operand): self {
         $operand->parent = $this;

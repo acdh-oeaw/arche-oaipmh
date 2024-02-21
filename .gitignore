@@ -4,3 +4,5 @@
 /cache
 /config.yaml
 /.phpunit.cache
+/config
+/log

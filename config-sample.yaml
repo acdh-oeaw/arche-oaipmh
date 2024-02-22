@@ -53,8 +53,6 @@ oai:
         idNmsp: http://hdl.handle.net/
         # Required repository-related settings
         id: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
-        searchMatch: search://match
-        searchCount: search://count
         repoBaseUrl: http://127.0.0.1/rest/
         # Execution time after each a resumption token is returned
         # for the listRecords verb
@@ -138,16 +136,6 @@ oai:
             schema: http://www.openarchives.org/OAI/2.0/oai_dc.xsd
             metadataNamespace: http://www.openarchives.org/OAI/2.0/oai_dc/
             class: \acdhOeaw\arche\oaipmh\metadata\DcMetadata
-        acdhdc:
-            metadataPrefix: acdhdc
-            schema: http://www.openarchives.org/OAI/2.0/oai_dc.xsd
-            metadataNamespace: http://www.openarchives.org/OAI/2.0/oai_dc/
-            class: \acdhOeaw\arche\oaipmh\metadata\AcdhDcMetadata
-            idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
-            eqProp: http://www.w3.org/2002/07/owl#equivalentProperty
-            titleProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
-            acdhNmsp: https://vocabs.acdh.oeaw.ac.at/schema#
-            mode: both
         rdfxml:
             metadataPrefix: rdfxml
             schema: http://unknown/schema

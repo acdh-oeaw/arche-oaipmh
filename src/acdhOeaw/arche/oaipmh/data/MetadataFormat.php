@@ -32,7 +32,7 @@ namespace acdhOeaw\arche\oaipmh\data;
  *
  * @author zozlak
  */
-class MetadataFormat {
+class MetadataFormat extends \stdClass {
 
     /**
      * OAI-PMH metadataPrefix
@@ -46,7 +46,7 @@ class MetadataFormat {
     /**
      * OAI-PMH metadata schema
      * 
-     * Required by: core
+     * Required by: core, CmdiMetadata
      * 
      * @see https://www.openarchives.org/OAI/openarchivesprotocol.html#ListMetadataFormats
      */
@@ -74,36 +74,21 @@ class MetadataFormat {
     public RepositoryInfo $info;
 
     /**
-     * Used by: ResMetadata
+     * Used by: ResMetadata, CmdiMetadata
      */
     public string $metaResProp;
 
     /**
-     * Used by: ResMetadata
+     * Used by: ResMetadata, CmdiMetadata
      * 
-     * @var array<string, string>
+     * @var array<string, mixed>
      */
     public array $requestOptions = [];
 
     /**
-     * Used by: ResMetadata
+     * Used by: CmdiMetadata
      */
-    public string $acdhNmsp;
-
-    /**
-     * Used by: ResMetadata
-     */
-    public string $eqProp;
-
-    /**
-     * Used by: ResMetadata
-     */
-    public string $mode;
-
-    /**
-     * Used by: ResMetadata
-     */
-    public string $titleProp;
+    public string $cmdiSchemaProp;
 
     /**
      * Used by: TemplateMetadata

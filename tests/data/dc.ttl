@@ -1,0 +1,12 @@
+<http://127.0.0.1/api/123>  <https://id>        <https://foo> ,
+                                                <https://bar> ;
+                            <https://label>     "foo"@en ,
+                                                "bar" ;
+                            <http://purl.org/dc/terms/title>                "dct title"@en ,
+                                                                            "dct Titel"@de ; 
+                            <http://purl.org/dc/elements/1.1/title>         "dce title"@en ,
+                                                                            "dce Titel"@de ;
+                            <http://purl.org/dc/elements/1.1/contributor>   "John Doe" ;
+                            <http://purl.org/dc/terms/format>               "format description"@und ;
+.
+

@@ -1,0 +1,9 @@
+metadataPrefix: templateMetadata
+metadataNamespace: http://unknown/namespace
+schema: http://unknown/schema
+class: \acdhOeaw\arche\oaipmh\metadata\TemplateMetadata
+templatePath: ""
+keepComments: true
+xmlErrors: true
+rdfNamespaces:
+    base: https://

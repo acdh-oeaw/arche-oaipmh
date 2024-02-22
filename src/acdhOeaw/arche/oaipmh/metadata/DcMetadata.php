@@ -29,42 +29,32 @@ namespace acdhOeaw\arche\oaipmh\metadata;
 use DOMDocument;
 use DOMElement;
 use rdfInterface\LiteralInterface;
+use quickRdf\DataFactory;
 use termTemplates\QuadTemplate as QT;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 
 /**
  * Creates OAI-PMH &lt;metadata&gt; element in Dublin Core format from an RDF metadata.
  * 
- * Simply takes all Dublin Core elements and their Dublin Core Terms
+ * Simply takes all Dublin Core Elements properties and their Dublin Core Terms
  * counterparts and skips all other metadata properties.
+ * 
+ * Skips Dublin Core Terms which don't have Dublin Core Elements counterparts.
  *
  * @author zozlak
  */
 class DcMetadata implements MetadataInterface {
 
-    /**
-     * Dublin Core and Dublin Core Terms property list
-     * @var array<string>
-     */
-    static private $properties = [
+    const DCT_NMSP  = 'http://purl.org/dc/terms/';
+    const DCE_NMSP  = 'http://purl.org/dc/elements/1.1/';
+    const DCE_PROPS = [
         'contributor', 'coverage', 'creator', 'date', 'description', 'format', 'identifier',
         'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title',
         'type'
     ];
-
-    /**
-     * Dublin Core namespace
-     * @var string
-     */
-    static private $dcNmsp = 'http://purl.org/dc/elements/1.1/';
-
-    /**
-     * Dublin Core Terms namespace
-     * @var string
-     */
-    static private $dctNmsp = 'http://purl.org/dc/terms/';
 
     /**
      * Repository resource object
@@ -77,12 +67,13 @@ class DcMetadata implements MetadataInterface {
      * 
      * @param RepoResourceDb $resource a repository 
      *   resource object
-     * @param object $searchResultRow SPARQL search query result row 
+     * @param HeaderData $searchResultRow  search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format) {
+                                HeaderData $searchResultRow,
+                                MetadataFormat $format) {
         $this->res = $resource;
     }
 
@@ -97,20 +88,18 @@ class DcMetadata implements MetadataInterface {
         $parent->setAttributeNS('http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation', 'http://www.openarchives.org/OAI/2.0/oai_dc/http://www.openarchives.org/OAI/2.0/oai_dc.xsd');
         $doc->appendChild($parent);
 
-        $sbj        = $this->res->getUri();
-        $dataset    = $this->res->getGraph()->getDataset();
-        $properties = $dataset->listPredicates(new QT($sbj));
-        foreach ($properties as $property) {
-            $propUri  = (string) $property;
-            $property = preg_replace('|^' . self::$dcNmsp . '|', '', (string) $property);
-            $property = preg_replace('|^' . self::$dctNmsp . '|', '', $property);
-            if (!in_array($property, self::$properties)) {
-                continue;
-            }
+        $sbj  = $this->res->getUri();
+        $meta = $this->res->getGraph()->getDataset();
+        $tmpl = new QT($this->res->getUri());
 
-            foreach ($meta->getIterator(new QT($sbj, $propUri))as $triple) {
+        foreach (self::DCE_PROPS as $property) {
+            $tmpl = $tmpl->withPredicate(DataFactory::namedNode(self::DCE_NMSP . $property));
+            if ($meta->none($tmpl)) {
+                $tmpl = $tmpl->withPredicate(DataFactory::namedNode(self::DCT_NMSP . $property));
+            }
+            foreach ($meta->getIterator($tmpl) as $triple) {
                 $value = $triple->getObject();
-                $el    = $doc->createElementNS(self::$dcNmsp, 'dc:' . $property);
+                $el    = $doc->createElement('oai_dc:' . $property);
                 $el->appendChild($doc->createTextNode((string) $value));
                 if ($value instanceof LiteralInterface && !empty($value->getLang())) {
                     $el->setAttribute('xml:lang', $value->getLang());

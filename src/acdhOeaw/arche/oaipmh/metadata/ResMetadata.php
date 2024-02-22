@@ -31,10 +31,13 @@ use DOMElement;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\RequestException;
+use quickRdf\DataFactory;
+use termTemplates\QuadTemplate as QT;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 use acdhOeaw\arche\oaipmh\OaiException;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 
 /**
  * Creates &lt;metadata&gt; element by simply taking binary content of another
@@ -70,12 +73,13 @@ class ResMetadata implements MetadataInterface {
      * 
      * @param RepoResourceDb $resource a repository 
      *   resource object
-     * @param object $searchResultRow SPARQL search query result row 
+     * @param HeaderData $searchResultRow search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format) {
+                                HeaderData $searchResultRow,
+                                MetadataFormat $format) {
         $this->res    = $resource;
         $this->format = $format;
     }
@@ -87,13 +91,15 @@ class ResMetadata implements MetadataInterface {
      * @throws \acdhOeaw\arche\oaipmh\OaiException
      */
     public function getXml(): DOMElement {
-        $metaRes = (string) $this->res->getGraph()->getResource($this->format->metaResProp);
-        $client  = new Client(json_decode(json_encode($this->format->requestOptions), true));
-        $request = new Request('get', $metaRes);
+        $tmpl        = new QT($this->res->getUri(), DataFactory::namedNode($this->format->metaResProp));
+        $metaRes     = (string) $this->res->getGraph()->getObject($tmpl);
+        $clientClass = $this->format->httpClient ?? Client::class;
+        $client      = new $clientClass(json_decode(json_encode($this->format->requestOptions), true));
+        $request     = new Request('get', $metaRes);
         try {
             $response = $client->send($request);
             $meta     = new DOMDocument();
-            $body = (string) $response->getBody();
+            $body     = (string) $response->getBody();
             $success  = $meta->loadXML($body);
             if (!$success) {
                 throw new OaiException('failed to parse given resource content as XML');
@@ -127,5 +133,4 @@ class ResMetadata implements MetadataInterface {
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
-
 }

@@ -30,6 +30,7 @@ use DOMElement;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 
 /**
  * Interface for different metadata providers.
@@ -52,7 +53,8 @@ interface MetadataInterface {
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format);
+                                HeaderData $searchResultRow,
+                                MetadataFormat $format);
 
     /**
      * Returns resource's XML metadata

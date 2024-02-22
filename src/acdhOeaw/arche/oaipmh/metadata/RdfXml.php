@@ -32,6 +32,7 @@ use quickRdfIo\Util as QuickRdfIoUtil;
 use zozlak\queryPart\QueryPart;
 use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 
 /**
  * Creates OAI-PMH &lt;metadata&gt; element in as an RDF-XML serialization of
@@ -52,12 +53,13 @@ class RdfXml implements MetadataInterface {
      * 
      * @param RepoResourceDb $resource a repository 
      *   resource object
-     * @param object $searchResultRow SPARQL search query result row 
+     * @param HeaderData $searchResultRow search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format) {
+                                HeaderData $searchResultRow,
+                                MetadataFormat $format) {
         $this->res = $resource;
     }
 
@@ -67,8 +69,8 @@ class RdfXml implements MetadataInterface {
      * @return DOMElement 
      */
     public function getXml(): DOMElement {
-        $meta   = $this->res->getMetadata();
-        $rdfxml = QuickRdfIoUtil::serialize($meta->getGraph(), 'application/rdf+xml');
+        $meta   = $this->res->getGraph()->getDataset();
+        $rdfxml = QuickRdfIoUtil::serialize($meta, 'application/rdf+xml');
         $doc    = new DOMDocument();
         $doc->loadXML($rdfxml);
         return $doc->documentElement;
@@ -83,7 +85,7 @@ class RdfXml implements MetadataInterface {
     static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
-    
+
     /**
      * This implementation has no need to extend the search query.
      * 
@@ -93,5 +95,4 @@ class RdfXml implements MetadataInterface {
     static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
-
 }

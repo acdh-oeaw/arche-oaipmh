@@ -45,7 +45,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 class CmdiMetadata extends ResMetadata {
 
     /**
-     * Returns a SPARQL search query part:
+     * Returns a search query part:
      * - fetching additional data required by the `__construct()` method (implemented in parent class)
      * - assuring that the linked CMDI resource has the right schema
      * 

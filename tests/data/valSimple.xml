@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="base:id"/>
+    <b val="base:label" remove="remove"/>
+    <c val="SEQ"/>
+    <d val="NOW"/>
+    <e val="URI"/>
+    <f val="METAURL"/>
+    <g val="OAIID"/>
+    <h val="OAIURL"/>
+    <i val="RANDOM"/>
+    <j val="SEQ"/>
+</root>

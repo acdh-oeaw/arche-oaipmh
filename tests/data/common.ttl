@@ -1,0 +1,10 @@
+<http://127.0.0.1/api/123>  <https://id>        <https://foo> ,
+                                                <https://bar> ;
+                            <https://label>     "foo"@en ,
+                                                "bar" ;
+                            <https://single>    "single's" ;
+                            <https://number>    3 ;
+                            <https://author>    <https://sue> ,
+                                                <https://john> ,
+                                                <https://molly> ;
+.

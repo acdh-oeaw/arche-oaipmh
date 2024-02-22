@@ -26,6 +26,7 @@
 
 namespace acdhOeaw\arche\oaipmh\metadata;
 
+use DateTimeImmutable;
 use DOMComment;
 use DOMDocument;
 use DOMElement;
@@ -43,7 +44,9 @@ use acdhOeaw\arche\lib\RepoResourceDb;
 use acdhOeaw\arche\lib\SearchConfig;
 use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 use acdhOeaw\arche\oaipmh\metadata\util\ParseTreeNode;
+use acdhOeaw\arche\oaipmh\metadata\util\Value;
 
 /**
  * Creates <metadata> element by filling in an XML template with values
@@ -70,6 +73,8 @@ class TemplateMetadata implements MetadataInterface {
      * Repository resource object
      */
     private RepoResourceDb $res;
+    private HeaderData $headerData;
+    private int $seqNo = 1;
 
     /**
      * Metadata format descriptor
@@ -93,16 +98,17 @@ class TemplateMetadata implements MetadataInterface {
      * 
      * @param RepoResourceDb $resource a repository 
      *   resource object
-     * @param object $searchResultRow search query result row 
+     * @param HeaderData $searchResultRow search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format) {
-        $this->res    = $resource;
-        $this->format = $format;
+                                HeaderData $searchResultRow,
+                                MetadataFormat $format) {
+        $this->res        = $resource;
+        $this->format     = $format;
+        $this->headerData = $searchResultRow;
 
-        //TODO initialization based on a metadata property value
         $this->template = $this->format->templatePath;
         if (!file_exists($this->template)) {
             throw new RuntimeException('No template matched');
@@ -171,6 +177,8 @@ class TemplateMetadata implements MetadataInterface {
 
         $foreach = $el->getAttribute('foreach');
         if (empty($foreach)) {
+            $this->processValue($el);
+
             $child = $el->firstChild;
             while ($child) {
                 $nextChild = $child->nextSibling;
@@ -182,8 +190,8 @@ class TemplateMetadata implements MetadataInterface {
         } else {
             $remove = $el->getAttribute('remove');
             $el->removeAttribute('foreach');
-            $meta = end($this->metaStack);
-            $tmpl = new QT($meta->getNode(), $this->expand($foreach));
+            $meta   = end($this->metaStack);
+            $tmpl   = new QT($meta->getNode(), $this->expand($foreach));
             foreach ($meta->getDataset()->getIterator($tmpl) as $val) {
                 $localEl           = $el->cloneNode(true);
                 $this->metaStack[] = $meta->copyExcept($val, true);
@@ -207,6 +215,14 @@ class TemplateMetadata implements MetadataInterface {
             }
             $child = $nextChild;
         }
+    }
+
+    private function processValue(DOMDocument | DOMElement $el): void {
+        $val = Value::fromDomElement($el);
+        if (empty($val->path)) {
+            return;
+        }
+        $val->insert($el, $this->fetchValues($val));
     }
 
     private function loadDocument(): void {
@@ -281,10 +297,10 @@ class TemplateMetadata implements MetadataInterface {
     }
 
     private function removePreservingChildren(DOMElement $el): void {
-        $child = $el->lastChild;
+        $child = $el->firstChild;
         while ($child) {
-            $el->after($child);
-            $child = $child->previousSibling;
+            $el->before($child);
+            $child = $child->nextSibling;
         }
         $el->parentNode->removeChild($el);
     }
@@ -296,5 +312,23 @@ class TemplateMetadata implements MetadataInterface {
             $cache[$prefixed] = DF::namedNode($this->format->rdfNamespaces[$prefix] . $localName);
         }
         return $cache[$prefixed];
+    }
+
+    private function fetchValues(Value $val): array {
+        $result = match ($val->path) {
+            'NOW' => (new DateTimeImmutable())->format(DateTimeImmutable::ISO8601),
+            'URI', 'URL' => $this->headerData->repoid,
+            'METAURL' => $this->headerData->repoid . '/metadata',
+            'OAIID' => $this->headerData->id,
+            'OAIURL' => $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . rawurlencode($this->format->metadataPrefix) . '&identifier=' . rawurldecode($this->headerData->id),
+            'RANDOM' => rand(),
+            'SEQ' => $this->seqNo++,
+            default => null,
+        };
+        if ($result !== null) {
+            return [$result];
+        }
+        $tmpl = new QT($this->res->getUri(), DF::namedNode($this->expand($val->path)));
+        return iterator_to_array($this->res->getGraph()->getDataset()->listObjects($tmpl)->getValues());
     }
 }

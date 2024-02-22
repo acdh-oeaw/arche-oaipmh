@@ -42,6 +42,7 @@ use acdhOeaw\arche\lib\RepoResourceInterface;
 use acdhOeaw\arche\lib\SearchConfig;
 use acdhOeaw\arche\oaipmh\OaiException;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 
 /**
  * Creates <metadata> element by filling in an XML template with values
@@ -244,12 +245,12 @@ class LiveCmdiMetadata implements MetadataInterface {
      * 
      * @param RepoResourceDb $resource a repository 
      *   resource object
-     * @param object $searchResultRow SPARQL search query result row 
+     * @param HeaderData $searchResultRow SPARQL search query result row 
      * @param MetadataFormat $format metadata format descriptor
      *   describing this resource
      */
     public function __construct(RepoResourceDb $resource,
-                                object $searchResultRow, MetadataFormat $format) {
+                                HeaderData $searchResultRow, MetadataFormat $format) {
         $this->res    = $resource;
         $this->format = $format;
 

@@ -1,0 +1,8 @@
+metadataPrefix: resmeta
+schema: http://unknown/schema
+metadataNamespace: http://unknown/namespace
+class: \acdhOeaw\arche\oaipmh\metadata\ResMetadata
+metaResProp: https://has#metadata
+requestOptions: {}
+# used only for testing
+httpClient: \acdhOeaw\arche\oaipmh\tests\HttpClient

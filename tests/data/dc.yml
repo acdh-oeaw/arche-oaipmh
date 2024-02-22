@@ -1,0 +1,5 @@
+metadataPrefix: oai_dc
+schema: http://www.openarchives.org/OAI/2.0/oai_dc.xsd
+metadataNamespace: http://www.openarchives.org/OAI/2.0/oai_dc/
+class: \acdhOeaw\arche\oaipmh\metadata\DcMetadata
+

@@ -26,39 +26,18 @@
 
 namespace acdhOeaw\arche\oaipmh\tests;
 
-use DOMDocument;
-use DOMElement;
-use quickRdf\DataFactory;
-use quickRdf\DatasetNode;
-use quickRdfIo\Util as QuickRdfIoUtil;
-use acdhOeaw\arche\oaipmh\data\MetadataFormat;
-use acdhOeaw\arche\oaipmh\data\RepositoryInfo;
-use acdhOeaw\arche\oaipmh\metadata\TemplateMetadata;
+use DateTimeImmutable;
 
 /**
  * Description of TemplateMetadataTest
  *
  * @author zozlak
  */
-class TemplateMetadataTest extends \PHPUnit\Framework\TestCase {
-
-    const TMPDIR   = '/tmp';
-    const RES_URI  = 'https://foo';
-    const BASE_URL = 'http://127.0.0.1/oaipmh';
-
-    static public function setUpBeforeClass(): void {
-        parent::setUpBeforeClass();
-        mkdir(__DIR__ . self::TMPDIR);
-    }
-
-    static public function tearDownAfterClass(): void {
-        parent::tearDownAfterClass();
-        system("rm -fR '" . __DIR__ . self::TMPDIR . "'");
-    }
+class TemplateMetadataTest extends TestBase {
 
     public function testCommentsWhitespaces(): void {
-        $in       = file_get_contents(__DIR__ . '/data/templateMetadata/keepComments.xml');
-        $tmpl     = $this->getTemplateObject('common', $in);
+        $in       = file_get_contents(__DIR__ . '/data/keepComments.xml');
+        $tmpl     = $this->getMetadataObject('common', $in);
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
@@ -68,7 +47,7 @@ class TemplateMetadataTest extends \PHPUnit\Framework\TestCase {
 OUT;
         $this->assertEquals($this->std($expected), $xml);
 
-        $tmpl     = $this->getTemplateObject('keepComments', $in);
+        $tmpl     = $this->getMetadataObject('keepComments', $in);
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
@@ -83,7 +62,7 @@ OUT;
     }
 
     public function testIf(): void {
-        $tmpl     = $this->getTemplateObject('common', 'if');
+        $tmpl     = $this->getMetadataObject('common', 'if');
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
@@ -101,7 +80,7 @@ OUT;
     }
 
     public function testForEach(): void {
-        $tmpl     = $this->getTemplateObject('common', 'foreach');
+        $tmpl     = $this->getMetadataObject('common', 'foreach');
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
@@ -118,33 +97,32 @@ OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
 
-    private function getTemplateObject(string $caseName,
-                                       string | null $template = null): TemplateMetadata {
-        $resMeta = new DatasetNode(DataFactory::namedNode(self::RES_URI));
-        $resMeta->add(QuickRdfIoUtil::parse(__DIR__ . '/data/templateMetadata/' . $caseName . '.ttl', new DataFactory()));
-        $repoRes = $this->createStub(\acdhOeaw\arche\lib\RepoResourceDb::class);
-        $repoRes->method('getGraph')->willReturn($resMeta);
-        $repoRes->method('getMetadata')->willReturn($resMeta);
-
-        $oaiFormat = new MetadataFormat((object) yaml_parse_file(__DIR__ . '/data/templateMetadata/' . $caseName . '.yml'));
-        if (empty($template)) {
-            $oaiFormat->templatePath = __DIR__ . '/data/templateMetadata/' . $caseName . '.xml';
-        } elseif (file_exists(__DIR__ . '/data/templateMetadata/' . $template . '.xml')) {
-            $oaiFormat->templatePath = __DIR__ . '/data/templateMetadata/' . $template . '.xml';
-        } else {
-            $oaiFormat->templatePath = tempnam(__DIR__ . self::TMPDIR, '');
-            file_put_contents($oaiFormat->templatePath, $template);
+    public function testValSimple(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valSimple');
+        $xml      = $this->asString($tmpl->getXml());
+        $xml      = explode("\n", $xml);
+        $expected = <<<OUT
+<root>
+<a>https://foo</a>
+<a>https://bar</a>foobar<c>1</c>
+<d>NOWT[0-9]{2}:[0-9]{2}:[0-9]{2}[+][0-9]+</d>
+<e>URI</e>
+<f>METAURL</f>
+<g>OAIID</g>
+<h>OAIURL</h>
+<i>[0-9]+</i>
+<j>2</j>
+</root>
+OUT;
+        $expected = str_replace('NOW', (new DateTimeImmutable())->format('Y-m-d'), $expected);
+        $expected = str_replace('URI', self::RES_URI, $expected);
+        $expected = str_replace('METAURL', self::RES_URI . '/metadata', $expected);
+        $expected = str_replace('OAIID', self::RES_OAI_URI, $expected);
+        $expected = str_replace('OAIURL', self::BASE_URL . '[?]verb=GetRecord&amp;metadataPrefix=templateMetadata&amp;identifier=' . rawurldecode(self::RES_OAI_URI), $expected);
+        $expected = explode("\n", $expected);
+        $this->assertEquals(count($expected), count($xml));
+        foreach ($expected as $i => $j) {
+            $this->assertMatchesRegularExpression("`^$j$`u", $xml[$i]);
         }
-        $oaiFormat->info = new RepositoryInfo((object) ['baseURL' => self::BASE_URL]);
-
-        return new TemplateMetadata($repoRes, (object) [], $oaiFormat);
-    }
-
-    private function asString(DOMElement $el): string {
-        return $this->std($el->ownerDocument->saveXML($el));
-    }
-
-    private function std(string $str): string {
-        return str_replace('><', ">\n<", $str);
     }
 }

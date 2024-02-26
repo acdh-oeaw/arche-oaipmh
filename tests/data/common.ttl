@@ -7,6 +7,7 @@
                             <https://author>    <https://sue> ,
                                                 <https://john> ,
                                                 <https://molly> ;
+                            <https://lang>      "lang"@und ;
 .
 <https://john>  <https://label> "John"@und .
 <https://sue>   <https://label> "Sue"@und .

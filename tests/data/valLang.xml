@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="/base:label"/>
+    <b val="/base:label" lang="skip"/>
+    <c val="/base:label" lang="if empty"/>
+    <d val="/base:label" lang="overwrite"/>
+    <e val="/base:number"/>
+    <f val="/base:number" lang="skip"/>
+    <g val="/base:number" lang="if empty"/>
+    <h val="/base:number" lang="overwrite"/>
+    <i val1="/base:label" lang1="if empty"
+       val2="/base:lang"  lang2="if empty"/>
+    <j val1="/base:label" lang1="overwrite"
+       val2="/base:lang"  lang2="overwrite"/>
+    <k val1="/base:label" lang1="overwrite" as1="@foo"
+       val2="/base:lang"  lang2="overwrite" as2="@bar"/>
+</root>

@@ -27,9 +27,6 @@
 namespace acdhOeaw\arche\oaipmh\metadata\util;
 
 use DOMElement;
-use DOMText;
-use DOMDocumentFragment;
-use SplObjectStorage;
 use rdfInterface\TermInterface;
 use rdfInterface\LiteralInterface;
 use acdhOeaw\arche\oaipmh\OaiException;
@@ -41,31 +38,29 @@ use acdhOeaw\arche\oaipmh\OaiException;
  */
 class Value implements \Countable {
 
-    const AGG_NONE            = 'none';
-    const AGG_MIN             = 'min';
-    const AGG_MAX             = 'max';
-    const AGG                 = [self::AGG_NONE, self::AGG_MIN, self::AGG_MAX];
-    const AGG_DEFAULT         = self::AGG_NONE;
-    const REQ_REQUIRED        = 'required';
-    const REQ_OPTIONAL        = 'optional';
-    const REQ                 = [self::REQ_REQUIRED, self::REQ_OPTIONAL];
-    const REQ_DEFAULT         = self::REQ_REQUIRED;
-    const ACTION_OVERWRITE    = 'overwrite';
-    const ACTION_APPEND       = 'append';
-    const ACTION              = [self::ACTION_APPEND, self::ACTION_OVERWRITE];
-    const ACTION_DEFAULT      = self::ACTION_APPEND;
-    const TARGET_XML_CONTENT  = 'xml content';
-    const TARGET_TEXT_CONTENT = 'text content';
-    const TARGET_XML_AFTER    = 'xml after';
-    const TARGET_TEXT_AFTER   = 'text after';
-    const TARGET_ATTRIBUTE    = '@.*';
-    const TARGET              = '`^(' . self::TARGET_XML_CONTENT . '|' . self::TARGET_TEXT_CONTENT . '|' . self::TARGET_XML_AFTER . '|' . self::TARGET_TEXT_AFTER . '|' . self::TARGET_ATTRIBUTE . ')$';
-    const TARGET_DEFAULT      = self::TARGET_TEXT_CONTENT;
-    const LANG_SKIP           = 'skip';
-    const LANG_IF_EMPTY       = 'if empty';
-    const LANG_OVERWRITE      = 'overwrite';
-    const LANG                = [self::LANG_SKIP, self::LANG_IF_EMPTY, self::LANG_OVERWRITE];
-    const LANG_DEFAULT        = self::LANG_SKIP;
+    const AGG_NONE         = 'none';
+    const AGG_MIN          = 'min';
+    const AGG_MAX          = 'max';
+    const AGG              = [self::AGG_NONE, self::AGG_MIN, self::AGG_MAX];
+    const AGG_DEFAULT      = self::AGG_NONE;
+    const REQ_REQUIRED     = 'required';
+    const REQ_OPTIONAL     = 'optional';
+    const REQ              = [self::REQ_REQUIRED, self::REQ_OPTIONAL];
+    const REQ_DEFAULT      = self::REQ_REQUIRED;
+    const ACTION_OVERWRITE = 'overwrite';
+    const ACTION_APPEND    = 'append';
+    const ACTION           = [self::ACTION_APPEND, self::ACTION_OVERWRITE];
+    const ACTION_DEFAULT   = self::ACTION_APPEND;
+    const AS_XML           = 'xml';
+    const AS_TEXT          = 'text';
+    const AS_ATTRIBUTE     = '@.*';
+    const AS               = '`^(' . self::AS_XML . '|' . self::AS_TEXT . '|' . self::AS_ATTRIBUTE . ')$`';
+    const AS_DEFAULT       = self::AS_TEXT;
+    const LANG_SKIP        = 'skip';
+    const LANG_IF_EMPTY    = 'if empty';
+    const LANG_OVERWRITE   = 'overwrite';
+    const LANG             = [self::LANG_SKIP, self::LANG_IF_EMPTY, self::LANG_OVERWRITE];
+    const LANG_DEFAULT     = self::LANG_SKIP;
 
     static public function fromDomElement(DOMElement $el, string $suffix = ''): self {
         $x          = new self();
@@ -100,12 +95,12 @@ class Value implements \Countable {
             }
             $el->removeAttribute('action' . $suffix);
         }
-        if ($el->hasAttribute('target' . $suffix)) {
-            $x->target = $el->getAttribute('target' . $suffix);
-            if (!preg_match(self::TARGET, $x->target)) {
-                throw new OaiException("Unsupported target$suffix attribute value: $x->target");
+        if ($el->hasAttribute('as' . $suffix)) {
+            $x->as = $el->getAttribute('as' . $suffix);
+            if (!preg_match(self::AS, $x->as)) {
+                throw new OaiException("Unsupported as$suffix attribute value: $x->as");
             }
-            $el->removeAttribute('target' . $suffix);
+            $el->removeAttribute('as' . $suffix);
         }
         if ($el->hasAttribute('lang' . $suffix)) {
             $x->lang = $el->getAttribute('lang' . $suffix);
@@ -125,7 +120,7 @@ class Value implements \Countable {
     public string $aggregate = self::AGG_DEFAULT;
     public string $required  = self::REQ_DEFAULT;
     public string $action    = self::ACTION_DEFAULT;
-    public string $target    = self::TARGET_DEFAULT;
+    public string $as        = self::AS_DEFAULT;
     public string $lang      = self::LANG_DEFAULT;
 
     /**
@@ -167,41 +162,35 @@ class Value implements \Countable {
      * @param int $index
      * @return void
      */
-    public function insert(DOMElement $el, SplObjectStorage $content,
-                           SplObjectStorage $after, int $index): void {
+    public function insert(DOMElement $el, int $index): void {
         if ($this->count() === 0) {
             return;
         }
 
         // value
-        $value  = $this->values[$index];
-        $target = match ($this->target) {
-            self::TARGET_TEXT_AFTER, self::TARGET_XML_AFTER => $after,
-            self::TARGET_TEXT_CONTENT, self::TARGET_XML_CONTENT => $content,
-            default => null,
-        };
-        if ($target !== null) {
-            if ($this->action === self::ACTION_OVERWRITE) {
-                $target->removeAll();
-            }
-            if ($this->target === self::TARGET_TEXT_CONTENT || $this->target === self::TARGET_TEXT_AFTER) {
-                $target->attach($el->ownerDocument->createTextNode($value));
-            } else {
-                $tmp = $el->ownerDocument->createDocumentFragment();
-                $tmp->appendXML($value);
-                $target->attach($tmp);
-            }
-        } else {
-            $attr = substr($this->target, 1);
+        $value = $this->values[$index];
+        if (str_starts_with($this->as, '@')) {
+            $attr = substr($this->as, 1);
             if ($this->action === self::ACTION_APPEND) {
                 $value = $el->getAttribute($attr) . $value;
             }
             $el->setAttribute($attr, $value);
+        } else {
+            if ($this->action === self::ACTION_OVERWRITE) {
+                $el->textContent = '';
+            }
+            if ($this->as === self::AS_TEXT) {
+                $el->append($value);
+            } else {
+                $tmp = $el->ownerDocument->createDocumentFragment();
+                $tmp->appendXML($value);
+                $el->append($tmp);
+            }
         }
 
         // lang
-        if ($this->lang === self::LANG_IF_EMPTY && $el->getAttribute('xml:lang') === '' || $this->lang === self::LANG_OVERWRITE) {
-            $el->setAttribute('xml:lang', $this->valueLangs[$index]);
+        if ($this->lang === self::LANG_OVERWRITE || $this->lang === self::LANG_IF_EMPTY && $el->getAttribute('xml:lang') === '' && !empty($this->valueLangs[$index])) {
+            $el->setAttribute('xml:lang', (string) $this->valueLangs[$index]);
         }
     }
 }

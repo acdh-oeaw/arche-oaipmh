@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val1="SEQ"
+       val2="= "
+       val3="SEQ"/>
+    <b val1="SEQ" action1="append"
+       val2="= "  action2="append"
+       val3="SEQ" action3="append"/>
+    <c val1="SEQ" action1="overwrite"
+       val2="= "  action2="overwrite"
+       val3="SEQ" action3="overwrite"/>
+    <d val1="SEQ"
+       val2="= "  action2="overwrite"
+       val3="SEQ" action3="overwrite"/>
+    <e val1="SEQ"
+       val2="= "  action2="overwrite"
+       val3="SEQ"/>
+    <f val1="SEQ" as1="@foo"
+       val2="= "  as2="@foo" action2="overwrite"
+       val3="SEQ" as3="@foo"
+       val4="SEQ"
+       val5="= "
+       val6="SEQ"/>
+</root>

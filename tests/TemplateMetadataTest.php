@@ -153,4 +153,69 @@ OUT;
 OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
+
+    public function testValAs(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valAs');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>1</a>
+<b>2</b>
+<c>3</c>
+<d>
+<foo/>
+</d>
+<e>&lt;bar/&gt;</e>
+<f>&lt;baz/&gt;</f>
+<g foo="4"/>
+<h bar="&lt;foobar&gt;"/>
+<i attr2="foobar" attr1="6">5&lt;foo/&gt;<bar/>7</i>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testValLang(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valLang');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>foo</a>
+<a>bar</a>
+<b>foo</b>
+<b>bar</b>
+<c xml:lang="en">foo</c>
+<c>bar</c>
+<d xml:lang="en">foo</d>
+<d xml:lang="">bar</d>
+<e>3</e>
+<f>3</f>
+<g>3</g>
+<h xml:lang="">3</h>
+<i xml:lang="en">foolang</i>
+<i xml:lang="und">barlang</i>
+<j xml:lang="und">foolang</j>
+<j xml:lang="und">barlang</j>
+<k foo="foo" xml:lang="und" bar="lang"/>
+<k foo="bar" xml:lang="und" bar="lang"/>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testValAction(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valAction');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>1 2</a>
+<b>3 4</b>
+<c>6</c>
+<d>8</d>
+<e> 10</e>
+<f foo=" 12">13 14</f>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
 }

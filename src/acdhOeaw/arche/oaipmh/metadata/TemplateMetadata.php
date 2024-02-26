@@ -32,7 +32,6 @@ use DOMDocument;
 use DOMElement;
 use Exception;
 use RuntimeException;
-use SplObjectStorage;
 use Throwable;
 use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
@@ -147,7 +146,6 @@ class TemplateMetadata implements MetadataInterface {
             $this->processElement($this->xml->documentElement);
         } catch (Throwable $e) {
             if ($this->format->xmlErrors ?? false) {
-                $msg = "$msg in $phpLocation $xmlLocation\n\n$trace";
                 $doc = new DOMDocument('1.0', 'UTF-8');
                 $err = $doc->createElement('error');
                 $err->appendChild($doc->createElement('message', $e->getMessage()));
@@ -323,7 +321,7 @@ class TemplateMetadata implements MetadataInterface {
     private function processValue(DOMDocument | DOMElement $el): void {
         $remove = $el->getAttribute('remove') === 'remove';
         $el->removeAttribute('remove');
-        
+
         $valSuffixes = [];
         foreach ($el->attributes as $attr => $i) {
             if (preg_match('`^val[0-9]?$`', $attr)) {
@@ -356,17 +354,10 @@ class TemplateMetadata implements MetadataInterface {
         if ($valid) {
             $iterOver ??= $vals[0];
             for ($i = $iterOver->count() - 1; $i >= 0; $i--) {
+                /* @var $valEl DOMElement */
                 $valEl   = $el->cloneNode(true);
-                $content = new SplObjectStorage();
-                $after   = new SplObjectStorage();
                 foreach ($vals as $v) {
-                    $v->insert($valEl, $content, $after, $v === $iterOver ? $i : 0);
-                }
-                foreach ($content as $j) {
-                    $valEl->append($j);
-                }
-                foreach ($after as $j) {
-                    $valEl->after($j);
+                    $v->insert($valEl, $v === $iterOver ? $i : 0);
                 }
                 $el->after($valEl);
             }

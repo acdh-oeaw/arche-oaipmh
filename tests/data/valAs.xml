@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="SEQ"/>
+    <b val="SEQ" as="text"/>
+    <c val="SEQ" as="xml"/>
+    <d val="=&lt;foo/&gt;" as="xml"/>
+    <e val="=&lt;bar/&gt;"/>
+    <f val="=&lt;baz/&gt;" as="text"/>
+    <g val="SEQ" as="@foo"/>
+    <h val="=&lt;foobar&gt;" as="@bar"/>
+    <i val1="SEQ" 
+       val2="=&lt;foo/&gt;"
+       val3="=&lt;bar/&gt;" as3="xml"
+       val4="=foobar" as4="@attr2"
+       val5="SEQ" as5="@attr1"
+       val6="SEQ"/>
+</root>

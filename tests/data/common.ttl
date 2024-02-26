@@ -8,3 +8,17 @@
                                                 <https://john> ,
                                                 <https://molly> ;
 .
+<https://john>  <https://label> "John"@und .
+<https://sue>   <https://label> "Sue"@und .
+<https://molly> <https://label> "Molly"@und .
+
+<https://other> <https://reverse>   <http://127.0.0.1/api/123> ;
+                <https://label>     "other"@und,
+                                    "inny"@pl ;
+.
+
+<https://one/more>  <https://reverse>   <http://127.0.0.1/api/123> ;
+                    <https://label>     "one more"@und ,
+                                        "jeszcze jeden"@pl ;
+                    <https://author>    <https://sue> ;
+.

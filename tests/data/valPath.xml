@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="/base:id"/>
+    <b val1="/base:single"/>
+    <c val2="/base:number"/>
+    <d val="/base:author"/>
+    <e val="/base:author/base:label"/>
+    <f val1="/^base:reverse"/>
+    <g val2="/^base:reverse/base:label"/>
+    <h val="/^base:reverse/base:author"/>
+    <i val="/^base:reverse/base:author/base:label"/>
+</root>

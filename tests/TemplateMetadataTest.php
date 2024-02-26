@@ -97,14 +97,13 @@ OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
 
-    public function testValSimple(): void {
-        $tmpl     = $this->getMetadataObject('common', 'valSimple');
+    public function testValSpecial(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valSpecial');
         $xml      = $this->asString($tmpl->getXml());
         $xml      = explode("\n", $xml);
         $expected = <<<OUT
 <root>
-<a>https://foo</a>
-<a>https://bar</a>foobar<c>1</c>
+<c>[0-9]+</c>
 <d>NOWT[0-9]{2}:[0-9]{2}:[0-9]{2}[+][0-9]+</d>
 <e>URI</e>
 <f>METAURL</f>
@@ -112,6 +111,7 @@ OUT;
 <h>OAIURL</h>
 <i>[0-9]+</i>
 <j>2</j>
+<k>foo</k>
 </root>
 OUT;
         $expected = str_replace('NOW', (new DateTimeImmutable())->format('Y-m-d'), $expected);
@@ -124,5 +124,33 @@ OUT;
         foreach ($expected as $i => $j) {
             $this->assertMatchesRegularExpression("`^$j$`u", $xml[$i]);
         }
+    }
+
+    public function testValPath(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valPath');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>https://foo</a>
+<a>https://bar</a>
+<b>single's</b>
+<c>3</c>
+<d>https://sue</d>
+<d>https://john</d>
+<d>https://molly</d>
+<e>Sue</e>
+<e>John</e>
+<e>Molly</e>
+<f>https://other</f>
+<f>https://one/more</f>
+<g>other</g>
+<g>inny</g>
+<g>one more</g>
+<g>jeszcze jeden</g>
+<h>https://sue</h>
+<i>Sue</i>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
     }
 }

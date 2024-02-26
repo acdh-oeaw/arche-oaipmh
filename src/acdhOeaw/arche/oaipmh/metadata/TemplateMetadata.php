@@ -32,6 +32,7 @@ use DOMDocument;
 use DOMElement;
 use Exception;
 use RuntimeException;
+use SplObjectStorage;
 use Throwable;
 use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
@@ -89,6 +90,12 @@ class TemplateMetadata implements MetadataInterface {
 
     /**
      * 
+     * @var array<string>
+     */
+    private array $xmlLocation;
+
+    /**
+     * 
      * @var array<DatasetNodeInterface>
      */
     private array $metaStack;
@@ -134,14 +141,18 @@ class TemplateMetadata implements MetadataInterface {
                 $this->loadDocument();
             }
 
-            $this->metaStack = [$this->res->getGraph()];
+            $this->metaStack   = [$this->res->getGraph()];
+            $this->xmlLocation = [];
 
             $this->processElement($this->xml->documentElement);
         } catch (Throwable $e) {
             if ($this->format->xmlErrors ?? false) {
-                $msg = $e->getMessage() . " in " . $e->getFile() . "(" . $e->getLine() . ")\n\n" . $e->getTraceAsString();
+                $msg = "$msg in $phpLocation $xmlLocation\n\n$trace";
                 $doc = new DOMDocument('1.0', 'UTF-8');
-                $err = $doc->createElement('error', $msg);
+                $err = $doc->createElement('error');
+                $err->appendChild($doc->createElement('message', $e->getMessage()));
+                $err->appendChild($doc->createElement('phpTrace', $e->getFile() . '(' . $e->getLine() . ")\n" . $e->getTraceAsString()));
+                $err->appendChild($doc->createElement('templateLocation', $this->template . ':' . implode('/', $this->xmlLocation)));
                 $doc->appendChild($err);
                 return $err;
             } else {
@@ -163,6 +174,7 @@ class TemplateMetadata implements MetadataInterface {
     }
 
     private function processElement(DOMDocument | DOMElement $el): void {
+        $this->xmlLocation[] = $el->nodeName;
         $this->removeUnneededNodes($el);
 
         $if = trim($el->getAttribute('if'));
@@ -171,7 +183,7 @@ class TemplateMetadata implements MetadataInterface {
             return;
         }
         $el->removeAttribute('if');
-        if (!empty($if) && !empty($el->getAttribute('remove'))) {
+        if (!empty($if) && $el->hasAttribute('remove')) {
             $this->removePreservingChildren($el);
         }
 
@@ -188,7 +200,7 @@ class TemplateMetadata implements MetadataInterface {
                 $child = $nextChild;
             }
         } else {
-            $remove = $el->getAttribute('remove');
+            $remove = $el->hasAttribute('remove');
             $el->removeAttribute('foreach');
             $meta   = end($this->metaStack);
             $tmpl   = new QT($meta->getNode(), $this->expand($foreach));
@@ -198,12 +210,14 @@ class TemplateMetadata implements MetadataInterface {
                 $this->processElement($localEl);
                 array_pop($this->metaStack);
                 $el->after($localEl);
-                if (!empty($remove)) {
+                if ($remove) {
                     $this->removePreservingChildren($localEl);
                 }
             }
             $el->parentNode->removeChild($el);
         }
+
+        array_pop($this->xmlLocation);
     }
 
     private function removeUnneededNodes(DOMDocument | DOMElement $el): void {
@@ -215,14 +229,6 @@ class TemplateMetadata implements MetadataInterface {
             }
             $child = $nextChild;
         }
-    }
-
-    private function processValue(DOMDocument | DOMElement $el): void {
-        $val = Value::fromDomElement($el);
-        if (empty($val->path)) {
-            return;
-        }
-        $val->insert($el, $this->fetchValues($val));
     }
 
     private function loadDocument(): void {
@@ -314,6 +320,62 @@ class TemplateMetadata implements MetadataInterface {
         return $cache[$prefixed];
     }
 
+    private function processValue(DOMDocument | DOMElement $el): void {
+        $remove = $el->getAttribute('remove') === 'remove';
+        $el->removeAttribute('remove');
+        
+        $valSuffixes = [];
+        foreach ($el->attributes as $attr => $i) {
+            if (preg_match('`^val[0-9]?$`', $attr)) {
+                $valSuffixes[] = substr($attr, 3);
+            }
+        }
+        sort($valSuffixes);
+        if (count($valSuffixes) === 0) {
+            return;
+        }
+        $vals     = [];
+        $maxCount = 0;
+        $iterOver = null;
+        $valid    = true;
+        foreach ($valSuffixes as $i) {
+            $val   = Value::fromDomElement($el, $i);
+            $val->setValues($this->fetchValues($val));
+            $count = count($val);
+            if ($count > 1) {
+                if ($maxCount > 1) {
+                    throw new OaiException("More than one val attribute matching more than one value. Consider using the foreach attribute.");
+                } else {
+                    $iterOver = $val;
+                }
+            }
+            $vals[]   = $val;
+            $maxCount = max($maxCount, $count);
+            $valid    &= $count > 0 || !$val->isRequired();
+        }
+        if ($valid) {
+            $iterOver ??= $vals[0];
+            for ($i = $iterOver->count() - 1; $i >= 0; $i--) {
+                $valEl   = $el->cloneNode(true);
+                $content = new SplObjectStorage();
+                $after   = new SplObjectStorage();
+                foreach ($vals as $v) {
+                    $v->insert($valEl, $content, $after, $v === $iterOver ? $i : 0);
+                }
+                foreach ($content as $j) {
+                    $valEl->append($j);
+                }
+                foreach ($after as $j) {
+                    $valEl->after($j);
+                }
+                $el->after($valEl);
+            }
+            $el->parentNode->removeChild($el);
+        } elseif ($remove) {
+            $el->parentNode->removeChild($el);
+        }
+    }
+
     private function fetchValues(Value $val): array {
         $result = match ($val->path) {
             'NOW' => (new DateTimeImmutable())->format(DateTimeImmutable::ISO8601),
@@ -328,7 +390,32 @@ class TemplateMetadata implements MetadataInterface {
         if ($result !== null) {
             return [$result];
         }
-        $tmpl = new QT($this->res->getUri(), DF::namedNode($this->expand($val->path)));
-        return iterator_to_array($this->res->getGraph()->getDataset()->listObjects($tmpl)->getValues());
+        if (!preg_match('`^(/[\\^]?' . self::PREDICATE_REGEX . '|=.+)+$`', $val->path)) {
+            throw new OaiException("Wrong value path: " . $val->path);
+        }
+        if (str_starts_with($val->path, '=')) {
+            return [substr($val->path, 1)];
+        }
+
+        $data = $this->res->getGraph()->getDataset();
+        $path = explode('/', substr($val->path, 1));
+        $sbjs = [$this->res->getUri()];
+        foreach ($path as $i) {
+            $reverse = str_starts_with($i, '^');
+            $i       = $this->expand($reverse ? substr($i, 1) : $i);
+            $tmpl    = new QT(null, $i);
+            $objs    = [];
+            if ($reverse) {
+                foreach ($sbjs as $j) {
+                    $objs[] = $data->listSubjects($tmpl->withObject($j));
+                }
+            } else {
+                foreach ($sbjs as $j) {
+                    $objs[] = $data->listObjects($tmpl->withSubject($j));
+                }
+            }
+            $sbjs = array_merge(...array_map(fn($x) => iterator_to_array($x), $objs));
+        }
+        return $sbjs;
     }
 }

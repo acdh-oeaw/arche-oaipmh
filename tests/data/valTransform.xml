@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="/base:id"        match="foo"/>
+    <b val="/base:id"        match="o+" replace="#\0#"/>
+    <c val="/base:number"    format="d:04"/>
+    <d val="/base:date"      format="D:Y"/>
+    <e val="/base:datetime"  format="D:Y-m-d H"/>
+    <f val="/base:label"     aggregate="min"/>
+    <g val="/base:label"     aggregate="max"/>
+    <h val="/base:datetime"  format="D:Y-m" aggregate="min"/>
+    <i val="/base:datetime"  format="D:Y-m" aggregate="max"/>
+    <j val1="/base:datetime" format1="D:Y"  aggregate1="min"
+       val2="=-"
+       val3="/base:datetime" format3="D:Y"  aggregate3="max"/>
+    <k val1="/base:tag"      map1="tag"/>
+    <l val1="/base:author"   map1="author"/>
+    <m val1="/base:tag"      match1="1|3" replace1="4" map1="tag" aggregate1="max"/>
+    <n val1="/base:category" map1="/skos:prefLabel" lang1="overwrite"/>
+</root>
+

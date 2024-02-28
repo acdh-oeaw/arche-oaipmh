@@ -8,6 +8,13 @@
                                                 <https://john> ,
                                                 <https://molly> ;
                             <https://lang>      "lang"@und ;
+                            <https://date>      "-0100-01-02"^^<http://www.w3.org/2001/XMLSchema#date> ;
+                            <https://datetime>  "0200-03-04T14:20:30"^^<http://www.w3.org/2001/XMLSchema#dateTime> ,
+                                                "1200-07-03T12:15:45"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+                            <https://tag>       "tag1" ,
+                                                "tag2" ,
+                                                "tag3" ;
+                            <https://category>  <https://vocabs.acdh.oeaw.ac.at/archecategory/sound/speech> ;
 .
 <https://john>  <https://label> "John"@und .
 <https://sue>   <https://label> "Sue"@und .

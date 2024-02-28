@@ -47,6 +47,7 @@ use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 use acdhOeaw\arche\oaipmh\data\HeaderData;
 use acdhOeaw\arche\oaipmh\metadata\util\ParseTreeNode;
 use acdhOeaw\arche\oaipmh\metadata\util\Value;
+use acdhOeaw\arche\oaipmh\metadata\util\ValueMapper;
 
 /**
  * Creates <metadata> element by filling in an XML template with values
@@ -63,6 +64,8 @@ use acdhOeaw\arche\oaipmh\metadata\util\Value;
  * @author zozlak
  */
 class TemplateMetadata implements MetadataInterface {
+
+    static private ValueMapper $valueMapper;
 
     const PREDICATE_REGEX  = '[-_a-zA-Z0-9]+:[^ )]*';
     const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|([0-9]+[.]?[0-9]*)|(' . self::PREDICATE_REGEX . '))';
@@ -95,9 +98,9 @@ class TemplateMetadata implements MetadataInterface {
 
     /**
      * 
-     * @var array<DatasetNodeInterface>
+     * @var array<TermInterface>
      */
-    private array $metaStack;
+    private array $nodesStack;
 
     /**
      * Creates a metadata object for a given repository resource.
@@ -118,6 +121,10 @@ class TemplateMetadata implements MetadataInterface {
         $this->template = $this->format->templatePath;
         if (!file_exists($this->template)) {
             throw new RuntimeException('No template matched');
+        }
+
+        if (!isset(self::$valueMapper)) {
+            self::$valueMapper = new ValueMapper($this->format->valueMaps ?? null);
         }
     }
 
@@ -140,7 +147,7 @@ class TemplateMetadata implements MetadataInterface {
                 $this->loadDocument();
             }
 
-            $this->metaStack   = [$this->res->getGraph()];
+            $this->nodesStack  = [$this->res->getUri()];
             $this->xmlLocation = [];
 
             $this->processElement($this->xml->documentElement);
@@ -150,7 +157,8 @@ class TemplateMetadata implements MetadataInterface {
                 $err = $doc->createElement('error');
                 $err->appendChild($doc->createElement('message', $e->getMessage()));
                 $err->appendChild($doc->createElement('phpTrace', $e->getFile() . '(' . $e->getLine() . ")\n" . $e->getTraceAsString()));
-                $err->appendChild($doc->createElement('templateLocation', $this->template . ':' . implode('/', $this->xmlLocation)));
+                $err->appendChild($doc->createElement('templateLocation', $this->template . ':' . implode('/', $this->xmlLocation ?? [
+])));
                 $doc->appendChild($err);
                 return $err;
             } else {
@@ -186,6 +194,7 @@ class TemplateMetadata implements MetadataInterface {
         }
 
         $foreach = $el->getAttribute('foreach');
+        $el->removeAttribute('foreach');
         if (empty($foreach)) {
             $this->processValue($el);
 
@@ -198,16 +207,15 @@ class TemplateMetadata implements MetadataInterface {
                 $child = $nextChild;
             }
         } else {
-            $remove = $el->hasAttribute('remove');
-            $el->removeAttribute('foreach');
-            $meta   = end($this->metaStack);
-            $tmpl   = new QT($meta->getNode(), $this->expand($foreach));
-            foreach ($meta->getDataset()->getIterator($tmpl) as $val) {
-                $localEl           = $el->cloneNode(true);
-                $this->metaStack[] = $meta->copyExcept($val, true);
+            $remove    = $el->hasAttribute('remove');
+            $val       = new Value();
+            $val->path = $foreach;
+            foreach ($this->fetchValues($val) as $sbj) {
+                $localEl            = $el->cloneNode(true);
+                $this->nodesStack[] = $sbj;
                 $this->processElement($localEl);
-                array_pop($this->metaStack);
-                $el->after($localEl);
+                array_pop($this->nodesStack);
+                $el->before($localEl);
                 if ($remove) {
                     $this->removePreservingChildren($localEl);
                 }
@@ -275,7 +283,7 @@ class TemplateMetadata implements MetadataInterface {
                 }
                 $value = empty($matches[6]) ? new ValueTemplate($value, $matches[3]) : new NumericTemplate((float) $value, $matches[3]);
             }
-            $meta    = end($this->metaStack);
+            $meta    = $this->res->getGraph();
             $tmpl    = new QT($meta->getNode(), $this->expand($matches[2]));
             $value   = $meta->getDataset()->copy($tmpl)->$func(new QT(object: $value));
             $current = $current->push(ParseTreeNode::fromValue($value, $matches[0]));
@@ -337,8 +345,14 @@ class TemplateMetadata implements MetadataInterface {
         $iterOver = null;
         $valid    = true;
         foreach ($valSuffixes as $i) {
+            // expand map attribute when needed as Value object can't do it
+            $map = $el->getAttribute('map' . $i);
+            if (str_starts_with($map, '/')) {
+                $el->setAttribute('map' . $i, '/' . $this->expand(substr($map, 1)));
+            }
+
             $val   = Value::fromDomElement($el, $i);
-            $val->setValues($this->fetchValues($val));
+            $val->setValues($this->fetchValues($val), self::$valueMapper);
             $count = count($val);
             if ($count > 1) {
                 if ($maxCount > 1) {
@@ -355,7 +369,7 @@ class TemplateMetadata implements MetadataInterface {
             $iterOver ??= $vals[0];
             for ($i = $iterOver->count() - 1; $i >= 0; $i--) {
                 /* @var $valEl DOMElement */
-                $valEl   = $el->cloneNode(true);
+                $valEl = $el->cloneNode(true);
                 foreach ($vals as $v) {
                     $v->insert($valEl, $v === $iterOver ? $i : 0);
                 }
@@ -376,6 +390,7 @@ class TemplateMetadata implements MetadataInterface {
             'OAIURL' => $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . rawurlencode($this->format->metadataPrefix) . '&identifier=' . rawurldecode($this->headerData->id),
             'RANDOM' => rand(),
             'SEQ' => $this->seqNo++,
+            'CURNODE' => end($this->nodesStack),
             default => null,
         };
         if ($result !== null) {
@@ -390,7 +405,7 @@ class TemplateMetadata implements MetadataInterface {
 
         $data = $this->res->getGraph()->getDataset();
         $path = explode('/', substr($val->path, 1));
-        $sbjs = [$this->res->getUri()];
+        $sbjs = [end($this->nodesStack)];
         foreach ($path as $i) {
             $reverse = str_starts_with($i, '^');
             $i       = $this->expand($reverse ? substr($i, 1) : $i);

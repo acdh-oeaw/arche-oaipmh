@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a foreach="/base:foo">
+        <aa/>
+    </a>
+    <b foreach="/base:foo" remove="remove">
+        <bb/>
+    </b>
+    <c if="any(base:foo)">
+        <cc/>
+    </c>
+    <d if="any(base:foo)" remove="remove">
+        <dd/>
+    </d>
+    <e val="/base:foo"/>
+    <f val="/base:foo" remove="remove"/>
+</root>

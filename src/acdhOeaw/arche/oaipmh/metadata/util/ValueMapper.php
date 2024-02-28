@@ -24,14 +24,19 @@
  * THE SOFTWARE.
  */
 
-namespace acdhOeaw\arche\oaipmh\metadata;
+namespace acdhOeaw\arche\oaipmh\metadata\util;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
+use rdfInterface\TermInterface;
+use termTemplates\QuadTemplate as QT;
+use quickRdf\DatasetNode;
+use quickRdf\DataFactory;
+use quickRdfIo\Util as QuickRdfIoUtil;
 
 /**
  * Provides vocabulary mappings. Assumes a value is an URL which can be resolved
- * to the RDF . Then extracts given property values from the RDF.
+ * to the RDF. Then extracts given property values from the RDF.
  * 
  * Implements caching.
  *
@@ -41,28 +46,28 @@ class ValueMapper {
 
     /**
      * 
-     * @var Client
+     * @var array<string, array<string, string>>
      */
-    private $client;
+    private array $staticMaps;
+    private Client $client;
 
     /**
-     * 
-     * @var array<string, Resource>
+     * @var array<string, DatasetNode>
      */
-    private $cache  = [];
+    private array $cache = [];
 
     /**
-     * 
      * @var array<string, bool>
      */
-    private $failed = [];
+    private array $failed = [];
 
     /**
      * 
      * @param array<string, mixed> $guzzleOptions connection options to be used while fetching
      *   the data - see http://docs.guzzlephp.org/en/stable/request-options.html
      */
-    public function __construct(array $guzzleOptions = []) {
+    public function __construct(array | null $staticMaps = null,
+                                array $guzzleOptions = []) {
         $options      = [
             'verify'          => false,
             'http_errors'     => false,
@@ -70,6 +75,17 @@ class ValueMapper {
             'headers'         => ['Accept' => ['application/n-triples, application/rdf+xml;q=0.8, text/turtle;q=0.6']],
         ];
         $this->client = new Client(array_merge($options, $guzzleOptions));
+        if ($staticMaps !== null) {
+
+            $this->staticMaps = $staticMaps;
+        }
+    }
+
+    public function getStaticMapping(string $map, string $value): string | null {
+        if (isset($this->staticMaps[$map])) {
+            return $this->staticMaps[$map][$value] ?? null;
+        }
+        return null;
     }
 
     /**
@@ -77,7 +93,7 @@ class ValueMapper {
      * 
      * @param string $value value to be mapped
      * @param string $property RDF property which value should be returned
-     * @return array<Resource> mapped values
+     * @return array<TermInterface> mapped values
      */
     public function getMapping(string $value, string $property): array {
         if (!isset($this->cache[$value]) && !isset($this->failed[$value])) {
@@ -85,9 +101,9 @@ class ValueMapper {
         }
         $values = [];
         if (isset($this->cache[$value])) {
-            foreach ($this->cache[$value]->all($property) as $i) {
-                $values[] = $i;
-            }
+            $graph = $this->cache[$value];
+            $iter  = $graph->getDataset()->listObjects(new QT($graph->getNode(), DataFactory::namedNode($property)));
+            return iterator_to_array($iter);
         }
         return $values;
     }
@@ -95,19 +111,17 @@ class ValueMapper {
     /**
      * Fetches mappings from the value URL into the cache.
      * 
-     * @param string $value value URL to be resolved
+     * @param string $uri URI value to be resolved
      * @return void
      */
-    private function fetch(string $value): void {
-        $resp = $this->client->send(new Request('GET', $value));
+    private function fetch(string $uri): void {
+        $resp = $this->client->send(new Request('GET', $uri));
         if ($resp->getStatusCode() === 200) {
-            $mime                = $resp->getHeader('Content-Type')[0] ?? '';
-            $mime                = explode(';', $mime)[0];
-            $graph               = new Graph();
-            $graph->parse((string) $resp->getBody(), $mime);
-            $this->cache[$value] = $graph->resource($value);
+            $graph             = new DatasetNode(DataFactory::namedNode($uri));
+            $graph->add(QuickRdfIoUtil::parse($resp, new DataFactory()));
+            $this->cache[$uri] = $graph;
         } else {
-            $this->failed[$value] = true;
+            $this->failed[$uri] = true;
         }
     }
 }

@@ -26,7 +26,9 @@
 
 namespace acdhOeaw\arche\oaipmh\metadata\util;
 
+use DateTimeImmutable;
 use DOMElement;
+use Exception;
 use rdfInterface\TermInterface;
 use rdfInterface\LiteralInterface;
 use acdhOeaw\arche\oaipmh\OaiException;
@@ -61,19 +63,34 @@ class Value implements \Countable {
     const LANG_OVERWRITE   = 'overwrite';
     const LANG             = [self::LANG_SKIP, self::LANG_IF_EMPTY, self::LANG_OVERWRITE];
     const LANG_DEFAULT     = self::LANG_SKIP;
+    const FORMAT           = '`^[DbcdeEfFgGhHosuxX]:.*$`';
+    const MAP              = '`^(?:[-_0-9A-Za-z]+|/.*)$`';
 
     static public function fromDomElement(DOMElement $el, string $suffix = ''): self {
-        $x          = new self();
-        $x->path    = $el->getAttribute('val' . $suffix);
+        $x       = new self();
+        $x->path = $el->getAttribute('val' . $suffix);
         $el->removeAttribute('val' . $suffix);
-        $x->match   = $el->getAttribute('match' . $suffix);
-        $el->removeAttribute('match' . $suffix);
+        if ($el->hasAttribute('match' . $suffix)) {
+            $x->match = '`' . $el->getAttribute('match' . $suffix) . '`umsD';
+            $el->removeAttribute('match' . $suffix);
+        }
         $x->replace = $el->getAttribute('replace' . $suffix);
         $el->removeAttribute('replace' . $suffix);
-        $x->format  = $el->getAttribute('format' . $suffix);
-        $el->removeAttribute('format' . $suffix);
-        $x->map     = $el->getAttribute('map' . $suffix);
-        $el->removeAttribute('map' . $suffix);
+        if ($el->hasAttribute('format' . $suffix)) {
+            $x->format = $el->getAttribute('format' . $suffix);
+            if (!preg_match(self::FORMAT, $x->format)) {
+                throw new OaiException("Unsupported format$suffix attribute value: $x->format");
+            }
+            $el->removeAttribute('format' . $suffix);
+        }
+        if ($el->hasAttribute('map' . $suffix)) {
+            $x->map = $el->getAttribute('map' . $suffix);
+            if (!preg_match(self::MAP, $x->map)) {
+                throw new OaiException("Unsupported map$suffix attribute value: $x->map");
+            }
+
+            $el->removeAttribute('map' . $suffix);
+        }
         if ($el->hasAttribute('aggregate' . $suffix)) {
             $x->aggregate = $el->getAttribute('aggregate' . $suffix);
             if (!in_array($x->aggregate, self::AGG)) {
@@ -140,9 +157,52 @@ class Value implements \Countable {
      * @param array<TermInterface> $values
      * @return void
      */
-    public function setValues(array $values): void {
-        $this->values     = array_map(fn($x) => (string) $x, $values);
+    public function setValues(array $values, ValueMapper $mapper): void {
         $this->valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
+
+        $values = array_map(fn($x) => (string) $x, $values);
+        if (!empty($this->match)) {
+            $values = array_filter($values, fn($x) => preg_match($this->match, $x));
+            if (!empty($this->replace)) {
+                $values = preg_replace($this->match, $this->replace, $values);
+            }
+        }
+        if (!empty($this->format)) {
+            if (str_starts_with($this->format, 'D')) {
+                $func = function (string $x) {
+                    try {
+                        $x = new DateTimeImmutable($x);
+                        return $x->format(substr($this->format, 2));
+                    } catch (Exception $ex) {
+                        return null;
+                    }
+                };
+            } else {
+                $func = fn(string $x) => sprintf('%' . substr($this->format, 2) . substr($this->format, 0, 1), $x);
+            }
+            $values = array_map($func, $values);
+            $values = array_filter($values, fn($x) => $x !== null);
+        }
+        if (!empty($this->map)) {
+            if (str_starts_with($this->map, '/')) {
+                $property         = substr($this->map, 1);
+                $values           = array_merge(...array_map(fn($x) => $mapper->getMapping($x, $property), $values));
+                $this->valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
+                $values           = array_map(fn($x) => (string) $x, $values);
+            } else {
+                $map    = $this->map;
+                $values = array_map(fn($x) => $mapper->getStaticMapping($map, $x), $values);
+                $values = array_filter($values, fn($x) => $x !== null);
+            }
+        }
+        if ($this->aggregate !== self::AGG_NONE) {
+            $func   = match ($this->aggregate) {
+                self::AGG_MIN => fn(array $x) => min(...$x),
+                self::AGG_MAX => fn(array $x) => max(...$x),
+            };
+            $values = [$func($values)];
+        }
+        $this->values = array_values($values);
     }
 
     public function count(): int {

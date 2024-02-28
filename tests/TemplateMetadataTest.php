@@ -79,24 +79,6 @@ OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
 
-    public function testForEach(): void {
-        $tmpl     = $this->getMetadataObject('common', 'foreach');
-        $xml      = $this->asString($tmpl->getXml());
-        $expected = <<<OUT
-<root>
-<a><included/></a>
-<a><included/></a>
-<b><bb/></b>
-<b><bb/></b>
-<b><bb/></b>
-<c><included/></c>
-<dd/>
-<dd/>
-</root>
-OUT;
-        $this->assertEquals($this->std($expected), $xml);
-    }
-
     public function testValSpecial(): void {
         $tmpl     = $this->getMetadataObject('common', 'valSpecial');
         $xml      = $this->asString($tmpl->getXml());
@@ -112,6 +94,7 @@ OUT;
 <i>[0-9]+</i>
 <j>2</j>
 <k>foo</k>
+<l>URI</l>
 </root>
 OUT;
         $expected = str_replace('NOW', (new DateTimeImmutable())->format('Y-m-d'), $expected);
@@ -214,6 +197,100 @@ OUT;
 <d>8</d>
 <e> 10</e>
 <f foo=" 12">13 14</f>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testValTransform(): void {
+        $tmpl     = $this->getMetadataObject('common', 'valTransform');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>https://foo</a>
+<b>https://f#oo#</b>
+<c>0003</c>
+<d>-0100</d>
+<e>0200-03-04 14</e>
+<e>1200-07-03 12</e>
+<f>bar</f>
+<g>foo</g>
+<h>0200-03</h>
+<i>1200-07</i>
+<j>0200-1200</j>
+<k>TAG ONE</k>
+<k>TAG THREE</k>
+<l>JOHN</l>
+<l>MOLLY</l>
+<m>TAG FOUR</m>
+<n xml:lang="en">Speech</n>
+<n xml:lang="de">Rede</n>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+    
+    public function testForeach(): void {
+        $tmpl     = $this->getMetadataObject('common', 'foreach');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>
+<included>https://foo</included>
+</a>
+<a>
+<included>https://bar</included>
+</a>
+<b>
+<ba>https://sue</ba>
+<bb>Sue</bb>
+</b>
+<b>
+<ba>https://john</ba>
+<bb>John</bb>
+</b>
+<b>
+<ba>https://molly</ba>
+<bb>Molly</bb>
+</b>
+<c>
+<included>3</included>
+</c>
+<dd xml:lang="en">foo</dd>
+<dd>bar</dd>
+<e>
+<ee xml:lang="und">other</ee>
+</e>
+<e>
+<ee xml:lang="pl">inny</ee>
+</e>
+<e>
+<ee xml:lang="und">one more</ee>
+</e>
+<e>
+<ee xml:lang="pl">jeszcze jeden</ee>
+</e>
+<f>
+<fa>https://other</fa>
+<fb>other</fb>
+<fb>inny</fb>
+</f>
+<f>
+<fa>https://one/more</fa>
+<fb>one more</fb>
+<fb>jeszcze jeden</fb>
+</f>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testEmpty(): void {
+        $tmpl     = $this->getMetadataObject('common', 'empty');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<e/>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

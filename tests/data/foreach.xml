@@ -3,16 +3,24 @@
   <!ENTITY otherFile SYSTEM "foreachInclude.xml">
 ]>
 <root>
-    <a foreach="base:id">
+    <a foreach="/base:id">
         &otherFile;    
     </a>
-    <b foreach="base:author">
-        <bb/>
+    <b foreach="/base:author">
+        <ba val="CURNODE"/>
+        <bb val="/base:label"/>
     </b>
-    <c foreach="base:number">
+    <c foreach="/base:number">
         &otherFile;    
     </c>
-    <d foreach="base:label" remove="remove">
-        <dd/>
+    <d foreach="/base:label" remove="remove">
+        <dd val="CURNODE" lang="if empty"/>
     </d>
+    <e foreach="/^base:reverse/base:label">
+        <ee val="CURNODE" lang="if empty"/>
+    </e>
+    <f foreach="/^base:reverse">
+        <fa val="CURNODE"/>
+        <fb val="/base:label"/>
+    </f>
 </root>

@@ -9,4 +9,5 @@
     <i val="RANDOM"/>
     <j val="SEQ"/>
     <k val="=foo"/>
+    <l val="CURNODE"/>
 </root>

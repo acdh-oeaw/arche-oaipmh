@@ -15,6 +15,7 @@
                                                 "tag2" ,
                                                 "tag3" ;
                             <https://category>  <https://vocabs.acdh.oeaw.ac.at/archecategory/sound/speech> ;
+                            <https://isPartOf>  <https://parent> ;
 .
 <https://john>  <https://label> "John"@und .
 <https://sue>   <https://label> "Sue"@und .
@@ -29,4 +30,11 @@
                     <https://label>     "one more"@und ,
                                         "jeszcze jeden"@pl ;
                     <https://author>    <https://sue> ;
+.
+
+<https://parent> <https://isPartOf> <https://top> ;
+                 <https://label>    "parent" ;
+.
+
+<https://top> <https://label> "top" ;
 .

@@ -132,6 +132,12 @@ OUT;
 <g>jeszcze jeden</g>
 <h>https://sue</h>
 <i>Sue</i>
+<j>top</j>
+<k>other</k>
+<k>inny</k>
+<k>one more</k>
+<k>jeszcze jeden</k>
+<l>3</l>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

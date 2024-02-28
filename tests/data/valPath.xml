@@ -9,4 +9,7 @@
     <g val2="/^base:reverse/base:label"/>
     <h val="/^base:reverse/base:author"/>
     <i val="/^base:reverse/base:author/base:label"/>
+    <j val="/base:isPartOf*/base:label"/>
+    <k val="/^base:reverse/base:label"/>
+    <l val="/base:number*"/>
 </root>

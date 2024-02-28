@@ -158,7 +158,7 @@ class TemplateMetadata implements MetadataInterface {
                 $err->appendChild($doc->createElement('message', $e->getMessage()));
                 $err->appendChild($doc->createElement('phpTrace', $e->getFile() . '(' . $e->getLine() . ")\n" . $e->getTraceAsString()));
                 $err->appendChild($doc->createElement('templateLocation', $this->template . ':' . implode('/', $this->xmlLocation ?? [
-])));
+                                ])));
                 $doc->appendChild($err);
                 return $err;
             } else {
@@ -396,7 +396,7 @@ class TemplateMetadata implements MetadataInterface {
         if ($result !== null) {
             return [$result];
         }
-        if (!preg_match('`^(/[\\^]?' . self::PREDICATE_REGEX . '|=.+)+$`', $val->path)) {
+        if (!preg_match('`^(/[\\^]?' . self::PREDICATE_REGEX . '[*]?|=.+)+$`', $val->path)) {
             throw new OaiException("Wrong value path: " . $val->path);
         }
         if (str_starts_with($val->path, '=')) {
@@ -407,20 +407,30 @@ class TemplateMetadata implements MetadataInterface {
         $path = explode('/', substr($val->path, 1));
         $sbjs = [end($this->nodesStack)];
         foreach ($path as $i) {
-            $reverse = str_starts_with($i, '^');
-            $i       = $this->expand($reverse ? substr($i, 1) : $i);
-            $tmpl    = new QT(null, $i);
-            $objs    = [];
-            if ($reverse) {
-                foreach ($sbjs as $j) {
-                    $objs[] = $data->listSubjects($tmpl->withObject($j));
+            $reverse   = str_starts_with($i, '^');
+            $recursive = str_ends_with($i, '*');
+            $i         = $reverse || $recursive ? substr($i, (int) $reverse, $recursive ? -1 : null) : $i;
+            $i         = $this->expand($i);
+            $tmpl      = new QT(null, $i);
+            $deepness  = 0;
+            while ($deepness === 0 || $recursive) {
+                $deepness++;
+                $objs = [];
+                if ($reverse) {
+                    foreach ($sbjs as $j) {
+                        $objs[] = $data->listSubjects($tmpl->withObject($j));
+                    }
+                } else {
+                    foreach ($sbjs as $j) {
+                        $objs[] = $data->listObjects($tmpl->withSubject($j));
+                    }
                 }
-            } else {
-                foreach ($sbjs as $j) {
-                    $objs[] = $data->listObjects($tmpl->withSubject($j));
+                $objs = array_merge(...array_map(fn($x) => iterator_to_array($x), $objs));
+                if ($recursive && count($objs) === 0 && $deepness > 1) {
+                    break;
                 }
+                $sbjs = $objs;
             }
-            $sbjs = array_merge(...array_map(fn($x) => iterator_to_array($x), $objs));
         }
         return $sbjs;
     }

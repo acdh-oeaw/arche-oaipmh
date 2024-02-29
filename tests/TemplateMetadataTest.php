@@ -114,23 +114,24 @@ OUT;
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
+<a>http://127.0.0.1/api/123</a>
 <a>https://foo</a>
 <a>https://bar</a>
 <b>single's</b>
 <c>3</c>
-<d>https://sue</d>
-<d>https://john</d>
-<d>https://molly</d>
-<e>Sue</e>
+<d>http://127.0.0.1/api/345</d>
+<d>http://127.0.0.1/api/346</d>
+<d>http://127.0.0.1/api/347</d>
 <e>John</e>
+<e>Sue</e>
 <e>Molly</e>
-<f>https://other</f>
-<f>https://one/more</f>
+<f>http://127.0.0.1/api/456</f>
+<f>http://127.0.0.1/api/457</f>
 <g>other</g>
 <g>inny</g>
 <g>one more</g>
 <g>jeszcze jeden</g>
-<h>https://sue</h>
+<h>http://127.0.0.1/api/346</h>
 <i>Sue</i>
 <j>top</j>
 <k>other</k>
@@ -235,12 +236,15 @@ OUT;
 OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
-    
+
     public function testForeach(): void {
         $tmpl     = $this->getMetadataObject('common', 'foreach');
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
+<a>
+<included>http://127.0.0.1/api/123</included>
+</a>
 <a>
 <included>https://foo</included>
 </a>
@@ -248,15 +252,15 @@ OUT;
 <included>https://bar</included>
 </a>
 <b>
-<ba>https://sue</ba>
-<bb>Sue</bb>
-</b>
-<b>
-<ba>https://john</ba>
+<ba>http://127.0.0.1/api/345</ba>
 <bb>John</bb>
 </b>
 <b>
-<ba>https://molly</ba>
+<ba>http://127.0.0.1/api/346</ba>
+<bb>Sue</bb>
+</b>
+<b>
+<ba>http://127.0.0.1/api/347</ba>
 <bb>Molly</bb>
 </b>
 <c>
@@ -277,12 +281,12 @@ OUT;
 <ee xml:lang="pl">jeszcze jeden</ee>
 </e>
 <f>
-<fa>https://other</fa>
+<fa>http://127.0.0.1/api/456</fa>
 <fb>other</fb>
 <fb>inny</fb>
 </f>
 <f>
-<fa>https://one/more</fa>
+<fa>http://127.0.0.1/api/457</fa>
 <fb>one more</fb>
 <fb>jeszcze jeden</fb>
 </f>

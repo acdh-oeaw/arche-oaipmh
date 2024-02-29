@@ -1,12 +1,13 @@
-<http://127.0.0.1/api/123>  <https://id>        <https://foo> ,
+<http://127.0.0.1/api/123>  <https://id>        <http://127.0.0.1/api/123> ,
+                                                <https://foo> ,
                                                 <https://bar> ;
                             <https://label>     "foo"@en ,
                                                 "bar" ;
                             <https://single>    "single's" ;
                             <https://number>    3 ;
-                            <https://author>    <https://sue> ,
-                                                <https://john> ,
-                                                <https://molly> ;
+                            <https://author>    <http://127.0.0.1/api/345> ,
+                                                <http://127.0.0.1/api/346> ,
+                                                <http://127.0.0.1/api/347> ;
                             <https://lang>      "lang"@und ;
                             <https://date>      "-0100-01-02"^^<http://www.w3.org/2001/XMLSchema#date> ;
                             <https://datetime>  "0200-03-04T14:20:30"^^<http://www.w3.org/2001/XMLSchema#dateTime> ,
@@ -14,27 +15,27 @@
                             <https://tag>       "tag1" ,
                                                 "tag2" ,
                                                 "tag3" ;
-                            <https://category>  <https://vocabs.acdh.oeaw.ac.at/archecategory/sound/speech> ;
-                            <https://isPartOf>  <https://parent> ;
+                            <https://category>  "https://vocabs.acdh.oeaw.ac.at/archecategory/sound/speech"^^<http://www.w3.org/2001/XMLSchema#anyURI> ;
+                            <https://isPartOf>  <http://127.0.0.1/api/567> ;
 .
-<https://john>  <https://label> "John"@und .
-<https://sue>   <https://label> "Sue"@und .
-<https://molly> <https://label> "Molly"@und .
+<http://127.0.0.1/api/345> <https://label> "John"@und .
+<http://127.0.0.1/api/346> <https://label> "Sue"@und .
+<http://127.0.0.1/api/347> <https://label> "Molly"@und .
 
-<https://other> <https://reverse>   <http://127.0.0.1/api/123> ;
-                <https://label>     "other"@und,
-                                    "inny"@pl ;
-.
-
-<https://one/more>  <https://reverse>   <http://127.0.0.1/api/123> ;
-                    <https://label>     "one more"@und ,
-                                        "jeszcze jeden"@pl ;
-                    <https://author>    <https://sue> ;
+<http://127.0.0.1/api/456> <https://reverse> <http://127.0.0.1/api/123> ;
+                           <https://label>   "other"@und,
+                                             "inny"@pl ;
 .
 
-<https://parent> <https://isPartOf> <https://top> ;
-                 <https://label>    "parent" ;
+<http://127.0.0.1/api/457>  <https://reverse> <http://127.0.0.1/api/123> ;
+                            <https://label>   "one more"@und ,
+                                              "jeszcze jeden"@pl ;
+                            <https://author>  <http://127.0.0.1/api/346> ;
 .
 
-<https://top> <https://label> "top" ;
+<http://127.0.0.1/api/567> <https://isPartOf> <http://127.0.0.1/api/568> ;
+                           <https://label>    "parent" ;
+.
+
+<http://127.0.0.1/api/568> <https://label> "top" ;
 .

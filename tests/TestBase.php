@@ -27,9 +27,12 @@
 namespace acdhOeaw\arche\oaipmh\tests;
 
 use DOMElement;
+use quickRdf\Dataset;
 use quickRdf\DatasetNode;
 use quickRdf\DataFactory;
 use quickRdfIo\Util as QuickRdfIoUtil;
+use acdhOeaw\arche\lib\RepoResourceDb;
+use acdhOeaw\arche\lib\Schema;
 use acdhOeaw\arche\oaipmh\data\HeaderData;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 use acdhOeaw\arche\oaipmh\data\RepositoryInfo;
@@ -47,6 +50,7 @@ class TestBase extends \PHPUnit\Framework\TestCase {
     const RES_URI     = 'http://127.0.0.1/api/123';
     const RES_DATE    = '2024-01-22T18:20:31';
     const BASE_URL    = 'http://127.0.0.1/oaipmh';
+    const ID_PROPERTY = 'https://id';
 
     static public function setUpBeforeClass(): void {
         parent::setUpBeforeClass();
@@ -60,12 +64,11 @@ class TestBase extends \PHPUnit\Framework\TestCase {
 
     protected function getMetadataObject(string $caseName,
                                          string | null $template = null): MetadataInterface {
-        $resMeta = new DatasetNode(DataFactory::namedNode(self::RES_URI));
-        $resMeta->add(QuickRdfIoUtil::parse(__DIR__ . '/data/' . $caseName . '.ttl', new DataFactory()));
-        $repoRes = $this->createStub(\acdhOeaw\arche\lib\RepoResourceDb::class);
-        $repoRes->method('getGraph')->willReturn($resMeta);
-        $repoRes->method('getMetadata')->willReturn($resMeta);
-        $repoRes->method('getUri')->willReturn($resMeta->getNode());
+        $baseUrl  = preg_replace('`[^/#]+$`', '', self::RES_URI);
+        $schema   = new Schema(['id' => self::ID_PROPERTY]);
+        $metaFile = __DIR__ . '/data/' . $caseName . '.ttl';
+        $repo     = RepoDbStub::factoryTest($baseUrl, $schema, $metaFile);
+        $repoRes  = new RepoResourceDb(self::RES_URI, $repo);
 
         $oaiFormat = new MetadataFormat((object) yaml_parse_file(__DIR__ . '/data/' . $caseName . '.yml'));
         if (empty($template)) {
@@ -82,8 +85,8 @@ class TestBase extends \PHPUnit\Framework\TestCase {
         $hd->id     = self::RES_OAI_URI;
         $hd->repoid = self::RES_URI;
         $hd->date   = self::RES_DATE;
-        
-        $class      = $oaiFormat->class;
+
+        $class = $oaiFormat->class;
         return new $class($repoRes, $hd, $oaiFormat);
     }
 

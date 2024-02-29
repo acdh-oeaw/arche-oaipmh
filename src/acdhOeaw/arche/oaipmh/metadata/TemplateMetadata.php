@@ -36,7 +36,10 @@ use Throwable;
 use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
 use rdfInterface\NamedNodeInterface;
+use rdfInterface\TermInterface;
+use rdfInterface\DatasetInterface;
 use quickRdf\DataFactory as DF;
+use quickRdf\Dataset;
 use termTemplates\QuadTemplate as QT;
 use termTemplates\ValueTemplate;
 use termTemplates\NumericTemplate;
@@ -65,12 +68,13 @@ use acdhOeaw\arche\oaipmh\metadata\util\ValueMapper;
  */
 class TemplateMetadata implements MetadataInterface {
 
-    static private ValueMapper $valueMapper;
-
     const PREDICATE_REGEX  = '[-_a-zA-Z0-9]+:[^ )]*';
     const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|([0-9]+[.]?[0-9]*)|(' . self::PREDICATE_REGEX . '))';
     const IF_PART_REGEX    = '`^ *(any|every|none)[(](' . self::PREDICATE_REGEX . ')(?: +' . self::IF_VALUE_REGEX . ')?[)]`u';
     const IF_LOGICAL_REGEX = '`^ *(OR|AND|NOT) *`';
+
+    static private Dataset $dataset;
+    static private ValueMapper $valueMapper;
 
     /**
      * Repository resource object
@@ -140,7 +144,10 @@ class TemplateMetadata implements MetadataInterface {
      */
     public function getXml(): DOMElement {
         //TODO - output something to avoid timeout
-        //TODO - cache
+        //TODO - cache pruning - now we just cache everything
+        if (!isset(self::$dataset)) {
+            self::$dataset = new Dataset();
+        }
 
         try {
             if (!isset($this->xml)) {
@@ -150,6 +157,7 @@ class TemplateMetadata implements MetadataInterface {
             $this->nodesStack  = [$this->res->getUri()];
             $this->xmlLocation = [];
 
+            self::$dataset->add($this->res->getGraph()->getDataset());
             $this->processElement($this->xml->documentElement);
         } catch (Throwable $e) {
             if ($this->format->xmlErrors ?? false) {
@@ -285,7 +293,7 @@ class TemplateMetadata implements MetadataInterface {
             }
             $meta    = $this->res->getGraph();
             $tmpl    = new QT($meta->getNode(), $this->expand($matches[2]));
-            $value   = $meta->getDataset()->copy($tmpl)->$func(new QT(object: $value));
+            $value   = self::$dataset->copy($tmpl)->$func(new QT(object: $value));
             $current = $current->push(ParseTreeNode::fromValue($value, $matches[0]));
             $if      = substr($if, strlen($matches[0]));
 
@@ -403,26 +411,26 @@ class TemplateMetadata implements MetadataInterface {
             return [substr($val->path, 1)];
         }
 
-        $data = $this->res->getGraph()->getDataset();
         $path = explode('/', substr($val->path, 1));
         $sbjs = [end($this->nodesStack)];
         foreach ($path as $i) {
-            $reverse   = str_starts_with($i, '^');
+            $inverse   = str_starts_with($i, '^');
             $recursive = str_ends_with($i, '*');
-            $i         = $reverse || $recursive ? substr($i, (int) $reverse, $recursive ? -1 : null) : $i;
+            $i         = $inverse || $recursive ? substr($i, (int) $inverse, $recursive ? -1 : null) : $i;
             $i         = $this->expand($i);
             $tmpl      = new QT(null, $i);
             $deepness  = 0;
             while ($deepness === 0 || $recursive) {
                 $deepness++;
                 $objs = [];
-                if ($reverse) {
+                $this->loadMetadata($sbjs, $i, $inverse, $recursive);
+                if ($inverse) {
                     foreach ($sbjs as $j) {
-                        $objs[] = $data->listSubjects($tmpl->withObject($j));
+                        $objs[] = self::$dataset->listSubjects($tmpl->withObject($j));
                     }
                 } else {
                     foreach ($sbjs as $j) {
-                        $objs[] = $data->listObjects($tmpl->withSubject($j));
+                        $objs[] = self::$dataset->listObjects($tmpl->withSubject($j));
                     }
                 }
                 $objs = array_merge(...array_map(fn($x) => iterator_to_array($x), $objs));
@@ -433,5 +441,49 @@ class TemplateMetadata implements MetadataInterface {
             }
         }
         return $sbjs;
+    }
+
+    /**
+     * 
+     * @param array<TermInterface> $resource
+     */
+    private function loadMetadata(array $resources, TermInterface $predicate,
+                                  bool $inverse, bool $recursive): void {
+        $repo                 = $this->res->getRepo();
+        $baseUrlLen           = strlen($repo->getBaseUrl());
+        $query                = match (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
+            'ri' => "
+                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 999999, 0))
+                SELECT id FROM t WHERE n > 0 AND n = (SELECT max(n) FROM t)",
+            'r' => "
+                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 0, -999999))
+                SELECT id FROM t WHERE n < 0 AND n = (SELECT min(n) FROM t)",
+            'i' => "SELECT id FROM relations WHERE property = :predicate AND target_id = :id",
+            '' => null,
+        };
+        $config               = new SearchConfig();
+        $config->class        = get_class($this->res);
+        $config->metadataMode = RepoResourceDb::META_RESOURCE;
+
+        if ($inverse) {
+            $resources = array_filter($resources, fn($x) => self::$dataset->none(new QT(null, $predicate, $x)));
+        } else {
+            $resources = array_filter($resources, fn($x) => self::$dataset->none(new QT($x)));
+        }
+
+        if ($query === null) {
+            foreach ($resources as $i) {
+                $res = new RepoResourceDb($i, $repo);
+                self::$dataset->add($res->getGraph()->getDataset());
+            }
+        } else {
+            foreach ($resources as $i) {
+                $param = [
+                    'predicate' => $predicate,
+                    'id'        => substr($i, $baseUrlLen),
+                ];
+                self::$dataset->add($repo->getGraphBySqlQuery($query, $param, $config));
+            }
+        }
     }
 }

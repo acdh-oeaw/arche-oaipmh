@@ -14,6 +14,6 @@ valueMaps:
         tag3: TAG THREE
         tag4: TAG FOUR
     author:
-        https://john: JOHN
-        https://molly: MOLLY
+        http://127.0.0.1/api/345: JOHN
+        http://127.0.0.1/api/347: MOLLY
         

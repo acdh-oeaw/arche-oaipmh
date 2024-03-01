@@ -115,29 +115,29 @@ OUT;
         $expected = <<<OUT
 <root>
 <a>http://127.0.0.1/api/123</a>
-<a>https://foo</a>
 <a>https://bar</a>
+<a>https://foo</a>
 <b>single's</b>
 <c>3</c>
 <d>http://127.0.0.1/api/345</d>
 <d>http://127.0.0.1/api/346</d>
 <d>http://127.0.0.1/api/347</d>
 <e>John</e>
-<e>Sue</e>
 <e>Molly</e>
+<e>Sue</e>
 <f>http://127.0.0.1/api/456</f>
 <f>http://127.0.0.1/api/457</f>
-<g>other</g>
 <g>inny</g>
-<g>one more</g>
 <g>jeszcze jeden</g>
+<g>one more</g>
+<g>other</g>
 <h>http://127.0.0.1/api/346</h>
 <i>Sue</i>
 <j>top</j>
-<k>other</k>
 <k>inny</k>
-<k>one more</k>
 <k>jeszcze jeden</k>
+<k>one more</k>
+<k>other</k>
 <l>3</l>
 </root>
 OUT;
@@ -170,24 +170,24 @@ OUT;
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
-<a>foo</a>
 <a>bar</a>
-<b>foo</b>
+<a>foo</a>
 <b>bar</b>
-<c xml:lang="en">foo</c>
+<b>foo</b>
 <c>bar</c>
-<d xml:lang="en">foo</d>
+<c xml:lang="en">foo</c>
 <d xml:lang="">bar</d>
+<d xml:lang="en">foo</d>
 <e>3</e>
 <f>3</f>
 <g>3</g>
 <h xml:lang="">3</h>
-<i xml:lang="en">foolang</i>
 <i xml:lang="und">barlang</i>
-<j xml:lang="und">foolang</j>
+<i xml:lang="en">foolang</i>
 <j xml:lang="und">barlang</j>
-<k foo="foo" xml:lang="und" bar="lang"/>
+<j xml:lang="und">foolang</j>
 <k foo="bar" xml:lang="und" bar="lang"/>
+<k foo="foo" xml:lang="und" bar="lang"/>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);
@@ -232,6 +232,8 @@ OUT;
 <m>TAG FOUR</m>
 <n xml:lang="en">Speech</n>
 <n xml:lang="de">Rede</n>
+<o>3</o>
+<p xml:lang="en">foo</p>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);
@@ -246,10 +248,10 @@ OUT;
 <included>http://127.0.0.1/api/123</included>
 </a>
 <a>
-<included>https://foo</included>
+<included>https://bar</included>
 </a>
 <a>
-<included>https://bar</included>
+<included>https://foo</included>
 </a>
 <b>
 <ba>http://127.0.0.1/api/345</ba>
@@ -266,29 +268,29 @@ OUT;
 <c>
 <included>3</included>
 </c>
-<dd xml:lang="en">foo</dd>
 <dd>bar</dd>
-<e>
-<ee xml:lang="und">other</ee>
-</e>
+<dd xml:lang="en">foo</dd>
 <e>
 <ee xml:lang="pl">inny</ee>
+</e>
+<e>
+<ee xml:lang="pl">jeszcze jeden</ee>
 </e>
 <e>
 <ee xml:lang="und">one more</ee>
 </e>
 <e>
-<ee xml:lang="pl">jeszcze jeden</ee>
+<ee xml:lang="und">other</ee>
 </e>
 <f>
 <fa>http://127.0.0.1/api/456</fa>
-<fb>other</fb>
 <fb>inny</fb>
+<fb>other</fb>
 </f>
 <f>
 <fa>http://127.0.0.1/api/457</fa>
-<fb>one more</fb>
 <fb>jeszcze jeden</fb>
+<fb>one more</fb>
 </f>
 </root>
 OUT;

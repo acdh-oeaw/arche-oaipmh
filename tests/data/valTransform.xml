@@ -16,5 +16,7 @@
     <l val1="/base:author"   map1="author"/>
     <m val1="/base:tag"      match1="1|3" replace1="4" map1="tag" aggregate1="max"/>
     <n val1="/base:category" map1="/skos:prefLabel" lang1="overwrite"/>
+    <o val="/base:number"    aggregate="min"/>
+    <p val="/base:label"     aggregate="min,en" lang="overwrite"/>
 </root>
 

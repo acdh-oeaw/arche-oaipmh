@@ -43,7 +43,7 @@ class Value implements \Countable {
     const AGG_NONE         = 'none';
     const AGG_MIN          = 'min';
     const AGG_MAX          = 'max';
-    const AGG              = [self::AGG_NONE, self::AGG_MIN, self::AGG_MAX];
+    const AGG              = '`^(?:' . self::AGG_NONE . '|(?:' . self::AGG_MIN . '|' . self::AGG_MAX . ')(?:,.*)?)`';
     const AGG_DEFAULT      = self::AGG_NONE;
     const REQ_REQUIRED     = 'required';
     const REQ_OPTIONAL     = 'optional';
@@ -93,7 +93,7 @@ class Value implements \Countable {
         }
         if ($el->hasAttribute('aggregate' . $suffix)) {
             $x->aggregate = $el->getAttribute('aggregate' . $suffix);
-            if (!in_array($x->aggregate, self::AGG)) {
+            if (!preg_match(self::AGG, $x->aggregate)) {
                 throw new OaiException("Unsupported aggregate$suffix attribute value: $x->aggregate");
             }
             $el->removeAttribute('aggregate' . $suffix);
@@ -158,7 +158,7 @@ class Value implements \Countable {
      * @return void
      */
     public function setValues(array $values, ValueMapper $mapper): void {
-        $this->valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
+        $valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
 
         $values = array_map(fn($x) => (string) $x, $values);
         if (!empty($this->match)) {
@@ -185,10 +185,10 @@ class Value implements \Countable {
         }
         if (!empty($this->map)) {
             if (str_starts_with($this->map, '/')) {
-                $property         = substr($this->map, 1);
-                $values           = array_merge(...array_map(fn($x) => $mapper->getMapping($x, $property), $values));
-                $this->valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
-                $values           = array_map(fn($x) => (string) $x, $values);
+                $property   = substr($this->map, 1);
+                $values     = array_merge(...array_map(fn($x) => $mapper->getMapping($x, $property), $values));
+                $valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
+                $values     = array_map(fn($x) => (string) $x, $values);
             } else {
                 $map    = $this->map;
                 $values = array_map(fn($x) => $mapper->getStaticMapping($map, $x), $values);
@@ -196,13 +196,24 @@ class Value implements \Countable {
             }
         }
         if ($this->aggregate !== self::AGG_NONE) {
-            $func   = match ($this->aggregate) {
-                self::AGG_MIN => fn(array $x) => min(...$x),
-                self::AGG_MAX => fn(array $x) => max(...$x),
-            };
-            $values = [$func($values)];
+            list($agg, $prefLang) = explode(',', $this->aggregate . ',');
+            if (!empty($prefLang)) {
+                $matching = array_filter($values, fn($idx) => $valueLangs[$idx] === $prefLang, ARRAY_FILTER_USE_KEY);
+                $values   = count($matching) > 0 ? $matching : $values;
+            }
+            if (count($values) > 1) {
+                $func   = match ($agg) {
+                    self::AGG_MIN => fn(array $x) => min(...$x),
+                    self::AGG_MAX => fn(array $x) => max(...$x),
+                };
+                $agg    = $func($values);
+                $values = array_filter($values, fn($x) => $x === $agg);
+            }
+            reset($values);
+            $valueLangs = [$valueLangs[key($values)]];
         }
-        $this->values = array_values($values);
+        $this->values     = array_values($values);
+        $this->valueLangs = $valueLangs;
     }
 
     public function count(): int {

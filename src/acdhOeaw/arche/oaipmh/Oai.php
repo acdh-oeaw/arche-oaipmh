@@ -170,7 +170,7 @@ TMPL;
     public function handleRequest(): void {
         $t0          = microtime(true);
         $this->reqId = sprintf('%06d', rand(0, 999999));
-        $this->log->info("$this->reqId\tHandling request: " . json_encode($_GET));
+        $this->log->info("$this->reqId\tHandling request: " . json_encode($_GET, JSON_UNESCAPED_SLASHES));
 
         header('Content-Type: text/xml');
         // an ugly workaround allowing to serve raw CMDI records

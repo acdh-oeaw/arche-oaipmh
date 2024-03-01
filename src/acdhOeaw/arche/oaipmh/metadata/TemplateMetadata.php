@@ -440,6 +440,7 @@ class TemplateMetadata implements MetadataInterface {
                 $sbjs = $objs;
             }
         }
+        usort($sbjs, fn($x, $y) => ((string) $x) <=> ((string) $y));
         return $sbjs;
     }
 
@@ -453,12 +454,12 @@ class TemplateMetadata implements MetadataInterface {
         $baseUrlLen           = strlen($repo->getBaseUrl());
         $query                = match (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
             'ri' => "
-                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 999999, 0))
+                WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
                 SELECT id FROM t WHERE n > 0 AND n = (SELECT max(n) FROM t)",
             'r' => "
-                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 0, -999999))
+                WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
                 SELECT id FROM t WHERE n < 0 AND n = (SELECT min(n) FROM t)",
-            'i' => "SELECT id FROM relations WHERE property = :predicate AND target_id = :id",
+            'i' => "SELECT id FROM relations WHERE target_id = ? AND property = ?",
             '' => null,
         };
         $config               = new SearchConfig();
@@ -478,10 +479,7 @@ class TemplateMetadata implements MetadataInterface {
             }
         } else {
             foreach ($resources as $i) {
-                $param = [
-                    'predicate' => $predicate,
-                    'id'        => substr($i, $baseUrlLen),
-                ];
+                $param = [substr($i, $baseUrlLen), $predicate];
                 self::$dataset->add($repo->getGraphBySqlQuery($query, $param, $config));
             }
         }

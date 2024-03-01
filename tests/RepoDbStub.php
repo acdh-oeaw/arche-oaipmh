@@ -64,18 +64,18 @@ class RepoDbStub extends \acdhOeaw\arche\lib\RepoDb {
                                        SearchConfig $config): Dataset {
         $baseUrl        = $this->getBaseUrl();
         static $riQuery = "
-                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 999999, 0))
+                WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
                 SELECT id FROM t WHERE n > 0 AND n = (SELECT max(n) FROM t)";
         static $rQuery  = "
-                WITH t AS (SELECT * FROM get_relatives(:id, :predicate, 0, -999999))
+                WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
                 SELECT id FROM t WHERE n < 0 AND n = (SELECT min(n) FROM t)";
-        static $iQuery  = "SELECT id FROM relations WHERE property = :predicate AND target_id = :id";
+        static $iQuery  = "SELECT id FROM relations WHERE target_id = ? AND property = ?";
         if ($query === $riQuery || $query === $rQuery) {
             $inverse  = $query === $riQuery;
             $data     = new Dataset();
-            $tmpl     = new QuadTemplate(null, $parameters['predicate']);
+            $tmpl     = new QuadTemplate(null, $parameters[1]);
             $prevSbjs = [];
-            $sbjs     = [DataFactory::namedNode($baseUrl . $parameters['id'])];
+            $sbjs     = [DataFactory::namedNode($baseUrl . $parameters[0])];
             while (count($sbjs) > 0) {
                 $objs = [];
                 if ($inverse) {
@@ -98,7 +98,7 @@ class RepoDbStub extends \acdhOeaw\arche\lib\RepoDb {
             }
             return $data;
         } elseif ($query === $iQuery) {
-            $tmpl = new QuadTemplate(null, $parameters['predicate'], DataFactory::namedNode($baseUrl . $parameters['id']));
+            $tmpl = new QuadTemplate(null, $parameters[1], DataFactory::namedNode($baseUrl . $parameters[0]));
             $data = new Dataset();
             foreach ($this->dataset->listSubjects($tmpl) as $sbj) {
                 $data->add($this->dataset->getIterator(new QuadTemplate($sbj)));

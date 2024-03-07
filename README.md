@@ -164,12 +164,9 @@ Existing implementations are:
   resource's binary payload as the OAI-PMH metadata.
 * `acdhOeaw\oai\metadata\CmdiMetadata` a specialization of the `ResMetadata`
   additionaly checking for the binary resource content schema.
-* `acdhOeaw\oai\metadata\AcdhDcMetadata` creats Dublin Core metadata by mapping
-  resource's metadata properties to their DC equivalents. The mappings are taken
-  from the ontology being part of the repository.
-* `acdhOeaw\oai\metadata\LiveCmdiMetadata` creats CMDI metadata by filling up
-  XML templates with data fetched from resource's metadata.
+* `acdhOeaw\oai\metadata\TemplateMetadata` creates metadata based on flexible
+  XML templates. More detailed description can be found [here](blob/master/doc/TemplateMetadata.md).
 
-It's likely that you'll need to generate OAI-PMH metadata in (yet) another way.
+It's possible that you'll need to generate OAI-PMH metadata in (yet) another way.
 In such a case you must develop your own class implementing the `MetadataInterface`.
 Taking look at already existing implementations should be a good starting point.

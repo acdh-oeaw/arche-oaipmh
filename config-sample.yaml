@@ -99,14 +99,6 @@ oai:
     #   At the moment six classes are available:
     #   - `\acdhOeaw\arche\oaipmh\metatada\DcMetata` - takes resource's RDF metadata and 
     #     extracts all RDF properties in `dc` and `dcterms` namespaces.
-    #     Doesn't require any additional configuration properties.
-    #   - `\acdhOeaw\arche\oaipmh\metatada\AcdhDcMetata` - takes resource's RDF metadata and 
-    #     extracts all RDF properties either being in `dc` and `dcterms` namespaces
-    #     or having mappings to `dc`/`dcterms` properties.
-    #     References to other resources can be handled either by providing their URLs,
-    #     or their titles or both.
-    #     Requires additional configuration properties: `eqProp`, `acdhNmsp`, 
-    #     `titleProp` and `mode`.
     #   - `\acdhOeaw\arche\oaipmh\metadata\RdfXml` - takes resource's RDF metadata and serialises
     #     them as an RDF-XML.
     #     Doesn't require any additional configuration properties.
@@ -123,11 +115,10 @@ oai:
     #       [metaRes] binary contains XML with the metadata
     #     Requires additional configuration properties: `metaResProp`, `cmdiSchemaProp`,
     #     `requestOptions` and `schema`.
-    #   - `\acdhOeaw\arche\oaipmh\metadata\LiveCmdiMetadata` - generates metadata by filling up
-    #     CMDI XML templates with resource's metadata values
-    #     Requires additional configuration properties: `uriProp`, `labelProp`, 
-    #     `schemaProp`, `templateDir` and `defaultLang`.
-    #     The `propNmsp[]`, `idNmsp[]`, `schemaEnforce` and `schemaDefault` configuration properties are optional.
+    #   - `\acdhOeaw\arche\oaipmh\metadata\TemplateMetadata` - generates metadata by filling up
+    #     XML templates with resource's metadata values
+    #     Requires additional configuration properties: `templatePath` 
+    #     The `rdfNamespace[]`, `keepComments` and `xmlErrors` configuration properties are optional.
     # - ... other properties required by class handling given metadata format
     #   (see classes documentation)
     formats:
@@ -150,84 +141,14 @@ oai:
             requestOptions:
                 headers:
                     eppn: admin
-        cmdi_collection:
-            metadataPrefix: cmdi_collection
-            schema: http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1345561703620/xsd
-            metadataNamespace: http://www.clarin.eu/cmd/1
-            class: \acdhOeaw\arche\oaipmh\metadata\CmdiMetadata
-            # RDF property denoting repository resource storing actual CMDI XML
-            metaResProp: https://vocabs.acdh.oeaw.ac.at/schema#hasMetadata
-            # CMDI resource RDF property storing its schema
-            cmdiSchemaProp: https://vocabs.acdh.oeaw.ac.at/schema#hasSchema
-            requestOptions:
-                headers:
-                    eppn: admin
-        cmdi_dcmiTerms:
-            metadataPrefix: cmdi_dcmiTerms
-            metadataNamespace: http://www.clarin.eu/cmd/1
-            schema: http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1288172614023/xsd
-            class: \acdhOeaw\arche\oaipmh\metadata\LiveCmdiMetadata
-            # RDF property used as `cmd:ResourceRef` CMDI value
-            uriProp: https://vocabs.acdh.oeaw.ac.at/schema#hasPid
-            # idProp and labelProp are used to fetch URI labels (e.g. fetch name of a resource creator)
-            # They are tightly coupled with the metadata repository structure used by the ACDH:
-            #   resIdUri <--idProp-- res --labelProp--> label
-            idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
-            labelProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
-            resolverNmsp: ^https://id.acdh.oeaw.ac.at/(?!cmdi/)
-            # Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
-            defaultLang: en
-            # Path to the directory storing CMDI XML templates
-            templateDir: src/acdhOeaw/oai/metadata/liveCmdi
-            # Metadata property prividng the CMDI schema to be used for a given resource
-            schemaProp: https://vocabs.acdh.oeaw.ac.at/schema#hasSchema
-            # Namespace prefixes used in template file's metadata property placeholders
-            propNmsp:
-                acdh: https://vocabs.acdh.oeaw.ac.at/schema#
-            # Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property 
-            # or it points to a schema without a template
-            schemaDefault: clarin.eu:cr1:p_1288172614023
-            # Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
-            schemaEnforce: ""
-        kulturpool:
-            metadataPrefix: kulturpool
-            metadataNamespace: http://we.do.not.care
-            schema: http://we.do.not.have.an.xsd
-            class: \acdhOeaw\arche\oaipmh\metadata\LiveCmdiMetadata
-            # idProp and labelProp are used to fetch URI labels (e.g. fetch name of a resource creator)
-            # They are tightly coupled with the metadata repository structure used by the ACDH:
-            #   resIdUri <--idProp-- res --labelProp--> label
-            idProp: https://vocabs.acdh.oeaw.ac.at/schema#hasIdentifier
-            labelProp: https://vocabs.acdh.oeaw.ac.at/schema#hasTitle
-            resolverNmsp: ^https://id.acdh.oeaw.ac.at/(?!cmdi/)
-            # Default language used to map multilingual metadata properties to CMDI elements of cardinality 1
-            defaultLang: en
-            # Path to the directory storing CMDI XML templates
-            templateDir: src/acdhOeaw/oai/metadata/liveCmdi
-            # Metadata property providng the CMDI schema to be used for a given resource
-            # The schema is converted to a template filename by replacing all characters out of [-A-Za-z0-9_]
-            # to an underscore and appending .xml at the end (e.g. http://foo.bar/baz becomes http___foo_bar_baz.xml)
-            schemaProp: http://can.not.be.overwritten
-            # Namespace prefixes used in template file's metadata property placeholders
-            propNmsp:
+        tmplmeta:
+            metadataPrefix: tmplmeta
+            metadataNamespace: http://unknown/namespace
+            schema: http://unknown/schema
+            class: \acdhOeaw\arche\oaipmh\metadata\TemplateMetadata
+            templatePath: "template.xml"
+            keepComments: false
+            xmlErrors: true
+            rdfNamespaces:
                 acdh: https://vocabs.acdh.oeaw.ac.at/schema#
                 skos: http://www.w3.org/2004/02/skos/core#
-            # Default CMDI schema to be used when a resource doesn't have the `schemaProp` metadatada property or it points to a schema without a template
-            schemaDefault: kulturpool
-            # Handle only resources having `schemaProp` metadata property value equal to the `schemaEnforce` value.
-            schemaEnforce: ""
-            # Internal cache settings
-            cache:
-                # Should statistics on cache usage be emmited as HTTP headers
-                statistics: false
-                # Should cache be pruned after processing each OAI-PMH resource?
-                # Avoiding cache pruning provides a speedup but can sevearly increase memory usage if thousands of resources are returned by a request.
-                # If you avoid cache pruning, consider specyfing `skipClasses` and/or `includeClasses` to stay on the safe side.
-                perResource: false
-                # Avoid caching resources of given RDF classes
-                skipClasses:
-                - https://vocabs.acdh.oeaw.ac.at/schema#TopCollection
-                - https://vocabs.acdh.oeaw.ac.at/schema#Collection
-                - https://vocabs.acdh.oeaw.ac.at/schema#Resource
-                # Cache only resources of given RDF classes
-                includeClasses: []

@@ -20,7 +20,8 @@
 .
 <http://127.0.0.1/api/345> <https://label> "John"@und .
 <http://127.0.0.1/api/346> <https://label> "Sue"@und .
-<http://127.0.0.1/api/347> <https://label> "Molly"@und .
+<http://127.0.0.1/api/347> <https://label> "Molly"@und ;
+                           <https://flag>  "flag value" .
 
 <http://127.0.0.1/api/456> <https://reverse> <http://127.0.0.1/api/123> ;
                            <https://label>   "other"@und,

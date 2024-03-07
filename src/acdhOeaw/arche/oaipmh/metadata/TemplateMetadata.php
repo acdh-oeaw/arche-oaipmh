@@ -215,15 +215,14 @@ class TemplateMetadata implements MetadataInterface {
                 $child = $nextChild;
             }
         } else {
-            $remove    = $el->hasAttribute('remove');
-            $val       = new Value();
-            $val->path = $foreach;
+            $remove = $el->hasAttribute('remove');
+            $val    = Value::fromPath($foreach);
             foreach ($this->fetchValues($val) as $sbj) {
                 $localEl            = $el->cloneNode(true);
+                $el->before($localEl);
                 $this->nodesStack[] = $sbj;
                 $this->processElement($localEl);
                 array_pop($this->nodesStack);
-                $el->before($localEl);
                 if ($remove) {
                     $this->removePreservingChildren($localEl);
                 }
@@ -265,6 +264,10 @@ class TemplateMetadata implements MetadataInterface {
         if (empty($if)) {
             return true;
         }
+        $curNode = end($this->nodesStack);
+        if (self::$dataset->none(new QT($curNode))) {
+            $this->loadMetadata([$curNode], null, false, false);
+        }
         // trick assuring we don't need to deal with some corner cases
         $result  = ParseTreeNode::fromOperator('AND', ParseTreeNode::fromValue(true));
         $current = $result;
@@ -291,11 +294,11 @@ class TemplateMetadata implements MetadataInterface {
                 }
                 $value = empty($matches[6]) ? new ValueTemplate($value, $matches[3]) : new NumericTemplate((float) $value, $matches[3]);
             }
-            $meta    = $this->res->getGraph();
-            $tmpl    = new QT($meta->getNode(), $this->expand($matches[2]));
-            $value   = self::$dataset->copy($tmpl)->$func(new QT(object: $value));
-            $current = $current->push(ParseTreeNode::fromValue($value, $matches[0]));
-            $if      = substr($if, strlen($matches[0]));
+            $predicate = $this->expand($matches[2]);
+            $tmpl      = new QT($curNode, $predicate);
+            $value     = self::$dataset->copy($tmpl)->$func(new QT(object: $value));
+            $current   = $current->push(ParseTreeNode::fromValue($value, $matches[0]));
+            $if        = substr($if, strlen($matches[0]));
 
             // STATE 3: closing parenthesis
             while (preg_match('`^ *[)]`', $if, $matches)) {
@@ -375,13 +378,22 @@ class TemplateMetadata implements MetadataInterface {
         }
         if ($valid) {
             $iterOver ??= $vals[0];
-            for ($i = $iterOver->count() - 1; $i >= 0; $i--) {
+            for ($i = 0; $i < $iterOver->count(); $i++) {
                 /* @var $valEl DOMElement */
                 $valEl = $el->cloneNode(true);
                 foreach ($vals as $v) {
                     $v->insert($valEl, $v === $iterOver ? $i : 0);
                 }
-                $el->after($valEl);
+                $el->before($valEl);
+
+                $child = $valEl->firstChild;
+                while ($child) {
+                    $nextChild = $child->nextSibling;
+                    if ($child instanceof DOMElement) {
+                        $this->processElement($child);
+                    }
+                    $child = $nextChild;
+                }
             }
             $el->parentNode->removeChild($el);
         } elseif ($remove) {
@@ -448,17 +460,18 @@ class TemplateMetadata implements MetadataInterface {
      * 
      * @param array<TermInterface> $resource
      */
-    private function loadMetadata(array $resources, TermInterface $predicate,
+    private function loadMetadata(array $resources,
+                                  TermInterface | null $predicate,
                                   bool $inverse, bool $recursive): void {
         $repo                 = $this->res->getRepo();
         $baseUrlLen           = strlen($repo->getBaseUrl());
         $query                = match (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
             'ri' => "
                 WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
-                SELECT id FROM t WHERE n > 0 AND n = (SELECT max(n) FROM t)",
+                SELECT id FROM t WHERE n > 0",
             'r' => "
                 WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
-                SELECT id FROM t WHERE n < 0 AND n = (SELECT min(n) FROM t)",
+                SELECT id FROM t",
             'i' => "SELECT id FROM relations WHERE target_id = ? AND property = ?",
             '' => null,
         };

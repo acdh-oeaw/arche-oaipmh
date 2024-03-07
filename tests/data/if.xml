@@ -39,4 +39,7 @@
     <j if="any(base:id) AND (any(base:false) OR NOT any(base:false) AND ((NOT any(base:id)) OR any(base:no)))">
         <jj/>
     </j>
+    <k foreach="/base:author">
+        <kk if="any(base:flag)" val="/base:flag"/>
+    </k>
 </root>

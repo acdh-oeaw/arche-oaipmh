@@ -74,6 +74,11 @@ OUT;
 <g><gg/></g>
 <h><hh/></h>
 <i><ii/></i>
+<k/>
+<k/>
+<k>
+<kk>flag value</kk>
+</k>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);
@@ -160,6 +165,11 @@ OUT;
 <g foo="4"/>
 <h bar="&lt;foobar&gt;"/>
 <i attr2="foobar" attr1="6">5&lt;foo/&gt;<bar/>7</i>
+<j id="8">
+<jj>9</jj>
+</j>
+<k>
+<kk>12</kk>11</k>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

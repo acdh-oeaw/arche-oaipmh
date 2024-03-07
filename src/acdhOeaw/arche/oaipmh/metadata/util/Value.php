@@ -63,8 +63,14 @@ class Value implements \Countable {
     const LANG_OVERWRITE   = 'overwrite';
     const LANG             = [self::LANG_SKIP, self::LANG_IF_EMPTY, self::LANG_OVERWRITE];
     const LANG_DEFAULT     = self::LANG_SKIP;
-    const FORMAT           = '`^[DbcdeEfFgGhHosuxX]:.*$`';
+    const FORMAT           = '`^[DUbcdeEfFgGhHosuxX]:.*$`';
     const MAP              = '`^(?:[-_0-9A-Za-z]+|/.*)$`';
+
+    static public function fromPath(string $path): self {
+        $x       = new self();
+        $x->path = $path;
+        return $x;
+    }
 
     static public function fromDomElement(DOMElement $el, string $suffix = ''): self {
         $x       = new self();
@@ -98,7 +104,7 @@ class Value implements \Countable {
             }
             $el->removeAttribute('aggregate' . $suffix);
         }
-        if ($el->hasAttribute('require' . $suffix)) {
+        if ($el->hasAttribute('required' . $suffix)) {
             $x->required = $el->getAttribute('required' . $suffix);
             if (!in_array($x->required, self::REQ)) {
                 throw new OaiException("Unsupported required$suffix attribute value: $x->required");
@@ -177,6 +183,8 @@ class Value implements \Countable {
                         return null;
                     }
                 };
+            } elseif (str_starts_with($this->format, 'U')) {
+                $func = fn(string $x) => rawurlencode($x);
             } else {
                 $func = fn(string $x) => sprintf('%' . substr($this->format, 2) . substr($this->format, 0, 1), $x);
             }
@@ -195,7 +203,7 @@ class Value implements \Countable {
                 $values = array_filter($values, fn($x) => $x !== null);
             }
         }
-        if ($this->aggregate !== self::AGG_NONE) {
+        if ($this->aggregate !== self::AGG_NONE && count($values) > 0) {
             list($agg, $prefLang) = explode(',', $this->aggregate . ',');
             if (!empty($prefLang)) {
                 $matching = array_filter($values, fn($idx) => $valueLangs[$idx] === $prefLang, ARRAY_FILTER_USE_KEY);

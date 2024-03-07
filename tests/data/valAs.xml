@@ -14,4 +14,10 @@
        val4="=foobar" as4="@attr2"
        val5="SEQ" as5="@attr1"
        val6="SEQ"/>
+    <j val="SEQ" as="@id">
+        <jj val="SEQ"/>
+    </j>
+    <k val="SEQ">
+        <kk val="SEQ"/>
+    </k>
 </root>

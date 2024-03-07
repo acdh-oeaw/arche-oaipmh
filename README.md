@@ -165,7 +165,7 @@ Existing implementations are:
 * `acdhOeaw\oai\metadata\CmdiMetadata` a specialization of the `ResMetadata`
   additionaly checking for the binary resource content schema.
 * `acdhOeaw\oai\metadata\TemplateMetadata` creates metadata based on flexible
-  XML templates. More detailed description can be found [here](blob/master/doc/TemplateMetadata.md).
+  XML templates. More detailed description can be found [here](doc/TemplateMetadata.md).
 
 It's possible that you'll need to generate OAI-PMH metadata in (yet) another way.
 In such a case you must develop your own class implementing the `MetadataInterface`.

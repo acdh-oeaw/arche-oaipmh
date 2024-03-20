@@ -1,12 +1,5 @@
-name: deploy on rancher
-on:
-  workflow_dispatch: ~
-  release:
-    types: [published]
-env:
-  RANCHER_API_BASE: https://rancher.acdh-dev.oeaw.ac.at/v3
-  RANCHER_PROJECT: Dissemination services
-  RANCHER_NAMESPACE: arche-biblatex
+name: test
+on: push
 jobs:
   deploy:
     runs-on: ubuntu-latest

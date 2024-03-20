@@ -143,7 +143,6 @@ class TemplateMetadata implements MetadataInterface {
      * @return DOMElement 
      */
     public function getXml(): DOMElement {
-        //TODO - output something to avoid timeout
         //TODO - cache pruning - now we just cache everything
         if (!isset(self::$dataset)) {
             self::$dataset = new Dataset();
@@ -404,8 +403,8 @@ class TemplateMetadata implements MetadataInterface {
     private function fetchValues(Value $val): array {
         $result = match ($val->path) {
             'NOW' => (new DateTimeImmutable())->format(DateTimeImmutable::ISO8601),
-            'URI', 'URL' => $this->headerData->repoid,
-            'METAURL' => $this->headerData->repoid . '/metadata',
+            'URI', 'URL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid,
+            'METAURL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid . '/metadata',
             'OAIID' => $this->headerData->id,
             'OAIURL' => $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . rawurlencode($this->format->metadataPrefix) . '&identifier=' . rawurldecode($this->headerData->id),
             'RANDOM' => rand(),

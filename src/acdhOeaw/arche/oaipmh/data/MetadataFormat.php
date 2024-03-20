@@ -111,59 +111,13 @@ class MetadataFormat extends \stdClass {
      * @var array<string, string>
      */
     public array $rdfNamespaces = [];
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $schemaProp;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $uriProp;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $cmdiSchemaProp;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $templateDir;
 
     /**
      * Used by: TemplateMetadata
      * 
      * @var array<string, string>
      */
-    //public array $idNmsp = [];
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $idProp;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $resolverNmsp;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $schemaDefault;
-
-    /**
-     * Used by: TemplateMetadata
-     */
-    //public string $defaultLang;
-
-    /**
-     * Used by: TemplateMetadata
-     * 
-     * @var array<string, string>
-     */
-    //public array $valueMaps;
+    public array $valueMaps = [];
 
     /**
      * Creates a metadata format descriptor
@@ -171,7 +125,7 @@ class MetadataFormat extends \stdClass {
      */
     public function __construct(object $fields = null) {
         foreach ($fields as $k => $v) {
-            $this->$k = $v;
+            $this->$k = is_array($this->$k ?? null) ? (array) $v : $v;
         }
     }
 }

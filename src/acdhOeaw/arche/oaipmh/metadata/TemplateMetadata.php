@@ -470,7 +470,8 @@ class TemplateMetadata implements MetadataInterface {
                                   TermInterface | null $predicate,
                                   bool $inverse, bool $recursive): void {
         $repo                 = $this->res->getRepo();
-        $baseUrlLen           = strlen($repo->getBaseUrl());
+        $baseUrl              = $repo->getBaseUrl();
+        $baseUrlLen           = strlen($baseUrl);
         $query                = match (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
             'ri' => "
                 WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
@@ -487,7 +488,8 @@ class TemplateMetadata implements MetadataInterface {
 
         if ($inverse) {
             $loaded    = self::$loadedInverse[(string) $predicate] ?? new SplObjectStorage();
-            $resources = array_filter($resources, fn($x) => !$loaded->contains($x));
+            // if resource IRI doesn't start with $baseUrl, then it's a literal on an already read subject and there is nothing to load
+            $resources = array_filter($resources, fn($x) => !$loaded->contains($x) && str_starts_with($x, $baseUrl));
             foreach ($resources as $i) {
                 $loaded->attach($i);
             }

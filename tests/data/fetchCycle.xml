@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a val="/base:ref/base:id"/>
+    <b foreach="/^base:rev" remove="remove">
+        <c val="/base:id"/>
+    </b>
+    <d foreach="/^base:rev" remove="remove">
+        <e val="/base:id"/>
+    </d>
+</root>

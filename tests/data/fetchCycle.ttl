@@ -1,0 +1,6 @@
+<http://127.0.0.1/api/123>  <https://id>    <http://127.0.0.1/api/123> ;
+                            <https://ref>   <http://127.0.0.1/api/234> .
+<http://127.0.0.1/api/234>  <https://id>    <http://127.0.0.1/api/234> ;
+                            <https://rev>   <http://127.0.0.1/api/123> .
+<http://127.0.0.1/api/345>  <https://id>    <http://127.0.0.1/api/345> ;
+                            <https://rev>   <http://127.0.0.1/api/123> .

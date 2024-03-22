@@ -176,13 +176,11 @@ class TemplateMetadata implements MetadataInterface {
         return $this->xml->documentElement;
     }
 
-    static public
-        function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
 
-    static public
-        function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
         return new QueryPart();
     }
 
@@ -320,7 +318,8 @@ class TemplateMetadata implements MetadataInterface {
 
     private function removePreservingChildren(DOMElement $el): void {
         $child = $el->firstChild;
-        while ($child) {
+        // after other transformations child->nextSibling of the last child may not be null
+        for ($i = 0; $i < $el->childElementCount; $i++) {
             $el->before($child);
             $child = $child->nextSibling;
         }
@@ -386,7 +385,8 @@ class TemplateMetadata implements MetadataInterface {
                 $el->before($valEl);
 
                 $child = $valEl->firstChild;
-                while ($child) {
+                // after other transformations child->nextSibling of the last child may not be null
+                for ($j = 0; $j < $el->childElementCount; $j++) {
                     $nextChild = $child->nextSibling;
                     if ($child instanceof DOMElement) {
                         $this->processElement($child);

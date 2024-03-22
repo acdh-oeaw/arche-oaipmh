@@ -229,7 +229,7 @@ TMPL;
             echo $this->response->saveXML($el);
         } finally {
             echo "\n" . self::$respEnd;
-            $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0));
+            $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0) . " peak memory usage: " . round(memory_get_peak_usage(true) / 1024 / 1024) . " MB");
         }
     }
 

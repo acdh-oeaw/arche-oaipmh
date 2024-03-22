@@ -317,4 +317,19 @@ OUT;
 OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
+
+    public function testFetchCycle(): void {
+        $tmpl     = $this->getMetadataObject('fetchCycle');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>http://127.0.0.1/api/234</a>
+<c>http://127.0.0.1/api/234</c>
+<c>http://127.0.0.1/api/345</c>
+<e>http://127.0.0.1/api/234</e>
+<e>http://127.0.0.1/api/345</e>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
 }

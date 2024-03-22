@@ -32,6 +32,7 @@ use DOMDocument;
 use DOMElement;
 use Exception;
 use RuntimeException;
+use SplObjectStorage;
 use Throwable;
 use zozlak\RdfConstants as RDF;
 use zozlak\queryPart\QueryPart;
@@ -75,6 +76,12 @@ class TemplateMetadata implements MetadataInterface {
 
     static private Dataset $dataset;
     static private ValueMapper $valueMapper;
+
+    /**
+     * 
+     * @var array<SplObjectStorage>
+     */
+    static private array $loadedInverse = [];
 
     /**
      * Repository resource object
@@ -479,7 +486,12 @@ class TemplateMetadata implements MetadataInterface {
         $config->metadataMode = RepoResourceDb::META_RESOURCE;
 
         if ($inverse) {
-            $resources = array_filter($resources, fn($x) => self::$dataset->none(new QT(null, $predicate, $x)));
+            $loaded    = self::$loadedInverse[(string) $predicate] ?? new SplObjectStorage();
+            $resources = array_filter($resources, fn($x) => !$loaded->contains($x));
+            foreach ($resources as $i) {
+                $loaded->attach($i);
+            }
+            self::$loadedInverse[(string) $predicate] = $loaded;
         } else {
             $resources = array_filter($resources, fn($x) => self::$dataset->none(new QT($x)));
         }

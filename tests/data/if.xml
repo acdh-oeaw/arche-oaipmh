@@ -2,44 +2,47 @@
 <root>
     <!-- false so no content but tag stays -->
     <a if="every(base:id == 'https://foo')">
-        <aa/>
+        <aa val="/base:number"/>
     </a>
     <!-- true with node removal -->
     <b if="any(base:id)" remove="remove">
-        <bb/>
+        <bb val="/base:number"/>
     </b>
     <!-- various simple conditions evaluating to true -->
     <c if="any(base:id == 'https://foo')">
-        <cc/>
+        <cc val="/base:number"/>
     </c>
     <d if="any(base:id starts base:)">
-        <dd/>
+        <dd val="/base:number"/>
     </d>
     <e if='every(base:single == "single&apos;s")'>
-        <ee/>
+        <ee val="/base:number"/>
     </e>
     <f if="none(base:noSuchProperty)">
-        <ff/>
+        <ff val="/base:number"/>
     </f>
     <g if="any(base:id regex 'foo')">
-        <gg/>
+        <gg val="/base:number"/>
     </g>
     <h if="every(base:number &lt; 10)">
-        <hh/>
+        <hh val="/base:number"/>
     </h>
     <!-- complex condition evaluating to true -->
     <!--   TRUE         AND (FALSE           OR TRUE                AND ((FALSE             OR TRUE        )) -->
     <!--   TRUE              FALSE              NOT FALSE                 NOT TRUE             TRUE           -->
     <i if="any(base:id) AND (any(base:false) OR NOT any(base:false) AND ((NOT any(base:id)) OR any(base:id)))">
-        <ii/>
+        <ii val="/base:number"/>
     </i>
     <!-- complex condition evaluating to false -->
     <!--   TRUE         AND (FALSE           OR TRUE                AND ((FALSE             OR FALSE        )) -->
     <!--   TRUE              FALSE              NOT FALSE                 NOT TRUE             FALSE           -->
     <j if="any(base:id) AND (any(base:false) OR NOT any(base:false) AND ((NOT any(base:id)) OR any(base:no)))">
-        <jj/>
+        <jj val="/base:number"/>
     </j>
     <k foreach="/base:author">
         <kk if="any(base:flag)" val="/base:flag"/>
     </k>
+    <l if="none(base:noSuchProperty)" val="/base:number"/>
+    <m if="any(base:id)" val="/base:noSuchProperty" remove="remove"/>
+    <n if="any(base:id)" val="/base:number" remove="remove"/>
 </root>

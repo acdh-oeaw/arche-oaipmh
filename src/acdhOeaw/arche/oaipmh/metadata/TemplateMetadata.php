@@ -194,6 +194,7 @@ class TemplateMetadata implements MetadataInterface {
     private function processElement(DOMDocument | DOMElement $el): void {
         $this->xmlLocation[] = $el->nodeName;
         $this->removeUnneededNodes($el);
+        $remove              = $el->hasAttribute('remove');
 
         $if = trim($el->getAttribute('if'));
         if (!$this->evaluateIf($if)) {
@@ -201,9 +202,6 @@ class TemplateMetadata implements MetadataInterface {
             return;
         }
         $el->removeAttribute('if');
-        if (!empty($if) && $el->hasAttribute('remove')) {
-            $this->removePreservingChildren($el);
-        }
 
         $foreach = $el->getAttribute('foreach');
         $el->removeAttribute('foreach');
@@ -219,8 +217,7 @@ class TemplateMetadata implements MetadataInterface {
                 $child = $nextChild;
             }
         } else {
-            $remove = $el->hasAttribute('remove');
-            $val    = Value::fromPath($foreach);
+            $val = Value::fromPath($foreach);
             foreach ($this->fetchValues($val) as $sbj) {
                 $localEl            = $el->cloneNode(true);
                 $el->before($localEl);
@@ -232,6 +229,10 @@ class TemplateMetadata implements MetadataInterface {
                 }
             }
             $el->parentNode->removeChild($el);
+        }
+
+        if (!empty($if) && $remove && $el->parentNode !== null) {
+            $this->removePreservingChildren($el);
         }
 
         array_pop($this->xmlLocation);

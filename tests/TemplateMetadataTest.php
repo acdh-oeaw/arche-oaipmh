@@ -66,19 +66,21 @@ OUT;
         $xml      = $this->asString($tmpl->getXml());
         $expected = <<<OUT
 <root>
-<bb/>
-<c><cc/></c>
-<d><dd/></d>
-<e><ee/></e>
-<f><ff/></f>
-<g><gg/></g>
-<h><hh/></h>
-<i><ii/></i>
+<bb>3</bb>
+<c><cc>3</cc></c>
+<d><dd>3</dd></d>
+<e><ee>3</ee></e>
+<f><ff>3</ff></f>
+<g><gg>3</gg></g>
+<h><hh>3</hh></h>
+<i><ii>3</ii></i>
 <k/>
 <k/>
 <k>
 <kk>flag value</kk>
 </k>
+<l>3</l>
+<n>3</n>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

@@ -25,6 +25,6 @@
     "require-dev": {
         "ext-pdo_sqlite": "*",
         "phpstan/phpstan": "^1",
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "*"
     }
 }

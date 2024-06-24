@@ -63,7 +63,8 @@ use acdhOeaw\arche\oaipmh\metadata\util\ValueMapper;
  * Optional metadata format definition properties:
  * -
  * 
- * XML tags in the template can be annotated with following attributes:
+ * For the description of the XML attributes which can be used in the template please
+ * take a look on https://github.com/acdh-oeaw/arche-oaipmh/blob/master/doc/TemplateMetadata.md
  * 
  * @author zozlak
  */

@@ -327,10 +327,12 @@ class TemplateMetadata implements MetadataInterface {
 
     private function removePreservingChildren(DOMElement $el): void {
         $child = $el->firstChild;
+        $count = $el->childElementCount;
         // after other transformations child->nextSibling of the last child may not be null
-        for ($i = 0; $i < $el->childElementCount; $i++) {
+        for ($i = 0; $i < $count; $i++) {
+            $nextChild = $child->nextSibling;
             $el->before($child);
-            $child = $child->nextSibling;
+            $child     = $nextChild;
         }
         $el->parentNode->removeChild($el);
     }

@@ -45,4 +45,13 @@
     <l if="none(base:noSuchProperty)" val="/base:number"/>
     <m if="any(base:id)" val="/base:noSuchProperty" remove="remove"/>
     <n if="any(base:id)" val="/base:number" remove="remove"/>
+    <!-- multiple children -->
+    <o if="any(base:id)">
+        <oo val="=ch1"/>
+        <oo val="=ch2"/>
+    </o>
+    <p if="any(base:id)" remove="remove">
+        <pp val="=ch1"/>
+        <pp val="=ch2"/>
+    </p>
 </root>

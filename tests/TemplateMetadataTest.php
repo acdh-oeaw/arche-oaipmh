@@ -81,6 +81,8 @@ OUT;
 </k>
 <l>3</l>
 <n>3</n>
+<o><oo>ch1</oo><oo>ch2</oo></o>
+<pp>ch1</pp><pp>ch2</pp>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

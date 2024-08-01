@@ -259,13 +259,20 @@ OUT;
         $expected = <<<OUT
 <root>
 <a>
-<included>http://127.0.0.1/api/123</included>
+<included current="http://127.0.0.1/api/123">
+<includedInt>bar</includedInt>
+<includedInt>foo</includedInt>
+</included>
 </a>
 <a>
-<included>https://bar</included>
+<included current="https://bar">
+<includedInt/>
+</included>
 </a>
 <a>
-<included>https://foo</included>
+<included current="https://foo">
+<includedInt/>
+</included>
 </a>
 <b>
 <ba>http://127.0.0.1/api/345</ba>
@@ -280,7 +287,9 @@ OUT;
 <bb>Molly</bb>
 </b>
 <c>
-<included>3</included>
+<included current="3">
+<includedInt/>
+</included>
 </c>
 <dd>bar</dd>
 <dd xml:lang="en">foo</dd>

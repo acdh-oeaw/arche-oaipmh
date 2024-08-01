@@ -1,2 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<included val="CURNODE"/>
+<included val="CURNODE" as="@current">
+    <includedInt val="/base:label"/>
+</included>

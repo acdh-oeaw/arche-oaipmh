@@ -54,4 +54,6 @@
         <pp val="=ch1"/>
         <pp val="=ch2"/>
     </p>
+    <q if="any(base:author == 'http://127.0.0.1/api/345')" val="/base:single"></q>
+    <r if="any(base:author == local:346)" val="/base:single"></r>
 </root>

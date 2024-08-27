@@ -331,6 +331,20 @@ display only authors having a homepage:
 <a>
 ```
 
+If the `foreach` is combined with the `if` in a single tag, the `if` statement is evaluated in the `foreach`
+"source" resource context. What you typically want is to evalute the `if` in the context of resources
+the `foreach` iterates trough. To achieve that, use a following syntax:
+
+```xml
+<doesnotmatter foreach="/acdh:hasAuthor" remove="remove">
+    <a if="some condition - see the if docs">
+        <uri val="/^acdh:hasHomepage"/>
+        <title val="/^acdh:hasHomepage/acdh:hasAuthor"/>
+        <homepage val="CURNODE"/>
+    </a>
+</doesnotmatter>
+```
+
 ### if
 
 Skips evaluation of child tags if a given condition is not fulfilled.
@@ -352,6 +366,8 @@ E.g.
 * `if="any(rdf:hasRawBinarySize) OR none(acdh:hasLicenseSummary)"` if there is
    any `acdh:hasRowBinarySize` RDF property value or no `acdh:hasLicenseSummary` property
 
+Please note that if you combine `if` and `foreach` in a one tag, then the `if` is evaluated in the 
+original resource context. See the `foreach` description for more detailed disccussion.
 
 ### XML entities
 

@@ -8,6 +8,7 @@ xmlErrors: true
 rdfNamespaces:
     base: https://
     skos: http://www.w3.org/2004/02/skos/core#
+    local: http://127.0.0.1/api/
 valueMaps:
     tag:
         tag1: TAG ONE

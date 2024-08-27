@@ -83,6 +83,8 @@ OUT;
 <n>3</n>
 <o><oo>ch1</oo><oo>ch2</oo></o>
 <pp>ch1</pp><pp>ch2</pp>
+<q>single's</q>
+<r>single's</r>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

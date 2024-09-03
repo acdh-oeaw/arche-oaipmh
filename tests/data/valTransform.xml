@@ -18,5 +18,6 @@
     <n val1="/base:category" map1="/skos:prefLabel" lang1="overwrite"/>
     <o val="/base:number"    aggregate="min"/>
     <p val="/base:label"     aggregate="min,en" lang="overwrite"/>
+    <q val="/base:id"        notMatch="foo" match="(.)ar" replace="\1az"/>
 </root>
 

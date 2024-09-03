@@ -80,6 +80,10 @@ class Value implements \Countable {
             $x->match = '`' . $el->getAttribute('match' . $suffix) . '`umsD';
             $el->removeAttribute('match' . $suffix);
         }
+        if ($el->hasAttribute('notMatch' . $suffix)) {
+            $x->notMatch = '`' . $el->getAttribute('notMatch' . $suffix) . '`umsD';
+            $el->removeAttribute('notMatch' . $suffix);
+        }
         $x->replace = $el->getAttribute('replace' . $suffix);
         $el->removeAttribute('replace' . $suffix);
         if ($el->hasAttribute('format' . $suffix)) {
@@ -137,6 +141,7 @@ class Value implements \Countable {
 
     public string $path;
     public string $match;
+    public string $notMatch;
     public string $replace;
     public string $format;
     public string $map;
@@ -167,6 +172,9 @@ class Value implements \Countable {
         $valueLangs = array_map(fn($x) => $x instanceof LiteralInterface ? $x->getLang() : '', $values);
 
         $values = array_map(fn($x) => (string) $x, $values);
+        if (!empty($this->notMatch)) {
+            $values = array_filter($values, fn($x) => !preg_match($this->notMatch, $x));
+        }
         if (!empty($this->match)) {
             $values = array_filter($values, fn($x) => preg_match($this->match, $x));
             if (!empty($this->replace)) {

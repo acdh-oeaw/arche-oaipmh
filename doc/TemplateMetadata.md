@@ -87,6 +87,19 @@ For the complete reference of the replace expression syntax please look [here](h
 The `match` annotation is passed as the `$pattern`, the `replace` annotation as the `$replacement`
 and the RDF property value as the `$subject`.
 
+### notMatch, notMatch0, notMatch1, ...
+
+`regular expression`
+
+Skips values which match a given regular expression,
+e.g. `^foo` skips all values which begin with `foo`.
+
+The regular expression is evaluted with the `umsD` [modifiers](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php).
+
+For the complete reference of the regular expressions syntax supported please look [here](https://www.php.net/manual/en/reference.pcre.pattern.syntax.php).
+
+Can be combined with `match`. In such a case both conditions must be fulfilled.
+
 ### format, format0, format1, ...
 
 `[DUbcdeEfFgGhHosuxX]:{format-specific parameters}`

@@ -250,6 +250,7 @@ OUT;
 <n xml:lang="de">Rede</n>
 <o>3</o>
 <p xml:lang="en">foo</p>
+<q>https://baz</q>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

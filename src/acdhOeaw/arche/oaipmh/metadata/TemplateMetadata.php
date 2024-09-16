@@ -70,8 +70,8 @@ use acdhOeaw\arche\oaipmh\metadata\util\ValueMapper;
  */
 class TemplateMetadata implements MetadataInterface {
 
-    const PREDICATE_REGEX  = '[-_a-zA-Z0-9]+:[^ )]*';
-    const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|([0-9]+[.]?[0-9]*)|(' . self::PREDICATE_REGEX . '))';
+    const PREDICATE_REGEX  = '[-_a-zA-Z0-9]+:[^ )]*|CURNODE';
+    const IF_VALUE_REGEX   = '(==|!=|starts|ends|contains|>|<|>=|<=|regex) +(?:"([^"]*)"|\'([^\']*)\'|([0-9]+[.]?[0-9]*)|(' . self::PREDICATE_REGEX . ')|(OAIID|URI|URL|PARENT))';
     const IF_PART_REGEX    = '`^ *(any|every|none)[(](' . self::PREDICATE_REGEX . ')(?: +' . self::IF_VALUE_REGEX . ')?[)]`u';
     const IF_LOGICAL_REGEX = '`^ *(OR|AND|NOT) *`';
 
@@ -83,6 +83,19 @@ class TemplateMetadata implements MetadataInterface {
      * @var array<SplObjectStorage>
      */
     static private array $loadedInverse = [];
+
+    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
+    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
+        return new QueryPart();
+    }
+
+    static public function clearDataset(): void {
+        self::$dataset       = new Dataset();
+        self::$loadedInverse = [];
+    }
 
     /**
      * Repository resource object
@@ -182,14 +195,6 @@ class TemplateMetadata implements MetadataInterface {
         }
 
         return $this->xml->documentElement;
-    }
-
-    static public function extendSearchFilterQuery(MetadataFormat $format): QueryPart {
-        return new QueryPart();
-    }
-
-    static public function extendSearchDataQuery(MetadataFormat $format): QueryPart {
-        return new QueryPart();
     }
 
     private function processElement(DOMDocument | DOMElement $el): void {
@@ -294,7 +299,13 @@ class TemplateMetadata implements MetadataInterface {
             $func  = $matches[1];
             $value = null;
             if (!empty($matches[3])) {
-                $value = !empty($matches[7]) ? $this->expand($matches[7]) : $matches[4] . ($matches[5] ?? '') . ($matches[6] ?? '');
+                if (!empty($matches[8])) {
+                    $value = $this->getSpecialValue($matches[8]);
+                } elseif (!empty($matches[7])) {
+                    $value = $this->expand($matches[7]);
+                } else {
+                    $value = $matches[4] . ($matches[5] ?? '') . ($matches[6] ?? '');
+                }
                 if ($matches[3] === ValueTemplate::REGEX) {
                     $value = "`$value`u";
                 }
@@ -412,17 +423,7 @@ class TemplateMetadata implements MetadataInterface {
     }
 
     private function fetchValues(Value $val): array {
-        $result = match ($val->path) {
-            'NOW' => (new DateTimeImmutable())->format(DateTimeImmutable::ISO8601),
-            'URI', 'URL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid,
-            'METAURL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid . '/metadata',
-            'OAIID' => $this->headerData->id,
-            'OAIURL' => $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . rawurlencode($this->format->metadataPrefix) . '&identifier=' . rawurldecode($this->headerData->id),
-            'RANDOM' => rand(),
-            'SEQ' => $this->seqNo++,
-            'CURNODE' => end($this->nodesStack),
-            default => null,
-        };
+        $result = $this->getSpecialValue($val->path);
         if ($result !== null) {
             return [$result];
         }
@@ -513,5 +514,20 @@ class TemplateMetadata implements MetadataInterface {
                 self::$dataset->add($repo->getGraphBySqlQuery($query, $param, $config));
             }
         }
+    }
+
+    private function getSpecialValue(string $val): TermInterface | string | null {
+        return match ($val) {
+            'NOW' => (new DateTimeImmutable())->format(DateTimeImmutable::ISO8601),
+            'URI', 'URL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid,
+            'METAURL' => $this->res->getRepo()->getBaseUrl() . $this->headerData->repoid . '/metadata',
+            'OAIID' => $this->headerData->id,
+            'OAIURL' => $this->format->info->baseURL . '?verb=GetRecord&metadataPrefix=' . rawurlencode($this->format->metadataPrefix) . '&identifier=' . rawurldecode($this->headerData->id),
+            'RANDOM' => rand(),
+            'SEQ' => $this->seqNo++,
+            'CURNODE' => end($this->nodesStack),
+            'PARENT' => $this->nodesStack[count($this->nodesStack) - 2],
+            default => null,
+        };
     }
 }

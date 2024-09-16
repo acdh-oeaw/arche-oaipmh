@@ -371,6 +371,9 @@ A term consists of:
 * optional operator and value
   * operator is one of `==`, `!=`, `starts`, `ends`, `contains`, `>`, `<`, `>=`, `<=`, `regex`
   * value is single- or double-quited literal value or an RDF property in the `prefix:suffix` format
+    or a special value of `OAIID`, `URI`/`URL` (see the `val` attribute documentation)
+    or a special value of `PARENT` (meaning last direct parent of the previous `foreach`;
+    if there is no `foreach`, then its equivalent to `URI`/`URL`)
 
 E.g.
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a if="any(base:id == OAIID)" val="/base:label"></a>
+    <b if="any(base:next == OAIID)" val="/base:label"></b>
+    <c foreach="/base:next" remove="remove">
+        <cc1 if="any(base:parent == PARENT)" val="/base:label"/>
+        <cc2 if="any(base:parent == URI)" val="/base:label"/>
+        <cc3 if="any(base:parent == OAIID)" val="/base:label"/>
+    </c>
+</root>

@@ -27,6 +27,7 @@
 namespace acdhOeaw\arche\oaipmh\tests;
 
 use DateTimeImmutable;
+use acdhOeaw\arche\oaipmh\metadata\TemplateMetadata;
 
 /**
  * Description of TemplateMetadataTest
@@ -34,6 +35,11 @@ use DateTimeImmutable;
  * @author zozlak
  */
 class TemplateMetadataTest extends TestBase {
+
+    public function setUp(): void {
+        parent::setUp();
+        TemplateMetadata::clearDataset();
+    }
 
     public function testCommentsWhitespaces(): void {
         $in       = file_get_contents(__DIR__ . '/data/keepComments.xml');
@@ -344,6 +350,19 @@ OUT;
 <c>http://127.0.0.1/api/345</c>
 <e>http://127.0.0.1/api/234</e>
 <e>http://127.0.0.1/api/345</e>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
+
+    public function testIfSpecial(): void {
+        $tmpl     = $this->getMetadataObject('ifSpecial');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<a>foo</a>
+<cc1>baz</cc1>
+<cc2>baz</cc2>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

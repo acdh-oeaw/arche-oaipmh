@@ -1,0 +1,8 @@
+<http://127.0.0.1/api/123>  <https://id>        <http://127.0.0.1/api/123> ,
+                                                <https://foo> ;
+                            <https://next>      <http://127.0.0.1/api/124> ,
+                                                <http://127.0.0.1/api/234> ;
+                            <https://label>     "foo" .
+<http://127.0.0.1/api/124>  <https://label>     "bar" .
+<http://127.0.0.1/api/234>  <https://label>     "baz" ;
+                            <https://parent>    <http://127.0.0.1/api/123> .

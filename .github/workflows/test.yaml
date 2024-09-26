@@ -7,21 +7,32 @@ jobs:
       matrix:
         php: [8.1, 8.2, 8.3, 8.4]
     steps:
-      - uses: actions/checkout@v4
-      - name: php
-        uses: shivammathur/setup-php@v2
-        with:
-         php-version: ${{ matrix.php }}
-      - name: composer
-        run: |
-          composer update
-      - name: test
-        run: |
-          vendor/bin/phpunit
+    - uses: actions/checkout@v4
+    - name: php
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+    - name: composer
+      run: |
+        composer update
+    - name: test
+      run: |
+        mkdir -p build/logs
+        XDEBUG_MODE=coverage vendor/bin/phpunit --display-deprecations --display-phpunit-deprecations --display-notices --display-warnings
+    - name: coveralls
+      run: |
+        export COVERALLS_RUN_LOCALLY=1
+        export COVERALLS_REPO_TOKEN=${{ secrets.coverallsToken }}
+        rm -fR composer.json composer.lock vendor
+        composer require php-coveralls/php-coveralls
+        php vendor/bin/php-coveralls -v
   phpstan:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.4
     - uses: actions/cache@v4
       with: 
         path: vendor
@@ -31,4 +42,3 @@ jobs:
       run: composer update
     - name: phpstan
       run: vendor/bin/phpstan analyse -l 8 src tests || true
-

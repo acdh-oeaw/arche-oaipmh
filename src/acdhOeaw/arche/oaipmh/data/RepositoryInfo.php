@@ -80,7 +80,7 @@ class RepositoryInfo {
      * @param object $param property values
      */
     public function __construct(object $param) {
-        foreach ($param as $k => $v) {
+        foreach ((array) $param as $k => $v) {
             if (isset($this->$k)) {
                 $this->$k = $v;
             }

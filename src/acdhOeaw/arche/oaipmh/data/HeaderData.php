@@ -72,9 +72,9 @@ class HeaderData {
      * - date - an OAI-PMH record datestamp field
      * - deleted - if an object is deleted (presence of a field means deletion)
      * - sets - a list of OAI-PMH sets a record belongs to
-     * @param object $src data to copy from
+     * @param object|null $src data to copy from
      */
-    public function __construct(object $src = null) {
+    public function __construct(?object $src = null) {
         if ($src === null) {
             return;
         }

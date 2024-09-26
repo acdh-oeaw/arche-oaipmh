@@ -123,8 +123,8 @@ class MetadataFormat extends \stdClass {
      * Creates a metadata format descriptor
      * @param object $fields values to set in the descriptor
      */
-    public function __construct(object $fields = null) {
-        foreach ($fields as $k => $v) {
+    public function __construct(object $fields = []) {
+        foreach ((array) $fields as $k => $v) {
             $this->$k = is_array($this->$k ?? null) ? (array) $v : $v;
         }
     }

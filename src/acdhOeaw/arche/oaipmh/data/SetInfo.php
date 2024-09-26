@@ -40,31 +40,30 @@ class SetInfo {
      * Set spec - see the OAI-PMH documentation
      * @var string
      */
-    public $spec;
+    public string $spec;
 
     /**
      * Set name - see the OAI-PMH documentation
      * @var string
      */
-    public $name;
+    public string $name;
 
     /**
      * Set metadata to be put inside a <setDescription>
      * @var ?DOMElement
      */
-    public $description;
+    public DOMElement | null $description;
 
     /**
      * Creates a set descriptor object by copying provided values.
      * @param string $spec setSpec value
      * @param string $name setName value
-     * @param DOMElement $description XML containing setDescription
+     * @param DOMElement|null $description XML containing setDescription
      */
     public function __construct(string $spec, string $name,
-                                DOMElement $description = null) {
+                                ?DOMElement $description = null) {
         $this->spec        = $spec;
         $this->name        = $name;
         $this->description = $description;
     }
-
 }

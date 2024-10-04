@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <a foreach="/^base:isPartOf/base:author" remove="remove">
+        <b val="CURNODE"/>
+    </a>
+</root>
+

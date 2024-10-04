@@ -6,4 +6,5 @@
 /.phpunit.cache
 /config
 /log
+/build
 /harvestoaipmh.php

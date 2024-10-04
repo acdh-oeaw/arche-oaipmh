@@ -463,6 +463,7 @@ class TemplateMetadata implements MetadataInterface {
                 $sbjs = $objs;
             }
         }
+        $sbjs = array_unique($sbjs);
         usort($sbjs, fn($x, $y) => ((string) $x) <=> ((string) $y));
         return $sbjs;
     }

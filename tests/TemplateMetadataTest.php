@@ -367,4 +367,15 @@ OUT;
 OUT;
         $this->assertEquals($this->std($expected), $xml);
     }
+    
+    public function testForeachDistinct(): void {
+        $tmpl     = $this->getMetadataObject('foreachDistinct');
+        $xml      = $this->asString($tmpl->getXml());
+        $expected = <<<OUT
+<root>
+<b>http://127.0.0.1/api/987</b>
+</root>
+OUT;
+        $this->assertEquals($this->std($expected), $xml);
+    }
 }

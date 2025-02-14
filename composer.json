@@ -20,7 +20,7 @@
         "psr-4": {
             "acdhOeaw\\": "src/acdhOeaw"
         }
-    }
+    },
     "autoload-dev": {
         "psr-4": {
             "acdhOeaw\\arche\\oaipmh\\tests\\": "tests"

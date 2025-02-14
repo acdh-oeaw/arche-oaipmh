@@ -18,7 +18,11 @@
     },
     "autoload": {
         "psr-4": {
-            "acdhOeaw\\": "src/acdhOeaw",
+            "acdhOeaw\\": "src/acdhOeaw"
+        }
+    }
+    "autoload-dev": {
+        "psr-4": {
             "acdhOeaw\\arche\\oaipmh\\tests\\": "tests"
         }
     },

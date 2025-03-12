@@ -18,6 +18,14 @@ The main aim was to keep it flexible:
     * implement your own search class
     * implement your own sets
 
+# REST API Extensions
+
+The service implements two extensions over the REST API defined by the OAI-PMH specification:
+
+* `verb=GetRecordRaw` returns just a record data without the OAI-PMH "envelope".
+* `verb=GetRecordRaw&format=RDFserializationMime` assumes the record is in the RDF-XML
+  and serializes it in a given RDF serialization format (e.g. `text/turtle` or `application/ld+json`)
+
 # Installation
 
 * Run in your webroot:

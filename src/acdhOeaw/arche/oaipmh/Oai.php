@@ -33,6 +33,8 @@ use acdhOeaw\arche\oaipmh\data\SetInfo;
 use acdhOeaw\arche\oaipmh\set\SetInterface;
 use acdhOeaw\arche\oaipmh\deleted\DeletedInterface;
 use acdhOeaw\arche\oaipmh\search\SearchInterface;
+use quickRdf\DataFactory as DF;
+use quickRdfIo\Util as RdfUtil;
 use DOMDocument;
 use DOMNode;
 use DOMElement;
@@ -172,14 +174,16 @@ TMPL;
         $this->reqId = sprintf('%06d', rand(0, 999999));
         $this->log->info("$this->reqId\tHandling request: " . json_encode($_GET, JSON_UNESCAPED_SLASHES));
 
-        header('Content-Type: text/xml');
-        // an ugly workaround allowing to serve raw CMDI records
+        // an ugly workaround allowing to serve raw records 
+        // (optionally converted to other RDF serialization format, if they are RDF)
         $verb = $this->getParam('verb') . '';
         if ($verb === 'GetRecordRaw') {
-            $id = $this->getParam('identifier') . '';
-            $this->oaiListRecordRaw($id);
+            $id     = $this->getParam('identifier') ?? '';
+            $format = $this->getParam('format', true) ?? '';
+            $this->oaiListRecordRaw($id, $format);
             return;
         }
+        header('Content-Type: text/xml');
 
         $params = [];
         foreach ($_GET as $key => $value) {
@@ -394,12 +398,15 @@ TMPL;
     }
 
     /**
-     * Returns a single metadata record without any OAI structures
-     * @param string $id
+     * Prints a single metadata record without any OAI structures
+     * 
+     * Optionally performs an RDF serialization format conversion
+     * (which obviously requires the OAI-PMH record to be a valid RDF-XML)
      */
-    public function oaiListRecordRaw(string $id = ''): void {
-        $t0 = microtime(true);
-        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    public function oaiListRecordRaw(string $id = '', string $rdfFormat = ''): void {
+        $t0          = microtime(true);
+        $xmlHeader   = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $contentType = 'text/xml';
         try {
             $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
             if ($id == '') {
@@ -418,15 +425,23 @@ TMPL;
             }
 
             $xml = $this->search->getMetadata(0)->getXml();
-            echo $xml->ownerDocument->saveXML($xml);
+            $xml = $xml->ownerDocument->saveXML($xml);
+            if (empty($rdfFormat)) {
+                $ret = $xmlHeader . $xml;
+            } else {
+                $ret         = RdfUtil::serialize(RdfUtil::parse($xml, new DF(), 'application/rdf+xml'), $rdfFormat);
+                $contentType = $rdfFormat;
+            }
         } catch (Throwable $e) {
             $this->log->error("$this->reqId\t$e");
             http_response_code($e instanceof OaiException ? 400 : 500);
             $doc = new DOMDocument('1.0', 'UTF-8');
             $el  = $doc->createElement('error', $e->getMessage());
             $doc->appendChild($el);
-            echo $doc->saveXML($el);
+            $ret = $xmlHeader . $doc->saveXML($el);
         }
+        header('Content-Type: ' . $contentType);
+        echo $ret;
         $this->log->info("$this->reqId\tExecution time: " . (microtime(true) - $t0));
     }
 
@@ -524,7 +539,12 @@ TMPL;
         }
     }
 
-    private function getParam(string $name): ?string {
-        return filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
+    private function getParam(string $name, bool $unset = false): ?string {
+        $value = filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
+        if ($unset) {
+            unset($_GET[$name]);
+            unset($_POST[$name]);
+        }
+        return $value;
     }
 }

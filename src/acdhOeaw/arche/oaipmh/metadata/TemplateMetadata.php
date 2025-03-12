@@ -422,6 +422,11 @@ class TemplateMetadata implements MetadataInterface {
         }
     }
 
+    /**
+     * 
+     * @return array<string|TermInterface>
+     * @throws OaiException
+     */
     private function fetchValues(Value $val): array {
         $result = $this->getSpecialValue($val->path);
         if ($result !== null) {
@@ -470,7 +475,7 @@ class TemplateMetadata implements MetadataInterface {
 
     /**
      * 
-     * @param array<TermInterface> $resource
+     * @param array<TermInterface> $resources
      */
     private function loadMetadata(array $resources,
                                   TermInterface | null $predicate,

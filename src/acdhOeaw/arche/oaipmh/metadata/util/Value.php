@@ -244,8 +244,6 @@ class Value implements \Countable {
     /**
      * 
      * @param DOMElement $el
-     * @param SplObjectStorage<DOMNode, mixed> $content
-     * @param SplObjectStorage<DOMNode, mixed> $after
      * @param int $index
      * @return void
      */

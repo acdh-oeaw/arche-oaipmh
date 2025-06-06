@@ -26,6 +26,7 @@
 
 namespace acdhOeaw\arche\oaipmh\metadata\util;
 
+use zozlak\ProxyClient;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use rdfInterface\TermInterface;
@@ -74,7 +75,7 @@ class ValueMapper {
             'allow_redirects' => true,
             'headers'         => ['Accept' => ['application/n-triples, application/rdf+xml;q=0.8, text/turtle;q=0.6']],
         ];
-        $this->client = new Client(array_merge($options, $guzzleOptions));
+        $this->client = ProxyClient::factory(array_merge($options, $guzzleOptions));
         if ($staticMaps !== null) {
 
             $this->staticMaps = $staticMaps;

@@ -485,10 +485,10 @@ class TemplateMetadata implements MetadataInterface {
         $baseUrlLen           = strlen($baseUrl);
         $query                = match (($recursive ? 'r' : '') . ($inverse ? 'i' : '')) {
             'ri' => "
-                WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
+                WITH t AS (SELECT * FROM get_relatives(?::bigint, ?, 999999, 0))
                 SELECT id FROM t WHERE n > 0",
             'r' => "
-                WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
+                WITH t AS (SELECT * FROM get_relatives(?::bigint, ?, 0, -999999))
                 SELECT id FROM t",
             'i' => "SELECT id FROM relations WHERE target_id = ? AND property = ?",
             '' => null,

@@ -64,10 +64,10 @@ class RepoDbStub extends \acdhOeaw\arche\lib\RepoDb {
                                        SearchConfig $config): Dataset {
         $baseUrl        = $this->getBaseUrl();
         static $riQuery = "
-                WITH t AS (SELECT * FROM get_relatives(?, ?, 999999, 0))
+                WITH t AS (SELECT * FROM get_relatives(?::bigint, ?, 999999, 0))
                 SELECT id FROM t WHERE n > 0";
         static $rQuery  = "
-                WITH t AS (SELECT * FROM get_relatives(?, ?, 0, -999999))
+                WITH t AS (SELECT * FROM get_relatives(?::bigint, ?, 0, -999999))
                 SELECT id FROM t";
         static $iQuery  = "SELECT id FROM relations WHERE target_id = ? AND property = ?";
         if ($query === $riQuery || $query === $rQuery) {

@@ -179,7 +179,7 @@ TMPL;
         $verb = $this->getParam('verb') . '';
         if ($verb === 'GetRecordRaw') {
             $id     = $this->getParam('identifier') ?? '';
-            $format = $this->getParam('format', true) ?? '';
+            $format = $this->getParam('format') ?? '';
             $this->oaiListRecordRaw($id, $format);
             return;
         }
@@ -408,7 +408,7 @@ TMPL;
         $xmlHeader   = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $contentType = 'text/xml';
         try {
-            $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache']);
+            $this->checkRequestParam(['identifier', 'metadataPrefix', 'reloadCache', 'format']);
             if ($id == '') {
                 throw new OaiException('badArgument');
             }
@@ -539,12 +539,7 @@ TMPL;
         }
     }
 
-    private function getParam(string $name, bool $unset = false): ?string {
-        $value = filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
-        if ($unset) {
-            unset($_GET[$name]);
-            unset($_POST[$name]);
-        }
-        return $value;
+    private function getParam(string $name): ?string {
+        return filter_input(\INPUT_GET, $name) ?? filter_input(\INPUT_POST, $name);
     }
 }

@@ -4,6 +4,12 @@ The `TemplateMetadata` class generates the metatada from an XML templates using 
 
 ## Referece
 
+The order in which the value-transforming operations are being processed is:
+
+```
+notMatch->match->replace->format->aggregate->split->map
+```
+
 ### val, val0, val1, ...
 
 `(/^?{propertyPrefix}:{propertySuffix}[*]?)+` or `=any constant` or `(NOW|URI|URL|METAURL|OAIID|OAIURL|RANDOM|SEQ|CURNODE)`
@@ -128,9 +134,10 @@ Formats value according to a given rule:
 * `mapName` applies a static map defined in the YAML config.
   If a value does not exist in the map, it is skipped.
 
+
 ### aggregate, aggregate0, aggregate1, ...
 
-`(min|max)(,{langCode})?`
+`(min|max|join)(,{langCode}(,joinString)?)?`
 
 Aggregates values into a single one.
 
@@ -139,6 +146,11 @@ language. If there are no values in the requested language, aggregation is perfo
 
 E.g. `min,en` on `"bar"@de`, `"baz"@en` and `"foo"@en` will result with `"baz"@en`
 while `min` will result in `"bar"@de`.
+
+The `joinString` parameter is used only by the `join` aggregation. The langCode parameter
+works both as a value filter and to set the language of the resulting value, 
+e.g. `join,, and ` on `"foo"@en`, `"bar"@de`, `"baz"@en` results in `"foo and bar and baz"`
+(without a lang code) while `join,en, and ` on the same data results in `"foo and baz"@en`.
 
 ### as, as0, as1, ... and action, action0, action1, ...
 
@@ -183,6 +195,13 @@ Examples:
   ```xml
   <a someAttr="foobar"/>
   ```
+
+### split, split0, split1, ...
+
+`splitString`
+
+Splits each value on a given string, e.g. `split="a"` on `"Marry"@en` and `"Matthias"@de` results in
+`"M"@en`, `"rry"@en`, `"M"@de`, `"tthi"@de`, `"s"@de.`
 
 ### lang, lang0, lang1, ...
 

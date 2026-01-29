@@ -19,5 +19,8 @@
     <o val="/base:number"    aggregate="min"/>
     <p val="/base:label"     aggregate="min,en" lang="overwrite"/>
     <q val="/base:id"        notMatch="foo" match="(.)ar" replace="\1az"/>
+    <r val="/base:label"     aggregate="join,,#"/>
+    <s val="/base:label"     aggregate="join,en,#"/>
+    <t val="/base:label"     aggregate="join,,a" split="a" lang="if empty"/>
 </root>
 

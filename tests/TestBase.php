@@ -70,7 +70,8 @@ class TestBase extends \PHPUnit\Framework\TestCase {
         $repo     = RepoDbStub::factoryTest($baseUrl, $schema, $metaFile);
         $repoRes  = new RepoResourceDb(self::RES_URI, $repo);
 
-        $oaiFormat = new MetadataFormat((object) yaml_parse_file(__DIR__ . '/data/' . $caseName . '.yml'));
+        $oaiFormat = yaml_parse_file(__DIR__ . '/data/' . $caseName . '.yml');
+        $oaiFormat = new MetadataFormat(json_decode((string) json_encode($oaiFormat)));
         if (empty($template)) {
             $oaiFormat->templatePath = __DIR__ . '/data/' . $caseName . '.xml';
         } elseif (file_exists(__DIR__ . '/data/' . $template . '.xml')) {

@@ -77,14 +77,13 @@ class ValueMapper {
         ];
         $this->client = ProxyClient::factory(array_merge($options, $guzzleOptions));
         if ($staticMaps !== null) {
-
             $this->staticMaps = $staticMaps;
         }
     }
 
     public function getStaticMapping(string $map, string $value): string | null {
         if (isset($this->staticMaps[$map])) {
-            return $this->staticMaps[$map][$value] ?? null;
+            return $this->staticMaps[$map]->$value ?? null;
         }
         return null;
     }

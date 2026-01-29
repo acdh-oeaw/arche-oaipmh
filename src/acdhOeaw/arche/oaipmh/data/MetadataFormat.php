@@ -115,7 +115,7 @@ class MetadataFormat extends \stdClass {
     /**
      * Used by: TemplateMetadata
      * 
-     * @var array<string, string>
+     * @var array<string, array<string, string>>
      */
     public array $valueMaps = [];
 

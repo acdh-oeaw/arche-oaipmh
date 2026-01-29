@@ -43,7 +43,8 @@ class Value implements \Countable {
     const AGG_NONE         = 'none';
     const AGG_MIN          = 'min';
     const AGG_MAX          = 'max';
-    const AGG              = '`^(?:' . self::AGG_NONE . '|(?:' . self::AGG_MIN . '|' . self::AGG_MAX . ')(?:,.*)?)`';
+    const AGG_JOIN         = 'join';
+    const AGG              = '`^(?:' . self::AGG_NONE . '|(?:' . self::AGG_MIN . '|' . self::AGG_MAX . '|' . self::AGG_JOIN . ')(?:,[a-z]*(?:,.*)?)?)$`';
     const AGG_DEFAULT      = self::AGG_NONE;
     const REQ_REQUIRED     = 'required';
     const REQ_OPTIONAL     = 'optional';
@@ -115,6 +116,10 @@ class Value implements \Countable {
             }
             $el->removeAttribute('required' . $suffix);
         }
+        if ($el->hasAttribute('split' . $suffix)) {
+            $x->split = $el->getAttribute('split' . $suffix);
+            $el->removeAttribute('split' . $suffix);
+        }
         if ($el->hasAttribute('action' . $suffix)) {
             $x->action = $el->getAttribute('action' . $suffix);
             if (!in_array($x->action, self::ACTION)) {
@@ -146,6 +151,7 @@ class Value implements \Countable {
     public string $format;
     public string $map;
     public string $aggregate = self::AGG_DEFAULT;
+    public string $split     = '';
     public string $required  = self::REQ_DEFAULT;
     public string $action    = self::ACTION_DEFAULT;
     public string $as        = self::AS_DEFAULT;
@@ -199,6 +205,37 @@ class Value implements \Countable {
             $values = array_map($func, $values);
             $values = array_filter($values, fn($x) => $x !== null);
         }
+        if ($this->aggregate !== self::AGG_NONE && count($values) > 0) {
+            list($agg, $prefLang, $joinString) = explode(',', $this->aggregate . ',,');
+            if (!empty($prefLang)) {
+                $matching = array_filter($values, fn($idx) => $valueLangs[$idx] === $prefLang, ARRAY_FILTER_USE_KEY);
+                $values   = count($matching) > 0 ? $matching : $values;
+            }
+            if (count($values) > 1) {
+                if ($agg === self::AGG_JOIN) {
+                    $values     = [implode($joinString, $values)];
+                    $valueLangs = [$prefLang];
+                } else {
+                    $func   = match ($agg) {
+                        self::AGG_MIN => fn(array $x) => min(...$x),
+                        self::AGG_MAX => fn(array $x) => max(...$x),
+                    };
+                    $agg    = $func($values);
+                    $values = array_filter($values, fn($x) => $x === $agg);
+                }
+            }
+            reset($values);
+            $valueLangs = [$valueLangs[key($values)]];
+        }
+        if (!empty($this->split)) {
+            $values          = array_map(fn($x) => explode($this->split, $x), $values);
+            $valueLangsSplit = [];
+            foreach (array_keys($values) as $k) {
+                $valueLangsSplit[] = array_fill(0, count($values[$k]), $valueLangs[$k]);
+            }
+            $values     = array_merge(...$values);
+            $valueLangs = array_merge(...$valueLangsSplit);
+        }
         if (!empty($this->map)) {
             if (str_starts_with($this->map, '/')) {
                 $property   = substr($this->map, 1);
@@ -211,30 +248,13 @@ class Value implements \Countable {
                 $values = array_filter($values, fn($x) => $x !== null);
             }
         }
-        if ($this->aggregate !== self::AGG_NONE && count($values) > 0) {
-            list($agg, $prefLang) = explode(',', $this->aggregate . ',');
-            if (!empty($prefLang)) {
-                $matching = array_filter($values, fn($idx) => $valueLangs[$idx] === $prefLang, ARRAY_FILTER_USE_KEY);
-                $values   = count($matching) > 0 ? $matching : $values;
-            }
-            if (count($values) > 1) {
-                $func   = match ($agg) {
-                    self::AGG_MIN => fn(array $x) => min(...$x),
-                    self::AGG_MAX => fn(array $x) => max(...$x),
-                };
-                $agg    = $func($values);
-                $values = array_filter($values, fn($x) => $x === $agg);
-            }
-            reset($values);
-            $valueLangs = [$valueLangs[key($values)]];
-        }
         $this->values     = array_values($values);
         $this->valueLangs = $valueLangs;
     }
 
     public function count(): int {
         $count = count($this->values);
-        return $this->aggregate === self::AGG_NONE ? $count : min($count, 1);
+        return $this->aggregate === self::AGG_NONE || !empty($this->split) ? $count : min($count, 1);
     }
 
     public function isRequired(): bool {

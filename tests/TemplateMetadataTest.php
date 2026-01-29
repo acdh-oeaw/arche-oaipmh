@@ -257,6 +257,11 @@ OUT;
 <o>3</o>
 <p xml:lang="en">foo</p>
 <q>https://baz</q>
+<r>bar#foo</r>
+<s>foo</s>
+<t>b</t>
+<t>r</t>
+<t>foo</t>
 </root>
 OUT;
         $this->assertEquals($this->std($expected), $xml);

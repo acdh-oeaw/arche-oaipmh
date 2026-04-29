@@ -39,7 +39,7 @@ class HttpClient {
     static public ResponseInterface $response;
     static public string $requestUri;
 
-    public function __construct(array $options) {
+    public function __construct() {
         
     }
 

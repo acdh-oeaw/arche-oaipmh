@@ -38,6 +38,7 @@ use acdhOeaw\arche\oaipmh\data\SetInfo;
  */
 class NoSets implements SetInterface {
 
+    /** @phpstan-ignore property.onlyWritten */
     private object $config;
 
     public function __construct(object $config) {

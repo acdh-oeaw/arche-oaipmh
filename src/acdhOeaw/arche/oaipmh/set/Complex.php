@@ -28,6 +28,7 @@ namespace acdhOeaw\arche\oaipmh\set;
 
 use stdClass;
 use PDO;
+use acdhOeaw\arche\oaipmh\data\HeaderData;
 use acdhOeaw\arche\oaipmh\data\MetadataFormat;
 use acdhOeaw\arche\oaipmh\data\SetInfo;
 use acdhOeaw\arche\oaipmh\metadata\DcMetadata;
@@ -116,7 +117,7 @@ class Complex implements SetInterface {
 
         $ret = [];
         while ($i   = $query->fetch(PDO::FETCH_OBJ)) {
-            $meta  = new DcMetadata(json_decode($i->meta), new stdClass(), new MetadataFormat());
+            $meta  = new DcMetadata(json_decode($i->meta), new HeaderData(), new MetadataFormat());
             $ret[] = new SetInfo($i->spec, $i->name, $meta->getXml());
         }
         return $ret;

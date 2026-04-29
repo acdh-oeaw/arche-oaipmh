@@ -484,6 +484,7 @@ TMPL;
         if ($res->deleted) {
             $attr['status'] = 'deleted';
         }
+        /** @var DOMElement $node */
         $node = $this->createElement('header', '', $attr);
         $node->appendChild($this->createElement('identifier', $res->id));
         $node->appendChild($this->createElement('datestamp', $res->date));

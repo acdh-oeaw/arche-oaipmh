@@ -63,7 +63,7 @@ class ValueMapper {
     private array $failed = [];
 
     /**
-     * 
+     * @param array<string, array<string, string>>|null $staticMaps
      * @param array<string, mixed> $guzzleOptions connection options to be used while fetching
      *   the data - see http://docs.guzzlephp.org/en/stable/request-options.html
      */

@@ -98,12 +98,12 @@ class MetadataFormat extends \stdClass {
     /**
      * Used by: TemplateMetadata
      */
-    public bool $keepComments;
+    public bool $keepComments = false;
 
     /**
      * Used by: TemplateMetadata
      */
-    public bool $xmlErrors;
+    public bool $xmlErrors = false;
 
     /**
      * Used by: TemplateMetadata

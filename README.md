@@ -1,7 +1,7 @@
 # OAI-PMH service for arche-core
 
 [![Latest Stable Version](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/v/stable)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
-![Build status](https://github.com/acdh-oeaw/arche-oaipmh/workflows/test/badge.svg?branch=master)
+[![Build status](https://github.com/acdh-oeaw/arche-oaipmh/actions/workflows/test.yaml/badge.svg)](https://github.com/acdh-oeaw/arche-oaipmh/actions/workflows/test.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/acdh-oeaw/arche-oaipmh/badge.svg?branch=master)](https://coveralls.io/github/acdh-oeaw/arche-oaipmh?branch=master)
 [![License](https://poser.pugx.org/acdh-oeaw/arche-oaipmh/license)](https://packagist.org/packages/acdh-oeaw/arche-oaipmh)
 

@@ -219,6 +219,7 @@ class Value implements \Countable {
                     $func   = match ($agg) {
                         self::AGG_MIN => fn(array $x) => min(...$x),
                         self::AGG_MAX => fn(array $x) => max(...$x),
+                        default => throw new OaiException("Unsupported aggregate function $agg"),
                     };
                     $agg    = $func($values);
                     $values = array_filter($values, fn($x) => $x === $agg);

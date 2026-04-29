@@ -46,7 +46,7 @@ use acdhOeaw\arche\lib\SearchConfig;
 class RepoDbStub extends \acdhOeaw\arche\lib\RepoDb {
 
     static function factoryTest(string $baseUrl, Schema $schema,
-                                string $metaFile) {
+                                string $metaFile): self {
         $repo          = new self($baseUrl, $schema, new Schema([]), new PDO('sqlite::memory:'));
         $repo->dataset = new Dataset();
         $repo->dataset->add(QuickRdfIoUtil::parse($metaFile, new DataFactory()));

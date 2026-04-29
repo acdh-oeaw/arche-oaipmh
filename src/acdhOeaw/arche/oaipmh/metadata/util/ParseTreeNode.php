@@ -108,6 +108,7 @@ class ParseTreeNode {
             'OR' => $this->first->evaluate() || $this->second->evaluate(),
             'NOT' => !$this->first->evaluate(),
             '(' => $this->first->evaluate(),
+            default => throw new OaiException("Unsupported operator $this->operator"),
         };
     }
 

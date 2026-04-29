@@ -36,6 +36,7 @@ use zozlak\queryPart\QueryPart;
  */
 class No implements DeletedInterface {
 
+    /** @phpstan-ignore property.onlyWritten */
     private object $config;
     
     public function __construct(object $config) {

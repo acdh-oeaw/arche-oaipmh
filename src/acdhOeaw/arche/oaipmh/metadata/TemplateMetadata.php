@@ -80,7 +80,7 @@ class TemplateMetadata implements MetadataInterface {
 
     /**
      * 
-     * @var array<SplObjectStorage>
+     * @var array<SplObjectStorage<object, null>>
      */
     static private array $loadedInverse = [];
 
@@ -149,7 +149,7 @@ class TemplateMetadata implements MetadataInterface {
         }
 
         if (!isset(self::$valueMapper)) {
-            self::$valueMapper = new ValueMapper($this->format->valueMaps ?? null);
+            self::$valueMapper = new ValueMapper($this->format->valueMaps);
         }
     }
 
@@ -180,7 +180,7 @@ class TemplateMetadata implements MetadataInterface {
             self::$dataset->add($this->res->getGraph()->getDataset());
             $this->processElement($this->xml->documentElement);
         } catch (Throwable $e) {
-            if ($this->format->xmlErrors ?? false) {
+            if ($this->format->xmlErrors) {
                 $doc = new DOMDocument('1.0', 'UTF-8');
                 $err = $doc->createElement('error');
                 $err->appendChild($doc->createElement('message', $e->getMessage()));
@@ -225,6 +225,7 @@ class TemplateMetadata implements MetadataInterface {
         } else {
             $val = Value::fromPath($foreach);
             foreach ($this->fetchValues($val) as $sbj) {
+                /** @var DOMElement $localEl */
                 $localEl            = $el->cloneNode(true);
                 $el->before($localEl);
                 $this->nodesStack[] = $sbj;
@@ -248,7 +249,7 @@ class TemplateMetadata implements MetadataInterface {
         $child = $el->firstChild;
         while ($child) {
             $nextChild = $child->nextSibling;
-            if (!($child instanceof DOMElement) && !($child instanceof DOMComment && $this->format->keepComments ?? false)) {
+            if (!($child instanceof DOMElement) && !($child instanceof DOMComment && $this->format->keepComments)) {
                 $el->removeChild($child);
             }
             $child = $nextChild;
@@ -399,7 +400,7 @@ class TemplateMetadata implements MetadataInterface {
         if ($valid) {
             $iterOver ??= $vals[0];
             for ($i = 0; $i < $iterOver->count(); $i++) {
-                /* @var $valEl DOMElement */
+                /** @var DOMElement $valEl */
                 $valEl = $el->cloneNode(true);
                 foreach ($vals as $v) {
                     $v->insert($valEl, $v === $iterOver ? $i : 0);
@@ -500,9 +501,9 @@ class TemplateMetadata implements MetadataInterface {
         if ($inverse) {
             $loaded    = self::$loadedInverse[(string) $predicate] ?? new SplObjectStorage();
             // if resource IRI doesn't start with $baseUrl, then it's a literal on an already read subject and there is nothing to load
-            $resources = array_filter($resources, fn($x) => !$loaded->contains($x) && str_starts_with($x, $baseUrl));
+            $resources = array_filter($resources, fn($x) => !$loaded->offsetExists($x) && str_starts_with($x, $baseUrl));
             foreach ($resources as $i) {
-                $loaded->attach($i);
+                $loaded->offsetSet($i);
             }
             self::$loadedInverse[(string) $predicate] = $loaded;
         } else {

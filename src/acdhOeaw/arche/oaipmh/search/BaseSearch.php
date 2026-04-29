@@ -94,25 +94,16 @@ class BaseSearch implements SearchInterface {
 
     /**
      * Resumption token value used
-     * @var ?string
      */
-    private ?string $resumptionToken;
-
-    /**
-     * Value of the resumptionCursor attribute read from the resumption dump file
-     * @var int
-     */
-    private int $resumptionCursor = 0;
+    private string $resumptionToken;
 
     /**
      * Total number of resources of the original search read from the resumption dump file
-     * @var int
      */
     private int $resumptionCount;
 
     /**
      * Object creation timestamp. Used to determine resumption timeout.
-     * @var int
      */
     private int $t0;
 
@@ -206,7 +197,6 @@ class BaseSearch implements SearchInterface {
         $this->resumptionToken  = $token;
         $this->records          = [];
         $data                   = json_decode(file_get_contents("$dir/$token"));
-        $this->resumptionCursor = $data->cursor;
         $this->resumptionCount  = $data->count;
         foreach ($data->records as $i) {
             $this->records[] = new HeaderData($i);

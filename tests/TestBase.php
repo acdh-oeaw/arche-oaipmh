@@ -84,7 +84,7 @@ class TestBase extends \PHPUnit\Framework\TestCase {
 
         $hd         = new HeaderData();
         $hd->id     = self::RES_OAI_URI;
-        $hd->repoid = preg_replace('`^.*/`', '', self::RES_URI);
+        $hd->repoid = (int) preg_replace('`^.*/`', '', self::RES_URI);
         $hd->date   = self::RES_DATE;
 
         $class = $oaiFormat->class;

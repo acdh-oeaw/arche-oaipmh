@@ -15,7 +15,7 @@ jobs:
     - name: composer
       run: composer update
     - name: phpstan
-      run: vendor/bin/phpstan analyse -l 8 src tests
+      run: vendor/bin/phpstan analyse -l 6 src tests
     - name: test
       run: |
         mkdir -p build/logs

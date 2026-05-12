@@ -27,6 +27,7 @@
 namespace acdhOeaw\arche\oaipmh\tests;
 
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 
 /**
  * Description of CmdiMetadataTest
@@ -35,6 +36,7 @@ use GuzzleHttp\Psr7\Response;
  */
 class CmdiMetadataTest extends TestBase {
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSimple(): void {
         $expected               = <<<OUT
 <cmdiMetadata><foo/></cmdiMetadata>

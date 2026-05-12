@@ -19,7 +19,7 @@ jobs:
     - name: test
       run: |
         mkdir -p build/logs
-        XDEBUG_MODE=coverage vendor/bin/phpunit --display-deprecations --display-phpunit-deprecations --display-notices --display-warnings
+        XDEBUG_MODE=coverage vendor/bin/phpunit --display-all-issues
     - name: coveralls
       if: ${{ matrix.php == 8.5 }}
       run: |

@@ -48,13 +48,17 @@ use acdhOeaw\arche\oaipmh\set\SetInterface;
  * Mappings between OAI-PMH terms (id, date, set) and RDF properties is provided
  * by the statically initialized `acdhOeaw\util\RepoConfig` class.
  *
- * Includes `metadataClass::extendSearchQuery()` SPARQL query part in the
+ * Includes `metadataClass::extendSearchQuery()` query part in the
  * performed search (where `metadataClass` is read from the metadata format
  * descriptor).
  * 
  * @author zozlak
  */
 class BaseSearch implements SearchInterface {
+
+    const ID_IDENTIFIERS = 'identifiers';
+    const ID_METADATA    = 'metadata';
+    const ID_TABLES      = [self::ID_IDENTIFIERS, self::ID_METADATA];
 
     /**
      * Metadata format descriptor.
@@ -194,10 +198,10 @@ class BaseSearch implements SearchInterface {
             throw new OaiException('badResumptionToken');
         }
 
-        $this->resumptionToken  = $token;
-        $this->records          = [];
-        $data                   = json_decode(file_get_contents("$dir/$token"));
-        $this->resumptionCount  = $data->count;
+        $this->resumptionToken = $token;
+        $this->records         = [];
+        $data                  = json_decode(file_get_contents("$dir/$token"));
+        $this->resumptionCount = $data->count;
         foreach ($data->records as $i) {
             $this->records[] = new HeaderData($i);
         }
@@ -213,7 +217,9 @@ class BaseSearch implements SearchInterface {
             $extDataQP   = $class::extendSearchDataQuery($this->format);
         }
 
-        $idFilterQP    = $this->getIdFilter($id);
+        $idCol         = $this->config->idTable === self::ID_IDENTIFIERS ? 'ids' : 'value';
+        $idQP          = $this->getIdQuery('v', '');
+        $idFilterQP    = $this->getIdQuery('', $id);
         $setFilterQP   = $this->sets->getSetFilter($set);
         $dateFilterQP  = $this->getDateFilter($from, $until);
         $delDataQP     = $this->deleted->getDeletedData();
@@ -230,12 +236,12 @@ class BaseSearch implements SearchInterface {
             )
             SELECT 
                 v.id AS repoid, 
-                i.ids AS id, 
+                i.$idCol AS id, 
                 to_char(m1.value_t, 'YYYY-MM-DD') || 'T' || to_char(m1.value_t, 'HH24:MI:SS') || 'Z' AS date,
                 deleted, json_agg(set) AS sets
             FROM 
                 valid v
-                JOIN identifiers i ON v.id = i.id AND ids LIKE ?
+		" . $idQP->query . "
                 JOIN metadata m1 ON v.id = m1.id AND m1.property = ?
                 LEFT JOIN (" . $delDataQP->query . ") d ON v.id = d.id
                 LEFT JOIN (" . $setDataQP->query . ") s ON v.id = s.id
@@ -247,7 +253,8 @@ class BaseSearch implements SearchInterface {
             $setFilterQP->param,
             $dateFilterQP->param,
             $extFilterQP->param,
-            [$this->config->idNmsp . '%', $this->config->dateProp],
+            $idQP->param,
+            [$this->config->dateProp],
             $extDataQP->param,
             $delDataQP->param,
             $setDataQP->param
@@ -261,22 +268,41 @@ class BaseSearch implements SearchInterface {
         }
     }
 
-    /**
-     * Creates SPARQL query clause implementing the id filter.
-     * @param string $id id filter value
-     * @return QueryPart
-     */
-    private function getIdFilter(string $id): QueryPart {
-        $filter = new QueryPart();
-        if (!empty($id)) {
-            $filter->query = "SELECT id FROM identifiers WHERE ids = ?";
-            $filter->param = [$id];
+    private function getIdQuery(string $joinWith, string $id): QueryPart {
+        $table = $this->config->idTable;
+        if (!in_array($table, self::ID_TABLES)) {
+            throw new OaiException('Configuration property idTable has a wrong value');
         }
-        return $filter;
+        $column = $table === self::ID_IDENTIFIERS ? 'ids' : 'value';
+        $param  = [];
+
+        $cond = [];
+        if (!empty($this->config->idProp) && $table !== self::ID_IDENTIFIERS) {
+            $cond[]  = 'property = ?';
+            $param[] = $this->config->idProp;
+        }
+        if (!empty($id)) {
+            $cond[]  = "$column = ?";
+            $param[] = $id;
+        } elseif (!empty($this->config->idNmsp)) {
+            $cond[]  = "$column LIKE ?";
+            $param[] = $this->config->idNmsp . '%';
+        }
+        $cond = implode(' AND ', $cond);
+        if (empty($cond)) {
+            throw new OaiException("Id configuration is broken - the id retrieval condition is empty");
+        }
+
+        if (empty($joinWith)) {
+            $query = "SELECT id FROM $table WHERE $cond";
+        } else {
+            $query = "JOIN $table i ON $joinWith.id = i.id AND $cond";
+        }
+        return new QueryPart($query, $param);
     }
 
     /**
-     * Creates SPARQL clauses implementing the date filter.
+     * Creates clauses implementing the date filter.
      * @param string $from date from filter value
      * @param string $until date to filter value
      * @return QueryPart
@@ -299,7 +325,7 @@ class BaseSearch implements SearchInterface {
     }
 
     /**
-     * Creates SPARQL clause implementing the set filter.
+     * Creates clause implementing the set filter.
      * @param string $set set filter value
      * @return QueryPart
      */

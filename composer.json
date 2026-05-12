@@ -12,6 +12,7 @@
         }
     ],
     "require": {
+        "php": ">=8.3",
         "acdh-oeaw/arche-lib": "^7",
         "zozlak/logging": "^1",
         "zozlak/query-part": "^2.1",

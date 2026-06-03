@@ -95,7 +95,7 @@ class ResMetadata implements MetadataInterface {
         $metaRes     = (string) $this->res->getGraph()->getObject($tmpl);
         $clientClass = $this->format->httpClient ?? Client::class;
         $client      = new $clientClass(json_decode(json_encode($this->format->requestOptions), true));
-        $request     = new Request('get', $metaRes);
+        $request     = new Request('GET', $metaRes);
         try {
             $response = $client->send($request);
             $meta     = new DOMDocument();
